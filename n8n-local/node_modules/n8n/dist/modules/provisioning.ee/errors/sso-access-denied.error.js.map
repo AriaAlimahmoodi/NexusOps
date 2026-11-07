@@ -1,0 +1,1 @@
+{"version":3,"file":"sso-access-denied.error.js","sourceRoot":"","sources":["../../../../src/modules/provisioning.ee/errors/sso-access-denied.error.ts"],"names":[],"mappings":";;;AAAA,wCAA6C;AAS7C,0BAAkC,SAAQ,uBAAc;IACvD;QACC,KAAK,CAAC,iDAAiD,CAAC,CAAC;IAC1D,CAAC;CACD"}

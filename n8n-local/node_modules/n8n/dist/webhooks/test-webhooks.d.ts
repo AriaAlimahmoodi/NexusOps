@@ -1,0 +1,58 @@
+import { Logger } from '@n8n/backend-common';
+import type express from 'express';
+import { ExecutionContextService, InstanceSettings } from 'n8n-core';
+import { Workflow } from 'n8n-workflow';
+import type { IWebhookData, IWorkflowExecuteAdditionalData, IHttpRequestMethods, IRunData, IWorkflowBase, IDestinationNode } from 'n8n-workflow';
+import { NodeTypes } from '../node-types';
+import { Push } from '../push';
+import { Publisher } from '../scaling/pubsub/publisher.service';
+import type { TestWebhookRegistration } from '../webhooks/test-webhook-registrations.service';
+import { TestWebhookRegistrationsService } from '../webhooks/test-webhook-registrations.service';
+import type { WorkflowRequest } from '../workflows/workflow.request';
+import type { ExpectedWebhookNodeType } from './node-type-matcher';
+import { WebhookResponse } from './webhook-response';
+import { WebhookService } from './webhook.service';
+import type { IWebhookResponseCallbackData, IWebhookManager, WebhookAccessControlOptions, WebhookRequest } from './webhook.types';
+export declare class TestWebhooks implements IWebhookManager {
+    private readonly logger;
+    private readonly push;
+    private readonly nodeTypes;
+    private readonly registrations;
+    private readonly instanceSettings;
+    private readonly publisher;
+    private readonly webhookService;
+    private readonly executionContextService;
+    constructor(logger: Logger, push: Push, nodeTypes: NodeTypes, registrations: TestWebhookRegistrationsService, instanceSettings: InstanceSettings, publisher: Publisher, webhookService: WebhookService, executionContextService: ExecutionContextService);
+    private timeouts;
+    executeWebhook(request: WebhookRequest, response: express.Response, expectedNodeType?: ExpectedWebhookNodeType): Promise<IWebhookResponseCallbackData | WebhookResponse>;
+    handleClearTestWebhooks({ webhookKey, workflowEntity, pushRef, }: {
+        webhookKey: string;
+        workflowEntity: IWorkflowBase;
+        pushRef: string;
+    }): Promise<void>;
+    clearTimeout(key: string): void;
+    getRegistrationsFromPath(rawPath: string): Promise<TestWebhookRegistration[]>;
+    getWebhooksFromPath(rawPath: string): Promise<IWebhookData[]>;
+    getWebhookMethods(rawPath: string): Promise<IHttpRequestMethods[]>;
+    findAccessControlOptions(path: string, httpMethod: IHttpRequestMethods): Promise<WebhookAccessControlOptions | undefined>;
+    private establishesRunnerIdentity;
+    private mintRunnerIdentity;
+    needsWebhook(options: {
+        userId: string;
+        workflowEntity: IWorkflowBase;
+        additionalData: IWorkflowExecuteAdditionalData;
+        runData?: IRunData;
+        pushRef?: string;
+        destinationNode?: IDestinationNode;
+        triggerToStartFrom?: WorkflowRequest.FullManualExecutionFromKnownTriggerPayload['triggerToStartFrom'];
+        chatSessionId?: string;
+        workflowIsActive?: boolean;
+        n8nAuthCookie?: string;
+        timeoutMs?: number;
+    }): Promise<boolean>;
+    cancelWebhook(workflowId: string): Promise<boolean>;
+    getActiveWebhookFromRegistration(path: string, registration: TestWebhookRegistration): IWebhookData | undefined;
+    getActiveWebhook(httpMethod: IHttpRequestMethods, path: string, webhookId?: string): Promise<IWebhookData | undefined>;
+    deactivateWebhooks(workflow: Workflow): Promise<void>;
+    toWorkflow(workflowEntity: IWorkflowBase): Workflow;
+}

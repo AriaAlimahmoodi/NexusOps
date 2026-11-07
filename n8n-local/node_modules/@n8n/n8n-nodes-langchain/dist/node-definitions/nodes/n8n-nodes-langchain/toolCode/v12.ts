@@ -1,0 +1,55 @@
+/**
+ * Code Tool Node - Version 1.2
+ * Write a tool in JS or Python
+ */
+
+
+export interface LcToolCodeV12Params {
+  description?: string | Expression<string>;
+  language?: 'javaScript' | 'python';
+/**
+ * E.g. Converts any text to uppercase
+ * @hint You can access the input the tool receives via the input property "query". The returned value should be a single string.
+ * @displayOptions.show { language: ["javaScript"] }
+ */
+    jsCode?: string;
+/**
+ * E.g. Converts any text to uppercase
+ * @hint You can access the input the tool receives via the input property "_query". The returned value should be a single string.
+ * @displayOptions.show { language: ["python"] }
+ */
+    pythonCode?: string;
+/**
+ * Whether to specify the schema for the function. This would require the LLM to provide the input in the correct format and would validate it against the schema.
+ * @default false
+ */
+    specifyInputSchema?: boolean;
+/**
+ * How to specify the schema for the function
+ * @displayOptions.show { specifyInputSchema: [true] }
+ * @default fromJson
+ */
+    schemaType?: 'fromJson' | 'manual';
+/**
+ * Example JSON object to use to generate the schema
+ * @displayOptions.show { specifyInputSchema: [true], schemaType: ["fromJson"] }
+ */
+    jsonSchemaExample?: IDataObject | string;
+/**
+ * Schema to use for the function
+ * @hint Use &lt;a target="_blank" href="https://json-schema.org/"&gt;JSON Schema&lt;/a&gt; format (&lt;a target="_blank" href="https://json-schema.org/learn/miscellaneous-examples.html"&gt;examples&lt;/a&gt;). $refs syntax is currently not supported.
+ * @displayOptions.show { specifyInputSchema: [true], schemaType: ["manual"] }
+ */
+    inputSchema?: IDataObject | string | Expression<string>;
+}
+
+interface LcToolCodeV12NodeBase {
+  type: '@n8n/n8n-nodes-langchain.toolCode';
+  version: 1.2;
+}
+
+export type LcToolCodeV12ParamsNode = LcToolCodeV12NodeBase & {
+  config: NodeConfig<LcToolCodeV12Params>;
+};
+
+export type LcToolCodeV12Node = LcToolCodeV12ParamsNode;

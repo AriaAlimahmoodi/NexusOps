@@ -1,0 +1,1 @@
+{"version":3,"file":"single-webhook-trigger.error.js","sourceRoot":"","sources":["../../src/errors/single-webhook-trigger.error.ts"],"names":[],"mappings":";;;AAAA,wCAAwC;AAExC,+BAAuC,SAAQ,kBAAS;IACvD,YAAY,WAAmB;QAC9B,KAAK,CACJ,6BAA6B,WAAW,8HAA8H,EACtK,EAAE,KAAK,EAAE,EAAE,WAAW,EAAE,EAAE,CAC1B,CAAC;IACH,CAAC;CACD"}

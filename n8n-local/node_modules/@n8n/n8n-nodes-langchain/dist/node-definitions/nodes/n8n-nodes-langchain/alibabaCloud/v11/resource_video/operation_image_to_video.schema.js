@@ -1,0 +1,38 @@
+/**
+ * Qwen Cloud Node - Version 1.1 - Zod Schema
+ * Discriminator: resource=video, operation=imageToVideo
+ *
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, resolveSchema, resolveOneOfSchemas, toolInstanceSchema }) {
+
+  // Static subnode schema
+  const subnodesSchema = z.object({
+    tools: z.array(toolInstanceSchema).optional(),
+  }).strict();
+
+  return z.object({
+    parameters: z.object({
+      resource: z.literal('video'),
+      operation: z.literal('imageToVideo'),
+      modelId: z.union([z.object({ __rl: z.literal(true), mode: z.union([z.literal('list'), z.literal('id')]), value: z.union([z.string(), z.number()]), cachedResultName: z.string().optional(), cachedResultUrl: z.string().optional() }), expressionSchema]).optional(),
+      inputType: z.union([z.literal('url'), z.literal('binary'), expressionSchema]).optional(),
+      imgUrl: resolveSchema({ parameters, schema: stringOrExpression, required: true, displayOptions: {"show":{"inputType":["url"]}}, defaults: {"inputType":"url"} }),
+      binaryPropertyName: resolveSchema({ parameters, schema: stringOrExpression, required: false, displayOptions: {"show":{"inputType":["binary"]}}, defaults: {"inputType":"url"} }),
+      prompt: stringOrExpression.optional(),
+      resolution: z.union([z.literal('720P'), z.literal('1080P'), expressionSchema]).optional(),
+      duration: numberOrExpression.optional(),
+      shotType: z.union([z.literal('single'), z.literal('multi'), expressionSchema]).optional(),
+      downloadVideo: booleanOrExpression.optional(),
+      simplify: booleanOrExpression.optional(),
+      imageToVideoOptions: z.object({ promptExtend: booleanOrExpression.optional(), audio: booleanOrExpression.optional(), audioInputType: z.union([z.literal('url'), z.literal('binary'), expressionSchema]).optional(), audioUrl: stringOrExpression.optional(), audioBinaryPropertyName: stringOrExpression.optional() }).optional(),
+    }).optional(),
+    subnodes: subnodesSchema.optional(),
+  });
+};

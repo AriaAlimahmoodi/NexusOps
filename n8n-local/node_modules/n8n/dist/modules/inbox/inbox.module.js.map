@@ -1,0 +1,1 @@
+{"version":3,"file":"inbox.module.js","sourceRoot":"","sources":["../../../src/modules/inbox/inbox.module.ts"],"names":[],"mappings":";;;;;;;;;AAAA,gDAAsE;AAG/D,IAAM,WAAW,GAAjB,MAAM,WAAW;IACvB,KAAK,CAAC,IAAI;QACT,MAAM,MAAM,CAAC,uBAAuB,CAAC,CAAC;IACvC,CAAC;CACD,CAAA;;sBAJY,WAAW;IADvB,IAAA,0BAAa,EAAC,EAAE,IAAI,EAAE,OAAO,EAAE,aAAa,EAAE,CAAC,MAAM,CAAC,EAAE,CAAC;GAC7C,WAAW,CAIvB"}

@@ -1,0 +1,27 @@
+import type { IExecuteFunctions, ILoadOptionsFunctions, INodeExecutionData, INodePropertyOptions, INodeType, INodeTypeBaseDescription, INodeTypeDescription } from 'n8n-workflow';
+export declare class PipedriveV1 implements INodeType {
+    description: INodeTypeDescription;
+    constructor(baseDescription: INodeTypeBaseDescription);
+    methods: {
+        loadOptions: {
+            getActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getFilters(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getOrganizationIds(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getUserIds(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getDeals(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getProducts(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getProductsDeal(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getStageIds(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getOrganizationCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getDealCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getPersonCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getPersonLabels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getOrganizationLabels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getPersons(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getLeadLabels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getDealLabels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+        };
+    };
+    execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]>;
+}
+//# sourceMappingURL=PipedriveV1.node.d.ts.map

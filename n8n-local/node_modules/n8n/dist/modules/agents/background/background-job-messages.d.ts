@@ -1,0 +1,10 @@
+import type { SerializableAgentState } from '@n8n/agents';
+import type { AgentBackgroundJob } from '../entities/agent-background-job.entity';
+export declare const AGENT_BACKGROUND_WAKE_OPEN_TAG = "<background-jobs-settled>";
+export declare const AGENT_BACKGROUND_WAKE_CLOSE_TAG = "</background-jobs-settled>";
+export declare const AGENT_BACKGROUND_UPDATES_OPEN_TAG = "<background-updates>";
+export declare const AGENT_BACKGROUND_UPDATES_CLOSE_TAG = "</background-updates>";
+export declare const WAKE_RESULT_TEXT_MAX_CHARS = 8000;
+export declare const REPLACED_PAUSE_GROUP_NOTICE = "This stopped group replaced the previous stopped group. The previous tasks can no longer be resumed.";
+export declare function formatPauseHandoff(checkpoint: SerializableAgentState): string;
+export declare function formatWakeMessage(jobs: AgentBackgroundJob[]): string;

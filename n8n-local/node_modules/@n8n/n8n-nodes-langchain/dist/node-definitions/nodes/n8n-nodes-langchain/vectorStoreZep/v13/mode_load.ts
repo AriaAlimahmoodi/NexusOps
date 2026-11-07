@@ -1,0 +1,93 @@
+/**
+ * Zep Vector Store Node - Version 1.3
+ * Discriminator: mode=load
+ */
+
+
+interface Credentials {
+  zepApi: CredentialReference;
+}
+
+/** Get many ranked documents from vector store for query */
+export type LcVectorStoreZepV13LoadParams = {
+  /**
+   * One-shot similarity search on the main flow using the `prompt` parameter. Declare with `vectorStore({...})`. Required subnodes: `embedding`. For LLM-driven querying (RAG), use `mode: 'retrieve-as-tool'` instead.
+   * <patterns>
+   * <pattern title="load mode — one-shot similarity search (generic)">
+   * // Substitute the type literal and provider-specific parameters — see the rest of this file.
+   * const lookup = vectorStore({
+   *   type: '@n8n/n8n-nodes-langchain.vectorStoreXxx',
+   *   config: {
+   *     name: 'Knowledge Base',
+   *     parameters: {
+   *       mode: 'load',
+   *       prompt: expr('{{ $json.query }}'),
+   *       // ...provider-specific parameters
+   *     },
+   *     subnodes: { embedding: embeddingsOpenAi }
+   *   }
+   * });
+   * </pattern>
+   * </patterns>
+   */
+  mode: 'load';
+  collectionName: string | Expression<string>;
+/**
+ * Search prompt to retrieve matching documents from the vector store using similarity-based ranking
+ */
+    prompt: string | Expression<string>;
+/**
+ * Number of top results to fetch from vector store
+ * @default 4
+ */
+    topK?: number | Expression<number>;
+/**
+ * Whether or not to include document metadata
+ * @default true
+ */
+    includeDocumentMetadata?: boolean | Expression<boolean>;
+/**
+ * Whether or not to rerank results
+ * @default false
+ */
+    useReranker?: boolean | Expression<boolean>;
+/**
+ * Options
+ * @default {}
+ */
+    options?: {
+    /** Whether to allow using characters from the Unicode surrogate blocks
+     * @default 1536
+     */
+    embeddingDimensions?: number | Expression<number>;
+    /** Metadata to filter the document by
+     * @default {}
+     */
+    metadata?: {
+        /** Fields to Set
+     */
+    metadataValues?: Array<{
+      /** Name
+       */
+      name?: string | Expression<string>;
+      /** Value
+       */
+      value?: string | Expression<string>;
+    }>;
+  };
+  };
+};
+
+export interface LcVectorStoreZepV13LoadSubnodeConfig {
+  embedding: EmbeddingInstance | EmbeddingInstance[];
+  /**
+   * @displayOptions.show { useReranker: [true] }
+   */
+  reranker: RerankerInstance;
+}
+
+export type LcVectorStoreZepV13LoadNode = {
+  type: '@n8n/n8n-nodes-langchain.vectorStoreZep';
+  version: 1.3;
+  config: NodeConfig<LcVectorStoreZepV13LoadParams> & { credentials?: Credentials } & { subnodes: LcVectorStoreZepV13LoadSubnodeConfig };
+};

@@ -1,0 +1,1 @@
+{"version":3,"file":"workflow-archive-transition.js","sourceRoot":"","sources":["../../../../../src/modules/n8n-packages/entities/workflow/workflow-archive-transition.ts"],"names":[],"mappings":";;;AAGA,yCACC,eAAwB,EACxB,gBAAyB;IAEzB,IAAI,eAAe,KAAK,gBAAgB;QAAE,OAAO,IAAI,CAAC;IACtD,OAAO,eAAe,CAAC,CAAC,CAAC,SAAS,CAAC,CAAC,CAAC,WAAW,CAAC;AAClD,CAAC"}

@@ -1,0 +1,16 @@
+import type { INode, IConnection } from 'n8n-workflow';
+import type { SimpleWorkflow } from '../../types/workflow';
+import type { WorkflowState } from '../../workflow-state';
+export declare function getCurrentWorkflow(state: typeof WorkflowState.State): SimpleWorkflow;
+export declare function getWorkflowState(): typeof WorkflowState.State;
+export declare function getCurrentWorkflowFromTaskInput(): SimpleWorkflow;
+export declare function getEffectiveWorkflow(): SimpleWorkflow;
+export declare function updateWorkflowConnections(connections: SimpleWorkflow['connections']): Partial<typeof WorkflowState.State>;
+export declare function addNodeToWorkflow(node: INode): Partial<typeof WorkflowState.State>;
+export declare function addNodesToWorkflow(nodes: INode[]): Partial<typeof WorkflowState.State>;
+export declare function removeNodeFromWorkflow(nodeId: string): Partial<typeof WorkflowState.State>;
+export declare function removeNodesFromWorkflow(nodeIds: string[]): Partial<typeof WorkflowState.State>;
+export declare function updateNodeInWorkflow(state: typeof WorkflowState.State, nodeId: string, updates: Partial<INode>): Partial<typeof WorkflowState.State>;
+export declare function addConnectionToWorkflow(sourceNodeId: string, _targetNodeId: string, connection: IConnection): Partial<typeof WorkflowState.State>;
+export declare function removeConnectionFromWorkflow(sourceNode: string, targetNode: string, connectionType: string, sourceOutputIndex: number, targetInputIndex: number): Partial<typeof WorkflowState.State>;
+export declare function renameNodeInWorkflow(nodeId: string, oldName: string, newName: string): Partial<typeof WorkflowState.State>;

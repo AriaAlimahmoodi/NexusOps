@@ -1,0 +1,56 @@
+import { type CreateSecretsProviderConnectionDto, type ReloadSecretProviderConnectionResponse, type SecretCompletionsResponse, type SecretProviderConnection, type SecretProviderConnectionListItem, type TestSecretProviderConnectionResponse } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import type { SecretsProviderAccessRole, SecretsProviderConnection } from '@n8n/db';
+import { ProjectSecretsProviderAccessRepository, SecretsProviderConnectionRepository } from '@n8n/db';
+import { Cipher } from 'n8n-core';
+import type { IDataObject } from 'n8n-workflow';
+import { CredentialDependencyService } from '../../credentials/credential-dependency.service';
+import { ExternalSecretsManager } from '../../modules/external-secrets.ee/external-secrets-manager.ee';
+import { RedactionService } from '../../modules/external-secrets.ee/redaction.service.ee';
+import { ExternalSecretsProviderRegistry } from './provider-registry.service';
+export declare class SecretsProvidersConnectionsService {
+    private readonly logger;
+    private readonly repository;
+    private readonly projectAccessRepository;
+    private readonly credentialDependencyService;
+    private readonly providerRegistry;
+    private readonly cipher;
+    private readonly externalSecretsManager;
+    private readonly redactionService;
+    private readonly eventService;
+    constructor(logger: Logger, repository: SecretsProviderConnectionRepository, projectAccessRepository: ProjectSecretsProviderAccessRepository, credentialDependencyService: CredentialDependencyService, providerRegistry: ExternalSecretsProviderRegistry, cipher: Cipher, externalSecretsManager: ExternalSecretsManager, redactionService: RedactionService, eventService: EventService);
+    createConnection(proposedConnection: CreateSecretsProviderConnectionDto, userId: string, projectRole: SecretsProviderAccessRole, userRole?: string): Promise<SecretsProviderConnection>;
+    updateProjectConnection(providerKey: string, updates: {
+        type?: string;
+        settings?: IDataObject;
+        isEnabled?: boolean;
+    }, userId: string, userRole?: string): Promise<SecretsProviderConnection>;
+    updateGlobalConnection(providerKey: string, updates: {
+        type?: string;
+        projectIds?: string[];
+        settings?: IDataObject;
+        isEnabled?: boolean;
+    }, userId: string, userRole?: string): Promise<SecretsProviderConnection>;
+    private applyConnectionUpdates;
+    private syncAndEmitUpdate;
+    deleteConnection(providerKey: string, userId: string, userRole?: string): Promise<SecretsProviderConnection>;
+    private findConnectionOrFail;
+    getConnection(providerKey: string): Promise<SecretsProviderConnection>;
+    listConnections(): Promise<SecretsProviderConnection[]>;
+    getGlobalCompletions(): Promise<SecretsProviderConnection[]>;
+    getProjectCompletions(projectId: string): Promise<SecretsProviderConnection[]>;
+    listConnectionsForProject(projectId: string): Promise<SecretsProviderConnection[]>;
+    toSecretCompletionsResponse(connections: SecretsProviderConnection[]): SecretCompletionsResponse;
+    toPublicConnectionListItem(connection: SecretsProviderConnection): SecretProviderConnectionListItem;
+    toPublicConnection(connection: SecretsProviderConnection): Promise<SecretProviderConnection>;
+    testConnection(providerKey: string, userId: string, userRole?: string): Promise<TestSecretProviderConnectionResponse>;
+    reloadConnectionSecrets(providerKey: string, userId: string, userRole?: string): Promise<ReloadSecretProviderConnectionResponse>;
+    private extractProjectInfo;
+    cleanupConnectionsForProjectDeletion(projectId: string): Promise<void>;
+    private encryptConnectionSettings;
+    getConnectionForProject(providerKey: string, projectId: string): Promise<SecretsProviderConnection>;
+    getConnectionAccessibleFromProject(providerKey: string, projectId: string): Promise<SecretsProviderConnection>;
+    deleteConnectionForProject(providerKey: string, projectId: string): Promise<SecretsProviderConnection>;
+    private decryptConnectionSettings;
+}

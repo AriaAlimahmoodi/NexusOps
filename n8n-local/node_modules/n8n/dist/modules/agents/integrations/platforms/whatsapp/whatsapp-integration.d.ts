@@ -1,0 +1,53 @@
+import { type AgentIntegrationConfig, type RichCardComponentType } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { InstanceSettings } from 'n8n-core';
+import { AgentRepository } from '../../../repositories/agent.repository';
+import { AgentChatIntegration, type AgentChannelPreconditionContext, type AgentIntegrationRemovalContext, type AgentChatIntegrationContext, type ActionDecisionMessageParams, type BridgeMessageContextParams, type BridgeResumeExecutionContext, type UnauthenticatedWebhookContext, type UnauthenticatedWebhookResponse } from '../../agent-chat-integration';
+import { ChannelRateLimitGuard } from '../../channel-rate-limit.guard';
+import { type NormalizeComponentsContext, type SuspendComponent } from '../../component-mapper';
+import { WhatsAppWebhookVerificationStore } from './whatsapp-webhook-verification.store';
+export declare class WhatsAppIntegration extends AgentChatIntegration {
+    private readonly logger;
+    private readonly agentRepository;
+    private readonly instanceSettings;
+    private readonly channelRateLimitGuard;
+    private readonly webhookVerification;
+    readonly type = "whatsapp";
+    readonly credentialTypes: string[];
+    readonly displayLabel = "WhatsApp";
+    readonly displayIcon = "whatsapp";
+    readonly internal = true;
+    readonly builderGuidance: {
+        capabilities: string[];
+        useIntegrationWhen: string[];
+        useNodeToolWhen: string[];
+    };
+    readonly supportedComponents: readonly RichCardComponentType[];
+    readonly actionToolDefinitions: import("../../integration-tool-types").IntegrationActionDefinition[];
+    readonly actionToolGuidance: string[];
+    readonly disableStreaming = true;
+    readonly deleteActionMessageBeforeResume = false;
+    readonly defaultSessionIdleTimeoutMinutes = 30;
+    constructor(logger: Logger, agentRepository: AgentRepository, instanceSettings: InstanceSettings, channelRateLimitGuard: ChannelRateLimitGuard, webhookVerification: WhatsAppWebhookVerificationStore);
+    assertStartupPreconditions(ctx: AgentChannelPreconditionContext): Promise<void>;
+    onBeforeConnect(ctx: AgentChatIntegrationContext): Promise<void>;
+    onRemove(ctx: AgentIntegrationRemovalContext): Promise<undefined>;
+    handleUnauthenticatedWebhook(context: UnauthenticatedWebhookContext): UnauthenticatedWebhookResponse | undefined;
+    createResumeExecutionContext(params: {
+        thread: BridgeMessageContextParams['thread'];
+        logger: BridgeMessageContextParams['logger'];
+        agentId: string;
+        integration?: AgentIntegrationConfig;
+    }): Promise<BridgeResumeExecutionContext>;
+    shouldDownloadAttachments(integration: AgentIntegrationConfig): boolean;
+    createAdapter(ctx: AgentChatIntegrationContext): Promise<unknown>;
+    formatActionDecisionMessage({ approved, selectedLabel, user, }: ActionDecisionMessageParams): string;
+    normalizeComponents(components: SuspendComponent[], context: NormalizeComponentsContext): SuspendComponent[];
+    private createAdapterLogger;
+    private extractAccessToken;
+    private extractPhoneNumberId;
+    private extractBusinessAccountId;
+    private extractAppSecret;
+    private deriveVerifyToken;
+    private requireCredentialField;
+}

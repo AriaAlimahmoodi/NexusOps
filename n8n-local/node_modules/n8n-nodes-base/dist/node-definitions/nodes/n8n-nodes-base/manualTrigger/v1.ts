@@ -1,0 +1,20 @@
+/**
+ * Manual Trigger Node - Version 1
+ * Runs the flow on clicking a button in n8n
+ */
+
+
+export interface ManualTriggerV1Params {
+}
+
+interface ManualTriggerV1NodeBase {
+  type: 'n8n-nodes-base.manualTrigger';
+  version: 1;
+  isTrigger: true;
+}
+
+export type ManualTriggerV1ParamsNode = ManualTriggerV1NodeBase & {
+  config: NodeConfig<ManualTriggerV1Params>;
+};
+
+export type ManualTriggerV1Node = ManualTriggerV1ParamsNode;

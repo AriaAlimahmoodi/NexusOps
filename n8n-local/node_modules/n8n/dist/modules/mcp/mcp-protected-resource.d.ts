@@ -1,0 +1,32 @@
+import { LicenseState, ModuleRegistry } from '@n8n/backend-common';
+import { GlobalConfig } from '@n8n/config';
+import type { ProtectedResource, ResourcePrincipal, ResourceUser } from '@n8n/inbound-auth';
+import { UrlService } from '@n8n/backend-services';
+import { PostHogClient } from '../../posthog';
+import { McpConfig } from './mcp.config';
+import { McpSettingsService } from './mcp.settings.service';
+export declare const SUPPORTED_SCOPES: string[];
+export declare class McpProtectedResource implements ProtectedResource {
+    private readonly urlService;
+    private readonly mcpSettingsService;
+    private readonly mcpConfig;
+    private readonly globalConfig;
+    private readonly moduleRegistry;
+    private readonly licenseState;
+    private readonly postHogClient;
+    readonly id = "instance-mcp";
+    readonly surface: 'instance-mcp';
+    readonly isDefault = true;
+    constructor(urlService: UrlService, mcpSettingsService: McpSettingsService, mcpConfig: McpConfig, globalConfig: GlobalConfig, moduleRegistry: ModuleRegistry, licenseState: LicenseState, postHogClient: PostHogClient);
+    get scopes(): string[];
+    getScopeTools(): Promise<Record<string, string[]>>;
+    getResourceUrl(): string;
+    getProtectedResourceMetadataUrl(): string;
+    getResourceUrls(): string[];
+    getAudiences(): string[];
+    getAllowedRedirectUris(): Promise<string[]>;
+    getGrantableScopes(user: ResourceUser): Promise<string[]>;
+    private arePreferencesEnabledFor;
+    isAvailable(): Promise<boolean>;
+    authorize(_user: ResourcePrincipal): Promise<boolean>;
+}

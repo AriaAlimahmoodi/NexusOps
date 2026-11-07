@@ -1,0 +1,9 @@
+import type { AINodeConnectionType, CloseFunction, IDataObject, IExecuteData, INode, INodeExecutionData, INodeType, IRunExecutionData, ISupplyDataFunctions, ITaskDataConnections, IWorkflowExecuteAdditionalData, SupplyData, Workflow, WorkflowExecuteMode } from 'n8n-workflow';
+import { StructuredToolkit, type SupplyDataToolResponse } from './ai-tool-types';
+import type { ExecuteContext, WebhookContext } from '../../node-execution-context';
+import { SupplyDataContext } from '../../node-execution-context/supply-data-context';
+export declare function createHitlToolkit(connectedToolsOrToolkits: SupplyDataToolResponse[] | SupplyDataToolResponse | undefined, hitlNode: INode): StructuredToolkit;
+export declare function createHitlToolSupplyData(hitlNode: INode, workflow: Workflow, runExecutionData: IRunExecutionData, parentRunIndex: number, connectionInputData: INodeExecutionData[], parentInputData: ITaskDataConnections, additionalData: IWorkflowExecuteAdditionalData, executeData: IExecuteData, mode: WorkflowExecuteMode, closeFunctions: CloseFunction[], itemIndex: number, abortSignal?: AbortSignal, parentNode?: INode): Promise<SupplyData>;
+export declare function makeHandleToolInvocation(contextFactory: (runIndex: number) => ISupplyDataFunctions, node: INode, nodeType: INodeType, runExecutionData: IRunExecutionData): (toolArgs: IDataObject) => Promise<string>;
+export declare function extendResponseMetadata(response: unknown, connectedNode: INode): void;
+export declare function getInputConnectionData(this: ExecuteContext | WebhookContext | SupplyDataContext, workflow: Workflow, runExecutionData: IRunExecutionData, parentRunIndex: number, connectionInputData: INodeExecutionData[], parentInputData: ITaskDataConnections, additionalData: IWorkflowExecuteAdditionalData, executeData: IExecuteData, mode: WorkflowExecuteMode, closeFunctions: CloseFunction[], connectionType: AINodeConnectionType, itemIndex: number, abortSignal?: AbortSignal): Promise<unknown>;

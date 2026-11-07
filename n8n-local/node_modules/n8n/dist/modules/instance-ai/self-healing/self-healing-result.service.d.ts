@@ -1,0 +1,40 @@
+import { type InboxSelfHealingItem, type SelfHealingResultContent, type SelfHealingResultDetail, type SelfHealingResultActionResponse, type WorkflowSuggestionAppliedVersion, type WorkflowSuggestionProposalDetail } from '@n8n/api-types';
+import { RoleService } from '@n8n/backend-services';
+import { SharedWorkflowRepository, TransactionRunner, UserRepository, type User } from '@n8n/db';
+import type { InboxSourceQuery } from '../../inbox/inbox-source.registry';
+import { WorkflowSuggestionActionsService } from '../workflow-suggestions/workflow-suggestion-actions.service';
+import { WorkflowSuggestionService, type PreparedWorkflowSuggestion } from '../workflow-suggestions/workflow-suggestion.service';
+import type { SelfHealingResult } from './database/self-healing-result.entity';
+import { SelfHealingResultRepository } from './database/self-healing-result.repository';
+import { SelfHealingExecutionReferenceService } from './self-healing-execution-reference.service';
+export type CompleteSelfHealingResult = SelfHealingResultContent & {
+    workflowId: string;
+    projectId: string;
+    backgroundUserId: string;
+    executionId: string;
+    completedAt?: Date;
+    suggestion?: PreparedWorkflowSuggestion;
+};
+export declare function getSelfHealingReviewState(result: Pick<SelfHealingResult, 'dismissedAt'>, suggestion: Pick<WorkflowSuggestionProposalDetail, 'closedReason'> | null): SelfHealingResultDetail['reviewState'];
+export declare class SelfHealingResultService {
+    private readonly results;
+    private readonly suggestions;
+    private readonly actions;
+    private readonly ownership;
+    private readonly executionReferences;
+    private readonly txRunner;
+    private readonly users;
+    private readonly roles;
+    constructor(results: SelfHealingResultRepository, suggestions: WorkflowSuggestionService, actions: WorkflowSuggestionActionsService, ownership: SharedWorkflowRepository, executionReferences: SelfHealingExecutionReferenceService, txRunner: TransactionRunner, users: UserRepository, roles: RoleService);
+    private getInboxAccess;
+    listForInbox(user: User, query: InboxSourceQuery): Promise<InboxSelfHealingItem[]>;
+    countForInbox(user: User): Promise<import("@n8n/api-types").InboxCounts>;
+    private prepare;
+    complete(input: CompleteSelfHealingResult): Promise<SelfHealingResult>;
+    getDetail(user: User, projectId: string, workflowId: string, resultId: string): Promise<SelfHealingResultDetail>;
+    private toDetail;
+    act(user: User, projectId: string, workflowId: string, resultId: string, action: WorkflowSuggestionAppliedVersion['action'], clientId?: string): Promise<SelfHealingResultActionResponse>;
+    dismiss(user: User, projectId: string, workflowId: string, resultId: string): Promise<SelfHealingResultDetail>;
+    private getResultForEditor;
+    private requireCurrentProject;
+}

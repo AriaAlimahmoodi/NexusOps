@@ -1,0 +1,34 @@
+import { type BreakingChangeVersion } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { TransactionRunner, WorkflowRepository } from '@n8n/db';
+import { ErrorReporter } from 'n8n-core';
+import { RuleRegistry } from '../breaking-changes.rule-registry.service';
+import { BreakingChangeService } from '../breaking-changes.service';
+import { MigrationFindingSyncRepository } from '../database/repositories/migration-finding-sync.repository';
+import { MigrationFindingRepository } from '../database/repositories/migration-finding.repository';
+import { MigrationWorkflowOwnerRepository } from '../database/repositories/migration-workflow-owner.repository';
+import { MigrationOwnerSuggestionService } from '../owners/migration-owner-suggestion.service';
+export declare function computeRuleSetFingerprint(ruleIds: string[]): string;
+export declare class MigrationFindingSyncService {
+    private readonly breakingChangeService;
+    private readonly ruleRegistry;
+    private readonly workflowRepository;
+    private readonly findingRepository;
+    private readonly syncRepository;
+    private readonly ownerSuggestionService;
+    private readonly ownerRepository;
+    private readonly txRunner;
+    private readonly logger;
+    private readonly errorReporter;
+    private static readonly BATCH_SIZE;
+    private readonly ongoingSyncs;
+    private readonly ongoingWorkflowSyncs;
+    constructor(breakingChangeService: BreakingChangeService, ruleRegistry: RuleRegistry, workflowRepository: WorkflowRepository, findingRepository: MigrationFindingRepository, syncRepository: MigrationFindingSyncRepository, ownerSuggestionService: MigrationOwnerSuggestionService, ownerRepository: MigrationWorkflowOwnerRepository, txRunner: TransactionRunner, logger: Logger, errorReporter: ErrorReporter);
+    syncIfStale(targetVersion: BreakingChangeVersion): Promise<void>;
+    sync(targetVersion: BreakingChangeVersion): Promise<void>;
+    private runSync;
+    syncWorkflow(workflowId: string): Promise<void>;
+    private runWorkflowSync;
+    private refreshSuggestedOwners;
+    private syncBatch;
+}

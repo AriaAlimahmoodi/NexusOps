@@ -1,0 +1,1 @@
+{"version":3,"file":"config.skill.js","sourceRoot":"","sources":["../../../../../src/modules/agents/builder/skills/config.skill.ts"],"names":[],"mappings":";;;AAEA,8EAA4E;AAG5E;IACC,OAAO;QACN,EAAE,EAAE,sBAAsB;QAC1B,IAAI,EAAE,sBAAsB;QAC5B,WAAW,EACV,qMAAqM;QACtM,gBAAgB,EAAE,CAAC,eAAe,EAAE,4BAA4B,EAAE,4BAA4B,CAAC;QAC/F,YAAY,EAAE,IAAA,gDAAuB,GAAE;KACvC,CAAC;AACH,CAAC"}

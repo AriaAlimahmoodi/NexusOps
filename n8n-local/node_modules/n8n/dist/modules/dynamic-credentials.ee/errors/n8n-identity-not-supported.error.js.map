@@ -1,0 +1,1 @@
+{"version":3,"file":"n8n-identity-not-supported.error.js","sourceRoot":"","sources":["../../../../src/modules/dynamic-credentials.ee/errors/n8n-identity-not-supported.error.ts"],"names":[],"mappings":";;;AAAA,+EAA0E;AAQ1E,kCAA0C,SAAQ,uDAAyB;IAC1E,YAAY,cAAsB;QACjC,KAAK,CACJ,IAAI,cAAc,8GAA8G,CAChI,CAAC;QACF,IAAI,CAAC,IAAI,GAAG,8BAA8B,CAAC;IAC5C,CAAC;CACD"}

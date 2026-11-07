@@ -1,0 +1,48 @@
+import { ChatHubSendMessageRequest, ChatHubManualSendMessageRequest, ChatModelsResponse, ChatHubConversationsResponse, ChatHubConversationResponse, ChatHubEditMessageRequest, ChatHubManualEditMessageRequest, ChatHubRegenerateMessageRequest, ChatHubManualRegenerateMessageRequest, ChatHubUpdateConversationRequest, ChatSessionId, ChatMessageId, ChatHubCreateAgentRequest, ChatHubUpdateAgentRequest, ChatHubCreateToolRequest, ChatHubUpdateToolRequest, ChatHubConversationsRequest, type ChatSendMessageResponse, type ChatReconnectResponse, ChatReconnectRequest } from '@n8n/api-types';
+import { ModuleRegistry } from '@n8n/backend-common';
+import { AuthenticatedRequest } from '@n8n/db';
+import type { NextFunction, Request, Response } from 'express';
+import { ChatHubAgentService } from './chat-hub-agent.service';
+import { ChatHubToolService } from './chat-hub-tool.service';
+import { ChatHubAttachmentService } from './chat-hub.attachment.service';
+import { ChatHubModelsService } from './chat-hub.models.service';
+import { ChatHubService } from './chat-hub.service';
+import { ChatModelsRequestDto } from './dto/chat-models-request.dto';
+export declare class ChatHubController {
+    private readonly chatService;
+    private readonly chatModelsService;
+    private readonly chatAgentService;
+    private readonly chatToolService;
+    private readonly chatAttachmentService;
+    private readonly moduleRegistry;
+    constructor(chatService: ChatHubService, chatModelsService: ChatHubModelsService, chatAgentService: ChatHubAgentService, chatToolService: ChatHubToolService, chatAttachmentService: ChatHubAttachmentService, moduleRegistry: ModuleRegistry);
+    checkChatEnabled(_req: Request, res: Response, next: NextFunction): void;
+    getModels(req: AuthenticatedRequest, _res: Response, payload: ChatModelsRequestDto): Promise<ChatModelsResponse>;
+    getConversations(req: AuthenticatedRequest, _res: Response, query: ChatHubConversationsRequest): Promise<ChatHubConversationsResponse>;
+    getConversationMessages(req: AuthenticatedRequest, _res: Response, sessionId: ChatSessionId): Promise<ChatHubConversationResponse>;
+    getMessageAttachment(req: AuthenticatedRequest, res: Response, sessionId: ChatSessionId, messageId: ChatMessageId, index: string): Promise<void>;
+    sendMessage(req: AuthenticatedRequest, _res: Response, payload: ChatHubSendMessageRequest): Promise<ChatSendMessageResponse>;
+    sendMessageManual(req: AuthenticatedRequest, _res: Response, workflowId: string, payload: ChatHubManualSendMessageRequest): Promise<ChatSendMessageResponse>;
+    editMessage(req: AuthenticatedRequest, _res: Response, sessionId: ChatSessionId, editId: ChatMessageId, payload: ChatHubEditMessageRequest): Promise<ChatSendMessageResponse>;
+    editMessageManual(req: AuthenticatedRequest, _res: Response, workflowId: string, sessionId: ChatSessionId, editId: ChatMessageId, payload: ChatHubManualEditMessageRequest): Promise<ChatSendMessageResponse>;
+    regenerateMessage(req: AuthenticatedRequest, _res: Response, sessionId: ChatSessionId, retryId: ChatMessageId, payload: ChatHubRegenerateMessageRequest): Promise<ChatSendMessageResponse>;
+    regenerateMessageManual(req: AuthenticatedRequest, _res: Response, workflowId: string, sessionId: ChatSessionId, retryId: ChatMessageId, payload: ChatHubManualRegenerateMessageRequest): Promise<ChatSendMessageResponse>;
+    stopGeneration(req: AuthenticatedRequest, res: Response, sessionId: ChatSessionId, messageId: ChatMessageId): Promise<void>;
+    reconnectToStream(req: AuthenticatedRequest, _res: Response, sessionId: ChatSessionId, query: ChatReconnectRequest): Promise<ChatReconnectResponse>;
+    updateConversation(req: AuthenticatedRequest, _res: Response, sessionId: ChatSessionId, payload: ChatHubUpdateConversationRequest): Promise<ChatHubConversationResponse>;
+    deleteConversation(req: AuthenticatedRequest, res: Response, sessionId: ChatSessionId): Promise<void>;
+    getTools(req: AuthenticatedRequest): Promise<import("@n8n/api-types").ChatHubToolDto[]>;
+    createTool(req: AuthenticatedRequest, _res: Response, payload: ChatHubCreateToolRequest): Promise<import("@n8n/api-types").ChatHubToolDto>;
+    updateTool(req: AuthenticatedRequest, _res: Response, toolId: string, payload: ChatHubUpdateToolRequest): Promise<import("@n8n/api-types").ChatHubToolDto>;
+    deleteTool(req: AuthenticatedRequest, res: Response, toolId: string): Promise<void>;
+    getAgent(req: AuthenticatedRequest, _res: Response, agentId: string): Promise<import("@n8n/api-types").ChatHubAgentDto>;
+    createAgent(req: AuthenticatedRequest, _res: Response, payload: ChatHubCreateAgentRequest): Promise<import("@n8n/api-types").ChatHubAgentDto>;
+    updateAgent(req: AuthenticatedRequest, _res: Response, agentId: string, payload: ChatHubUpdateAgentRequest): Promise<import("@n8n/api-types").ChatHubAgentDto>;
+    deleteAgent(req: AuthenticatedRequest, res: Response, agentId: string): Promise<void>;
+    uploadAgentFiles(req: AuthenticatedRequest & {
+        files?: Express.Multer.File[];
+        fileUploadError?: Error;
+    }, _res: Response, agentId: string): Promise<import("@n8n/api-types").ChatHubAgentDto>;
+    deleteAgentFile(req: AuthenticatedRequest, res: Response, agentId: string, fileKnowledgeId: string): Promise<void>;
+    private assertToolTypeAllowed;
+}

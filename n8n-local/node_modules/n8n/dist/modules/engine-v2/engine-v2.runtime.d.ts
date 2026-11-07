@@ -1,0 +1,35 @@
+import { Logger } from '@n8n/backend-common';
+import { EngineConfig } from '@n8n/config';
+import type { ExecutionResponseSender } from '@n8n/engine';
+import { BinaryDataService } from 'n8n-core';
+import { CredentialTypes } from '../../credential-types';
+import { CredentialsHelper } from '../../credentials-helper';
+import { NodeTypes } from '../../node-types';
+import { EngineAdditionalDataBuilder } from './engine-additional-data';
+import { EngineControlPlaneClient } from './engine-control-plane-client';
+import { EngineCredentialsClient } from './engine-credentials-client';
+export declare class EngineV2Runtime {
+    private readonly engineConfig;
+    private readonly nodeTypes;
+    private readonly logger;
+    private readonly controlPlaneClient;
+    private readonly credentialsClient;
+    private readonly credentialsHelper;
+    private readonly credentialTypes;
+    private readonly additionalDataBuilder;
+    private readonly binaryDataService;
+    private dataSource?;
+    private engine?;
+    private server?;
+    private stopping?;
+    constructor(engineConfig: EngineConfig, nodeTypes: NodeTypes, logger: Logger, controlPlaneClient: EngineControlPlaneClient, credentialsClient: EngineCredentialsClient, credentialsHelper: CredentialsHelper, credentialTypes: CredentialTypes, additionalDataBuilder: EngineAdditionalDataBuilder, binaryDataService: BinaryDataService);
+    init(responseSender?: ExecutionResponseSender): Promise<void>;
+    private initDb;
+    private initEngine;
+    private buildAdditionalData;
+    private initServer;
+    shutdown(): Promise<void>;
+    private closeServer;
+    private stopEngine;
+    private destroyDataSource;
+}

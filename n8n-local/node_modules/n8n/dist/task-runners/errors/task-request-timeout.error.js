@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TaskRequestTimeoutError = void 0;
+const n8n_workflow_1 = require("n8n-workflow");
+class TaskRequestTimeoutError extends n8n_workflow_1.OperationalError {
+    constructor({ elapsedSeconds, isSelfHosted, }) {
+        super('Task request timed out', { extra: { elapsedSeconds } });
+        const description = [
+            `Your Code node task was not matched to a runner within the timeout period (waited ${elapsedSeconds} ${elapsedSeconds === 1 ? 'second' : 'seconds'}). This indicates that the task runner is currently down, or not ready, or at capacity, so it cannot service your task.`,
+            'If you are repeatedly executing Code nodes with long-running tasks across your instance, please space them apart to give the runner time to catch up. If this does not describe your use case, please open a GitHub issue or reach out to support.',
+        ];
+        if (isSelfHosted) {
+            description.push('If needed, you can increase the timeout using the N8N_RUNNERS_TASK_REQUEST_TIMEOUT environment variable.');
+        }
+        this.description = description.join('<br/><br/>');
+    }
+}
+exports.TaskRequestTimeoutError = TaskRequestTimeoutError;
+//# sourceMappingURL=task-request-timeout.error.js.map

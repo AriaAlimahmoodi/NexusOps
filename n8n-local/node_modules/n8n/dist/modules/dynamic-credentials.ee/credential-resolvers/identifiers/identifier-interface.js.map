@@ -1,0 +1,1 @@
+{"version":3,"file":"identifier-interface.js","sourceRoot":"","sources":["../../../../../src/modules/dynamic-credentials.ee/credential-resolvers/identifiers/identifier-interface.ts"],"names":[],"mappings":";;;AAEA,0FAAqF;AAMrF,+BAAuC,SAAQ,uDAAyB;IACvE,YAAY,OAAe,EAAE,OAAsB;QAClD,KAAK,CAAC,OAAO,EAAE,OAAO,CAAC,CAAC;QACxB,IAAI,CAAC,IAAI,GAAG,2BAA2B,CAAC;IACzC,CAAC;CACD"}

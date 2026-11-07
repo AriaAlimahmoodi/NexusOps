@@ -1,0 +1,72 @@
+import type { RichCardComponentType } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { OutboundHttp } from '@n8n/backend-network';
+import type { Message, Thread } from 'chat';
+import { InstanceSettings } from 'n8n-core';
+import { AgentRepository } from '../../repositories/agent.repository';
+import { AgentChatIntegration, type AgentChannelPreconditionContext, type AgentChatIntegrationContext, type ActionDecisionMessageParams, type BridgeExecutionContext, type BridgeMessageContextParams, type BridgeResumeExecutionContext, type PlatformAgentContext, type PlatformContextQueryParams, type SettleActionMessageParams, type WebhookRequestContext, type WebhookRequestResolution } from '../agent-chat-integration';
+import type { ChatInstance } from '../chat-integration.service';
+import { type SuspendComponent } from '../component-mapper';
+import type { ReplyExpectation } from '../integration-tools';
+export declare class DiscordIntegration extends AgentChatIntegration {
+    private readonly logger;
+    private readonly agentRepository;
+    readonly type = "discord";
+    readonly credentialTypes: string[];
+    readonly displayLabel = "Discord";
+    readonly displayIcon = "discord";
+    readonly builderGuidance: {
+        capabilities: string[];
+        useIntegrationWhen: string[];
+        useNodeToolWhen: string[];
+    };
+    readonly supportedComponents: readonly RichCardComponentType[];
+    readonly actionToolDefinitions: import("../integration-tool-types").IntegrationActionDefinition[];
+    readonly contextToolDefinitions: import("../integration-tool-types").IntegrationContextQueryDefinition[];
+    readonly contextToolGuidance: string[];
+    readonly actionToolGuidance: string[];
+    readonly needsShortCallbackData = true;
+    readonly disableStreaming = true;
+    readonly deleteActionMessageBeforeResume = false;
+    resolveWebhookRequest(request: WebhookRequestContext): WebhookRequestResolution;
+    matchesWebhookConnection(credential: Record<string, unknown>, connectionSelector: string): boolean;
+    private readonly pendingConnections;
+    private readonly gateway;
+    private readonly httpClient;
+    constructor(logger: Logger, instanceSettings: InstanceSettings, agentRepository: AgentRepository, outboundHttp: OutboundHttp);
+    assertStartupPreconditions(ctx: AgentChannelPreconditionContext): Promise<void>;
+    onBeforeConnect(ctx: AgentChatIntegrationContext): Promise<void>;
+    createAdapter(ctx: AgentChatIntegrationContext): Promise<unknown>;
+    onConnected(ctx: AgentChatIntegrationContext): Promise<void>;
+    onDisconnected(ctx: AgentChatIntegrationContext): Promise<void>;
+    settleActionMessage(params: SettleActionMessageParams): Promise<void>;
+    shouldSubscribeToNewMention({ thread }: {
+        thread: Thread;
+        message: Message;
+    }): boolean;
+    getReplyExpectation(params: {
+        message: BridgeMessageContextParams['message'];
+        isNewMention: boolean;
+    }): ReplyExpectation;
+    executeContextQuery(params: PlatformContextQueryParams): Promise<unknown>;
+    startAllGateways(): void;
+    stopAllGateways(): Promise<void>;
+    getPlatformAgentContext(chat: ChatInstance): PlatformAgentContext;
+    prepareInboundText(text: string, context: PlatformAgentContext): string;
+    createBridgeExecutionContext(params: BridgeMessageContextParams): Promise<BridgeExecutionContext>;
+    createResumeExecutionContext(params: {
+        thread: BridgeMessageContextParams['thread'];
+        logger: BridgeMessageContextParams['logger'];
+        agentId: string;
+    }): Promise<BridgeResumeExecutionContext>;
+    private startTyping;
+    formatActionDecisionMessage({ approved, selectedLabel, raw, user, }: ActionDecisionMessageParams): string;
+    normalizeComponents(components: SuspendComponent[]): SuspendComponent[];
+    private sessionKey;
+    private assertBotTokenAvailable;
+    private validateDiscordCredential;
+    private extractBotToken;
+    private extractPublicKey;
+    private extractApplicationId;
+    private extractCardText;
+}

@@ -1,0 +1,15 @@
+import type { AuthenticatedRequest } from '@n8n/db';
+import type { Request } from 'express';
+import type { INode } from 'n8n-workflow';
+import type { McpClientInfo } from './mcp.types';
+type McpExecutionMode = 'manual' | 'production';
+export declare const isConnectionHandshake: (body: unknown) => boolean;
+export declare const getClientInfo: (req: Request | AuthenticatedRequest) => McpClientInfo | undefined;
+export declare const getProtocolVersion: (req: Request | AuthenticatedRequest) => string | undefined;
+export declare const getToolName: (body: unknown) => string;
+export declare const getToolArguments: (body: unknown) => Record<string, unknown>;
+export type TriggerEligibility = (node: INode) => boolean;
+export declare const findEnabledEligibleTriggers: (nodes: INode[], isEligible: TriggerEligibility) => INode[];
+export declare const findEnabledEligibleTrigger: (nodes: INode[], isEligible: TriggerEligibility, triggerNodeName?: string) => INode | undefined;
+export declare const isMcpSupportedTriggerType: (nodeType: string, mode?: McpExecutionMode) => boolean;
+export {};

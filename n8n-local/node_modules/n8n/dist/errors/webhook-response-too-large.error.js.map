@@ -1,0 +1,1 @@
+{"version":3,"file":"webhook-response-too-large.error.js","sourceRoot":"","sources":["../../src/errors/webhook-response-too-large.error.ts"],"names":[],"mappings":";;;AAAA,wCAAwC;AASxC,kCAA0C,SAAQ,kBAAS;IAC1D,YAAY,OAAe,EAAE,OAAiD;QAC7E,KAAK,CAAC,OAAO,EAAE,OAAO,CAAC,CAAC;IACzB,CAAC;CACD"}

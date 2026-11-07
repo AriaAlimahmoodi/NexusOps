@@ -1,0 +1,34 @@
+import type { DecideWorkflowReviewRequestDto, DecideWorkflowReviewRequestResponse } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { DbLockService, UserRepository, WorkflowReviewActivityRepository, WorkflowReviewRequestAuthorRepository, WorkflowReviewRequestRepository, WorkflowReviewRequestReviewerRepository, WorkflowReviewRequestWorkflowRepository, type User } from '@n8n/db';
+import { CollaborationService } from '../../collaboration/collaboration.service';
+import { WorkflowFinderService } from '../../workflows/workflow-finder.service';
+import { WorkflowService } from '../../workflows/workflow.service';
+import { WorkflowReviewAuthorizationService } from './workflow-review-authorization.service';
+import { WorkflowReviewFeatureGate } from './workflow-review-feature-gate.service';
+import { WorkflowReviewRequestMutationGuard } from './workflow-review-request-mutation-guard.service';
+import { WorkflowReviewStateNotifier } from './workflow-review-state-notifier.service';
+export declare class WorkflowReviewRequestDecisionService {
+    private readonly logger;
+    private readonly featureGate;
+    private readonly workflowFinderService;
+    private readonly workflowReviewRequestRepository;
+    private readonly workflowReviewRequestWorkflowRepository;
+    private readonly workflowReviewRequestAuthorRepository;
+    private readonly workflowReviewRequestReviewerRepository;
+    private readonly activityRepository;
+    private readonly userRepository;
+    private readonly dbLockService;
+    private readonly collaborationService;
+    private readonly workflowService;
+    private readonly authorizationService;
+    private readonly eventService;
+    private readonly mutationGuard;
+    private readonly stateNotifier;
+    constructor(logger: Logger, featureGate: WorkflowReviewFeatureGate, workflowFinderService: WorkflowFinderService, workflowReviewRequestRepository: WorkflowReviewRequestRepository, workflowReviewRequestWorkflowRepository: WorkflowReviewRequestWorkflowRepository, workflowReviewRequestAuthorRepository: WorkflowReviewRequestAuthorRepository, workflowReviewRequestReviewerRepository: WorkflowReviewRequestReviewerRepository, activityRepository: WorkflowReviewActivityRepository, userRepository: UserRepository, dbLockService: DbLockService, collaborationService: CollaborationService, workflowService: WorkflowService, authorizationService: WorkflowReviewAuthorizationService, eventService: EventService, mutationGuard: WorkflowReviewRequestMutationGuard, stateNotifier: WorkflowReviewStateNotifier);
+    decide(user: User, workflowReviewRequestId: string, dto: DecideWorkflowReviewRequestDto): Promise<DecideWorkflowReviewRequestResponse>;
+    private resolveRequesterPublishability;
+    private publishApprovedVersion;
+    private assertDecisionAllowed;
+}

@@ -1,0 +1,48 @@
+import { LockService, Logger } from '@n8n/backend-common';
+import { AgentsConfig } from '@n8n/config';
+import { UserRepository } from '@n8n/db';
+import { InstanceSettings } from 'n8n-core';
+import { Publisher } from '../../../scaling/pubsub/publisher.service';
+import { AgentConversationStateService } from '../agent-conversation-state.service';
+import { AgentExecutionOrchestratorService } from '../agent-execution-orchestrator.service';
+import { AgentBackgroundJobService } from './agent-background-job.service';
+import { ChatIntegrationRegistry } from '../integrations/agent-chat-integration';
+import { AgentBackgroundJobRepository } from '../repositories/agent-background-job.repository';
+import { AgentRepository } from '../repositories/agent.repository';
+export declare const WAKE_DEBOUNCE_MS = 5000;
+export declare const MAX_CONSECUTIVE_FAILED_WAKES = 3;
+export declare class AgentWakeService {
+    private readonly jobRepository;
+    private readonly conversationState;
+    private readonly agentRepository;
+    private readonly userRepository;
+    private readonly integrationRegistry;
+    private readonly orchestrator;
+    private readonly lockService;
+    private readonly publisher;
+    private readonly instanceSettings;
+    private readonly agentsConfig;
+    private readonly logger;
+    private readonly backgroundJobService;
+    private readonly timers;
+    private readonly failures;
+    private readonly activeWakes;
+    constructor(jobRepository: AgentBackgroundJobRepository, conversationState: AgentConversationStateService, agentRepository: AgentRepository, userRepository: UserRepository, integrationRegistry: ChatIntegrationRegistry, orchestrator: AgentExecutionOrchestratorService, lockService: LockService, publisher: Publisher, instanceSettings: InstanceSettings, agentsConfig: AgentsConfig, logger: Logger, backgroundJobService: AgentBackgroundJobService);
+    requestWake(threadId: string): Promise<void>;
+    handleWakeRelay({ threadId }: {
+        threadId: string;
+    }): void;
+    drainUnconsumed(): Promise<void>;
+    isWakeActive(threadId: string): boolean;
+    onParentTurnFinished(threadId: string): Promise<void>;
+    getBackgroundUpdates(threadId: string, resourceId: string): Promise<string | undefined>;
+    private scheduleLocal;
+    attemptWake(threadId: string): Promise<void>;
+    private deliverInsideLease;
+    private deliverApproval;
+    private resolveIdentity;
+    private hasSameParentIdentity;
+    private recordFailure;
+    private resolveWakeTarget;
+    private runWake;
+}

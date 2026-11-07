@@ -1,0 +1,13 @@
+import type { INode, INodeTypeDescription } from 'n8n-workflow';
+import type { ToolError } from '../../types/tools';
+import type { SimpleWorkflow } from '../../types/workflow';
+export declare function validateNodeExists(nodeId: string, nodes: INode[]): INode | null;
+export declare function findNodeByName(nodeName: string, nodes: INode[]): INode | null;
+export declare function findNodeByIdOrName(nodeIdentifier: string, nodes: INode[]): INode | null;
+export declare function findNodeType(nodeTypeName: string, nodeVersion: number, nodeTypes: INodeTypeDescription[]): INodeTypeDescription | null;
+export declare function validateConnection(sourceNode: INode, targetNode: INode): ToolError | null;
+export declare function createValidationError(message: string, code: string, details?: Record<string, string>): ToolError;
+export declare function createNodeNotFoundError(nodeIdentifier: string): ToolError;
+export declare function createNodeTypeNotFoundError(nodeTypeName: string): ToolError;
+export declare function createNodeParameterTooLargeError(nodeId: string, parameter: string, maxSize: number): ToolError;
+export declare function hasNodes(workflow: SimpleWorkflow): boolean;

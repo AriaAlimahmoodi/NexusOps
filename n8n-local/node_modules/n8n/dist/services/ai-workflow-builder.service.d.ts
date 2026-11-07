@@ -1,0 +1,43 @@
+import { ChatPayload } from '@n8n/ai-workflow-builder';
+import { Logger } from '@n8n/backend-common';
+import { WorkflowBuilderSessionRepository } from '@n8n/backend-module-workflow-builder';
+import { OutboundHttp, SsrfProtectionService } from '@n8n/backend-network';
+import { GlobalConfig, SsrfProtectionConfig } from '@n8n/config';
+import { InstanceSettings } from 'n8n-core';
+import type { IUser } from 'n8n-workflow';
+import { License } from '../license';
+import { LoadNodesAndCredentials } from '../load-nodes-and-credentials';
+import { Push } from '../push';
+import { DynamicNodeParametersService } from '../services/dynamic-node-parameters.service';
+import { UrlService } from '@n8n/backend-services';
+import { Telemetry } from '../telemetry';
+export declare class WorkflowBuilderService {
+    private readonly loadNodesAndCredentials;
+    private readonly license;
+    private readonly config;
+    private readonly logger;
+    private readonly urlService;
+    private readonly push;
+    private readonly telemetry;
+    private readonly instanceSettings;
+    private readonly dynamicNodeParametersService;
+    private readonly sessionRepository;
+    private readonly ssrfConfig;
+    private readonly ssrfProtectionService;
+    private readonly outboundHttp;
+    private service;
+    private client;
+    private initPromise;
+    constructor(loadNodesAndCredentials: LoadNodesAndCredentials, license: License, config: GlobalConfig, logger: Logger, urlService: UrlService, push: Push, telemetry: Telemetry, instanceSettings: InstanceSettings, dynamicNodeParametersService: DynamicNodeParametersService, sessionRepository: WorkflowBuilderSessionRepository, ssrfConfig: SsrfProtectionConfig, ssrfProtectionService: SsrfProtectionService, outboundHttp: OutboundHttp);
+    refreshNodeTypes(): Promise<void>;
+    private getService;
+    private initializeService;
+    private resolveBuiltinNodeDefinitionDirs;
+    chat(payload: ChatPayload, user: IUser, abortSignal?: AbortSignal): AsyncGenerator<import("@n8n/ai-workflow-builder").StreamOutput, void, unknown>;
+    getSessions(workflowId: string | undefined, user: IUser, isCodeBuilder?: boolean): Promise<{
+        sessions: import("@n8n/ai-workflow-builder").Session[];
+    }>;
+    getBuilderInstanceCredits(user: IUser): Promise<import("@n8n_io/ai-assistant-sdk").AiAssistantSDK.BuilderInstanceCreditsResponse>;
+    clearSession(workflowId: string, user: IUser): Promise<void>;
+    truncateMessagesAfter(workflowId: string, user: IUser, messageId: string, versionCardId?: string): Promise<boolean>;
+}

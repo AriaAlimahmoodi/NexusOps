@@ -1,0 +1,38 @@
+import { Logger } from '@n8n/backend-common';
+import type express from 'express';
+import { DatabaseIndependentRoutes } from '../../services/database-independent-routes.service';
+import { PrometheusActiveWorkflowMetricsService } from './active-workflow-metrics.service';
+import { PrometheusCacheMetricsService } from './cache-metrics.service';
+import { PrometheusDbPoolMetricsService } from './db-pool-metrics.service';
+import { PrometheusDefaultMetricsService } from './default-metrics.service';
+import { PrometheusDnsCacheMetricsService } from './dns-cache-metrics.service';
+import { PrometheusEncryptionMetricsService } from './encryption-metrics.service';
+import { PrometheusEventBusMetricsService } from './event-bus-metrics.service';
+import { PrometheusExecutionDataMetricsService } from './execution-data-metrics.service';
+import { PrometheusInstanceAiMetricsService } from './instance-ai-metrics.service';
+import { PrometheusInstanceRoleMetricsService } from './instance-role-metrics.service';
+import { PrometheusMcpPostSaveMetricsService } from './mcp-post-save-metrics.service';
+import { PrometheusPollTriggerMetricsService } from './poll-trigger-metrics.service';
+import { PrometheusPssMetricsService } from './pss-metrics.service';
+import { PrometheusQueueMetricsService } from './queue-metrics.service';
+import { PrometheusRouteMetricsService } from './route-metrics.service';
+import { PrometheusSchedulerMetricsService } from './scheduler-metrics.service';
+import { PrometheusSsrfMetricsService } from './ssrf-metrics.service';
+import { PrometheusSystemTaskMetricsService } from './system-task-metrics.service';
+import { PrometheusTokenExchangeMetricsService } from './token-exchange-metrics.service';
+import { PrometheusVersionMetricsService } from './version-metrics.service';
+import { PrometheusWebhookAndFormMetricsService } from './webhook-and-form-metrics.service';
+import { PrometheusWorkflowExecutionDurationMetricsService } from './workflow-execution-duration-metrics.service';
+import { PrometheusWorkflowInfoMetricsService } from './workflow-info-metrics.service';
+import { PrometheusWorkflowPublicationMetricsService } from './workflow-publication-metrics.service';
+import { PrometheusWorkflowStatisticsMetricsService } from './workflow-statistics-metrics.service';
+export declare class PrometheusMetricsService {
+    private readonly databaseIndependentRoutes;
+    private initialized;
+    private readonly logger;
+    private readonly collectors;
+    constructor(logger: Logger, cache: PrometheusCacheMetricsService, eventBus: PrometheusEventBusMetricsService, queue: PrometheusQueueMetricsService, route: PrometheusRouteMetricsService, roleInstance: PrometheusInstanceRoleMetricsService, activeWorkflow: PrometheusActiveWorkflowMetricsService, workflowExecutionDuration: PrometheusWorkflowExecutionDurationMetricsService, workflowStatistics: PrometheusWorkflowStatisticsMetricsService, executionData: PrometheusExecutionDataMetricsService, pss: PrometheusPssMetricsService, version: PrometheusVersionMetricsService, defaultMetrics: PrometheusDefaultMetricsService, tokenExchange: PrometheusTokenExchangeMetricsService, ssrf: PrometheusSsrfMetricsService, dnsCache: PrometheusDnsCacheMetricsService, webhook: PrometheusWebhookAndFormMetricsService, workflowInfo: PrometheusWorkflowInfoMetricsService, instanceAi: PrometheusInstanceAiMetricsService, mcpPostSave: PrometheusMcpPostSaveMetricsService, dbPool: PrometheusDbPoolMetricsService, workflowPublication: PrometheusWorkflowPublicationMetricsService, scheduler: PrometheusSchedulerMetricsService, pollTrigger: PrometheusPollTriggerMetricsService, encryption: PrometheusEncryptionMetricsService, systemTask: PrometheusSystemTaskMetricsService, databaseIndependentRoutes: DatabaseIndependentRoutes);
+    init(app: express.Application): void;
+    private initCollectors;
+    private mountMetricsEndpoint;
+}

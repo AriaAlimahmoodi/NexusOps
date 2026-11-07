@@ -1,0 +1,61 @@
+import type { SourceControlledFile } from '@n8n/api-types';
+import type { TagEntity, WorkflowTagMapping } from '@n8n/db';
+import { type DataTableColumnType, type ICredentialDataDecryptedObject } from 'n8n-workflow';
+import type { StatusExportableCredential } from './types/exportable-credential';
+import type { ExportableDataTable, ExportableDataTableColumn, StatusExportableDataTable } from './types/exportable-data-table';
+import type { ExportedFolders } from './types/exportable-folders';
+import type { KeyPair } from './types/key-pair';
+import type { KeyPairType } from './types/key-pair-type';
+import type { RemoteResourceOwner, StatusResourceOwner } from './types/resource-owner';
+import type { SourceControlWorkflowVersionId } from './types/source-control-workflow-version-id';
+export declare function sanitizeCredentialData(data: ICredentialDataDecryptedObject): ICredentialDataDecryptedObject;
+export declare function mergeRemoteCrendetialDataIntoLocalCredentialData({ local, remote, }: {
+    local: ICredentialDataDecryptedObject;
+    remote: ICredentialDataDecryptedObject;
+}): ICredentialDataDecryptedObject;
+export declare function getWorkflowExportPath(workflowId: string, workflowExportFolder: string): string;
+export declare function getProjectExportPath(projectId: string, projectExportFolder: string): string;
+export declare function getCredentialExportPath(credentialId: string, credentialExportFolder: string): string;
+export declare function getDataTableExportPath(dataTableId: string, dataTableExportFolder: string): string;
+export declare function getVariablesPath(gitFolder: string): string;
+export declare function getTagsPath(gitFolder: string): string;
+export declare function getFoldersPath(gitFolder: string): string;
+export declare function readTagAndMappingsFromSourceControlFile(file: string): Promise<{
+    tags: TagEntity[];
+    mappings: WorkflowTagMapping[];
+}>;
+export declare function readFoldersFromSourceControlFile(file: string): Promise<ExportedFolders>;
+export declare function readDataTablesFromSourceControlFile(file: string): Promise<ExportableDataTable[]>;
+export declare function mapInBatches<T, R>(items: T[], batchSize: number, fn: (item: T) => Promise<R>): Promise<R[]>;
+export declare function sourceControlFoldersExistCheck(folders: string[], createIfNotExists?: boolean): boolean;
+export declare function isSourceControlLicensed(): boolean;
+export declare function generateSshKeyPair(keyType: KeyPairType): Promise<KeyPair>;
+export declare function getRepoType(repoUrl: string): 'github' | 'gitlab' | 'other';
+export declare function getTrackingInformationFromPullResult(userId: string, result: SourceControlledFile[]): {
+    userId: string;
+    credConflicts: number;
+    workflowConflicts: number;
+    workflowUpdates: number;
+};
+export declare function getTrackingInformationFromPrePushResult(userId: string, result: SourceControlledFile[]): {
+    userId: string;
+    workflowsEligible: number;
+    workflowsEligibleWithConflicts: number;
+    credsEligible: number;
+    credsEligibleWithConflicts: number;
+    variablesEligible: number;
+};
+export declare function getTrackingInformationFromPostPushResult(userId: string, result: SourceControlledFile[]): {
+    userId: string;
+    workflowsPushed: number;
+    workflowsEligible: number;
+    credsPushed: number;
+    variablesPushed: number;
+};
+export declare function normalizeAndValidateSourceControlledFilePath(gitFolderPath: string, filePath: string): string;
+export declare function hasOwnerChanged(owner1?: RemoteResourceOwner | StatusResourceOwner | null, owner2?: StatusResourceOwner | null): boolean;
+export declare function isWorkflowModified(local: SourceControlWorkflowVersionId, remote: SourceControlWorkflowVersionId, direction: 'push' | 'pull'): boolean;
+export declare function isDataTableModified(localDt: StatusExportableDataTable, remoteDt: ExportableDataTable): boolean;
+export declare function getDataTableColumnKey(column: Pick<ExportableDataTableColumn, 'name' | 'type'>): string;
+export declare function isValidDataTableColumnType(type: string): type is DataTableColumnType;
+export declare function areSameCredentials(credA: StatusExportableCredential, credB: StatusExportableCredential): boolean;

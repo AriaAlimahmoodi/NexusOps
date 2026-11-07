@@ -1,0 +1,35 @@
+import { Logger } from '@n8n/backend-common';
+import { GlobalConfig } from '@n8n/config';
+import { SettingsRepository } from '@n8n/db';
+import { Cipher } from 'n8n-core';
+import type { ICredentialDataDecryptedObject } from 'n8n-workflow';
+import { CredentialTypes } from './credential-types';
+import type { ICredentialsOverwrite } from './interfaces';
+export declare class CredentialsOverwrites {
+    private readonly globalConfig;
+    private readonly credentialTypes;
+    private readonly logger;
+    private readonly settings;
+    private readonly cipher;
+    private overwriteData;
+    private resolvedTypes;
+    constructor(globalConfig: GlobalConfig, credentialTypes: CredentialTypes, logger: Logger, settings: SettingsRepository, cipher: Cipher);
+    private reloadHandler?;
+    registerReloadHandler(handler: () => Promise<void>): void;
+    init(): Promise<void>;
+    private reloading;
+    reloadOverwriteCredentials(): Promise<void>;
+    loadOverwriteDataFromDB(reloadFrontend: boolean): Promise<void>;
+    private broadcastReloadOverwriteCredentialsCommand;
+    saveOverwriteDataToDB(overwriteData: ICredentialsOverwrite, broadcast?: boolean): Promise<void>;
+    getOverwriteEndpointMiddleware(): ((req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void) | null;
+    setPlainData(overwriteData: ICredentialsOverwrite): void;
+    setData(overwriteData: ICredentialsOverwrite, storeInDb?: boolean, reloadFrontend?: boolean): Promise<void>;
+    applyOverwrite(type: string, data: ICredentialDataDecryptedObject): ICredentialDataDecryptedObject;
+    getOverwrites(type: string): ICredentialDataDecryptedObject | undefined;
+    private get;
+    getAll(): ICredentialsOverwrite;
+    supportsManagedAuth(type: string): boolean;
+    isManagedOAuthType(type: string): boolean;
+    usesManagedAuth(type: string, data: Record<string, unknown>): boolean;
+}

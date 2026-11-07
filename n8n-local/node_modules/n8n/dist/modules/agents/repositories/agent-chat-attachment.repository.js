@@ -1,0 +1,45 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AgentChatAttachmentRepository = void 0;
+const di_1 = require("@n8n/di");
+const typeorm_1 = require("@n8n/typeorm");
+const agent_chat_attachment_entity_1 = require("../entities/agent-chat-attachment.entity");
+let AgentChatAttachmentRepository = class AgentChatAttachmentRepository extends typeorm_1.Repository {
+    constructor(dataSource) {
+        super(agent_chat_attachment_entity_1.AgentChatAttachment, dataSource.manager);
+    }
+    async findByIdInThread(id, scope) {
+        return await this.findOneBy({ id, projectId: scope.projectId, threadId: scope.threadId });
+    }
+    async findByIdForAgent(id, scope) {
+        return await this.findOneBy({ id, agentId: scope.agentId, projectId: scope.projectId });
+    }
+    async findByThread(threadId, scope) {
+        return await this.findBy({ threadId, ...scope });
+    }
+    async findByIds(ids) {
+        return await this.findBy({ id: (0, typeorm_1.In)(ids) });
+    }
+    async findFromSourceCreatedBefore(scope, before, limit) {
+        return await this.find({
+            where: { agentId: scope.agentId, source: scope.source, createdAt: (0, typeorm_1.LessThan)(before) },
+            order: { createdAt: 'ASC' },
+            take: limit,
+        });
+    }
+};
+exports.AgentChatAttachmentRepository = AgentChatAttachmentRepository;
+exports.AgentChatAttachmentRepository = AgentChatAttachmentRepository = __decorate([
+    (0, di_1.Service)(),
+    __metadata("design:paramtypes", [typeorm_1.DataSource])
+], AgentChatAttachmentRepository);
+//# sourceMappingURL=agent-chat-attachment.repository.js.map

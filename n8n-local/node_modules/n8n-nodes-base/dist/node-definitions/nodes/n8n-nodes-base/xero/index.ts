@@ -1,0 +1,12 @@
+/**
+ * Xero Node Types
+ *
+ * Re-exports all version-specific types and provides combined union type.
+ */
+
+import type { XeroV1Node } from './v1';
+
+export * from './v1';
+
+// Combined union type for all versions
+export type XeroNode = XeroV1Node;

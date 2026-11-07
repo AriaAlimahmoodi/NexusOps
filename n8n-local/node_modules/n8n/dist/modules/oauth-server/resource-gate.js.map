@@ -1,0 +1,1 @@
+{"version":3,"file":"resource-gate.js","sourceRoot":"","sources":["../../../src/modules/oauth-server/resource-gate.ts"],"names":[],"mappings":";;;AAGA,yFAAwF;AAYxF,6BACC,qBAA4C,EAC5C,KAAyB;IAEzB,OAAO;QACN,QAAQ,EAAE,GAAG,EAAE,CAAC,KAAK;QACrB,SAAS,EAAE,KAAK,EAAE,IAAuB,EAAE,EAAE,CAC5C,MAAM,IAAA,2CAAqB,EAAC,qBAAqB,EAAE,KAAK,EAAE,IAAI,CAAC;KAChE,CAAC;AACH,CAAC"}

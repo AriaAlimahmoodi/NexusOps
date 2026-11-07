@@ -1,0 +1,44 @@
+import type { InstanceAiMcpConnectionToolsResponse, InstanceAiMcpCreateConnectionRequestDto, InstanceAiMcpUpdateConnectionRequestDto } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { OutboundHttp } from '@n8n/backend-network';
+import { EventService, CredentialsFinderService } from '@n8n/backend-services';
+import { type CredentialsEntity, type User } from '@n8n/db';
+import type { McpServerConfig } from '@n8n/instance-ai';
+import { CredentialTypes } from '../../../credential-types';
+import { CredentialsService } from '../../../credentials/credentials.service';
+import { McpRegistryService } from '../../../modules/mcp-registry/registry/mcp-registry.service';
+import type { McpRegistryServer } from '../../../modules/mcp-registry/registry/mcp-registry.types';
+import { OauthService } from '../../../oauth/oauth.service';
+import type { InstanceAiMcpRegistryConnection } from '../entities/instance-ai-mcp-registry-connection.entity';
+import { InstanceAiSettingsService } from '../instance-ai-settings.service';
+import { InstanceAiMcpRegistryConnectionRepository } from '../repositories/instance-ai-mcp-registry-connection.repository';
+export declare class InstanceAiMcpRegistryService {
+    private readonly connectionRepository;
+    private readonly mcpRegistryService;
+    private readonly credentialsFinderService;
+    private readonly credentialsService;
+    private readonly credentialTypes;
+    private readonly oauthService;
+    private readonly eventService;
+    private readonly outboundHttp;
+    private readonly instanceAiSettingsService;
+    private readonly logger;
+    constructor(logger: Logger, connectionRepository: InstanceAiMcpRegistryConnectionRepository, mcpRegistryService: McpRegistryService, credentialsFinderService: CredentialsFinderService, credentialsService: CredentialsService, credentialTypes: CredentialTypes, oauthService: OauthService, eventService: EventService, outboundHttp: OutboundHttp, instanceAiSettingsService: InstanceAiSettingsService);
+    listConnectionsForUser(user: User): Promise<InstanceAiMcpRegistryConnection[]>;
+    createConnection(user: User, input: InstanceAiMcpCreateConnectionRequestDto): Promise<{
+        connection: InstanceAiMcpRegistryConnection;
+        credential: CredentialsEntity;
+        server: McpRegistryServer;
+    }>;
+    deleteConnection(user: User, id: string): Promise<void>;
+    updateConnection(user: User, id: string, payload: InstanceAiMcpUpdateConnectionRequestDto): Promise<InstanceAiMcpRegistryConnection>;
+    listConnectionTools(user: User, id: string): Promise<InstanceAiMcpConnectionToolsResponse>;
+    listAllConnectionTools(user: User): Promise<InstanceAiMcpConnectionToolsResponse[]>;
+    private fetchConnectionTools;
+    getRegistryMcpServers(user: User): Promise<McpServerConfig[]>;
+    private resolveRegistryServer;
+    private buildRegistryServerFetch;
+    private getCredentialWithData;
+    private swapCredential;
+    private assertCredentialAllowed;
+}

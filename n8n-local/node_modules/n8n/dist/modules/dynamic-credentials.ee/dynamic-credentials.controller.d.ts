@@ -1,0 +1,34 @@
+import { EventService, UrlService, CredentialsFinderService } from '@n8n/backend-services';
+import { AuthenticatedRequest } from '@n8n/db';
+import { Request, Response } from 'express';
+import { Cipher } from 'n8n-core';
+import { EnterpriseCredentialsService } from '../../credentials/credentials.service.ee';
+import { OauthService } from '../../oauth/oauth.service';
+import { DynamicCredentialResolverRepository } from './database/repositories/credential-resolver.repository';
+import { AuthorizeIntentService, CredentialConnectionStatusService, DynamicCredentialResolverRegistry, DynamicCredentialService } from './services';
+import { DynamicCredentialCorsService } from './services/dynamic-credential-cors.service';
+import { DynamicCredentialWebService } from './services/dynamic-credential-web.service';
+export declare class DynamicCredentialsController {
+    private readonly enterpriseCredentialsService;
+    private readonly oauthService;
+    private readonly resolverRepository;
+    private readonly resolverRegistry;
+    private readonly cipher;
+    private readonly dynamicCredentialCorsService;
+    private readonly dynamicCredentialWebService;
+    private readonly credentialsFinderService;
+    private readonly credentialConnectionStatusService;
+    private readonly eventService;
+    private readonly authorizeIntentService;
+    private readonly dynamicCredentialService;
+    private readonly urlService;
+    constructor(enterpriseCredentialsService: EnterpriseCredentialsService, oauthService: OauthService, resolverRepository: DynamicCredentialResolverRepository, resolverRegistry: DynamicCredentialResolverRegistry, cipher: Cipher, dynamicCredentialCorsService: DynamicCredentialCorsService, dynamicCredentialWebService: DynamicCredentialWebService, credentialsFinderService: CredentialsFinderService, credentialConnectionStatusService: CredentialConnectionStatusService, eventService: EventService, authorizeIntentService: AuthorizeIntentService, dynamicCredentialService: DynamicCredentialService, urlService: UrlService);
+    private findCredentialToUse;
+    private getResolverInstance;
+    handlePreflightCredentialRevoke(req: Request, res: Response): void;
+    revokeCredential(req: Request, res: Response): Promise<void>;
+    handlePreflightCredentialAuthorize(req: Request, res: Response): void;
+    authorizeCredential(req: Request, res: Response): Promise<string>;
+    authorizeCredentialRedirect(req: Request, res: Response): Promise<void>;
+    deleteMyConnection(req: AuthenticatedRequest, res: Response, credentialId: string): Promise<void>;
+}

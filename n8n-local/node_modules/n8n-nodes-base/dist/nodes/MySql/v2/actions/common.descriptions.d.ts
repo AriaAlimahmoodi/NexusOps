@@ -1,0 +1,8 @@
+import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
+export declare const operatorOptions: INodePropertyOptions[];
+export declare const tableRLC: INodeProperties;
+export declare const optionsCollection: INodeProperties;
+export declare const selectRowsFixedCollection: INodeProperties;
+export declare const sortFixedCollection: INodeProperties;
+export declare const combineConditionsCollection: INodeProperties;
+//# sourceMappingURL=common.descriptions.d.ts.map

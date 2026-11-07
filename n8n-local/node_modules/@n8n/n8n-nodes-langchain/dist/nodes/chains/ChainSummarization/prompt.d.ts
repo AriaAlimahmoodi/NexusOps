@@ -1,0 +1,2 @@
+export declare const REFINE_PROMPT_TEMPLATE = "Your job is to produce a final summary\nWe have provided an existing summary up to a certain point: \"{existing_answer}\"\nWe have the opportunity to refine the existing summary\n(only if needed) with some more context below.\n------------\n\"{text}\"\n------------\n\nGiven the new context, refine the original summary\nIf the context isn't useful, return the original summary.\n\nREFINED SUMMARY:";
+export declare const DEFAULT_PROMPT_TEMPLATE = "Write a concise summary of the following:\n\n\n\"{text}\"\n\n\nCONCISE SUMMARY:";

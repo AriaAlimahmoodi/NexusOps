@@ -1,0 +1,5 @@
+import type { IConnections } from '../interfaces';
+export declare const MAX_CONNECTION_INDEX = 1000;
+export declare const MAX_DESTINATION_INPUT_SLOTS = 100000;
+export declare function mapConnectionsByDestination(connections: IConnections): IConnections;
+//# sourceMappingURL=map-connections-by-destination.d.ts.map

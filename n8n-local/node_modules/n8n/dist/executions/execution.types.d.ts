@@ -1,0 +1,48 @@
+import type { SerializedCursor } from '@n8n/api-types';
+import type { AuthenticatedRequest, ExecutionSummaries, ExecutionEntity } from '@n8n/db';
+import type { AnnotationVote, ExecutionStatus, WorkflowExecuteMode } from 'n8n-workflow';
+import type { ExecutionCursor } from '../executions/execution-cursor';
+export declare namespace ExecutionRequest {
+    namespace QueryParams {
+        type GetMany = {
+            cursor?: SerializedCursor;
+            filter: string;
+            limit: string;
+        };
+    }
+    namespace BodyParams {
+        type StopMany = {
+            filter: ExecutionSummaries.StopExecutionFilterQuery;
+        };
+    }
+    namespace RouteParams {
+        type ExecutionId = {
+            id: ExecutionEntity['id'];
+        };
+    }
+    type ExecutionUpdatePayload = {
+        tags?: string[];
+        vote?: AnnotationVote | null;
+    };
+    type GetMany = AuthenticatedRequest<{}, {}, {}, QueryParams.GetMany> & {
+        rangeQuery: ExecutionSummaries.RangeQuery;
+        cursor?: ExecutionCursor;
+    };
+    type GetOne = AuthenticatedRequest<RouteParams.ExecutionId>;
+    type GetVersions = AuthenticatedRequest<{
+        workflowId: string;
+    }>;
+    type Retry = AuthenticatedRequest<RouteParams.ExecutionId, {}, {
+        loadWorkflow?: boolean;
+    }, {}>;
+    type Stop = AuthenticatedRequest<RouteParams.ExecutionId>;
+    type StopMany = AuthenticatedRequest<{}, {}, BodyParams.StopMany>;
+    type Update = AuthenticatedRequest<RouteParams.ExecutionId, {}, ExecutionUpdatePayload, {}>;
+}
+export type StopResult = {
+    mode: WorkflowExecuteMode;
+    startedAt: Date;
+    stoppedAt?: Date;
+    finished: boolean;
+    status: ExecutionStatus;
+};

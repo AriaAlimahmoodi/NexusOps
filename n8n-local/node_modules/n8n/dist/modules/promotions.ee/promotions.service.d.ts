@@ -1,0 +1,58 @@
+import type { ApplyPackageDto, ApplyPackageResultDto, ApplySelectionDto, ContinueApplyPackageDto, ContinueApplySelectionDto, PromotePackageDto, PromotePackageResultDto, PromoteRequest, PromotionCheckoutPublicDto, PromotionDirection } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { ProjectRepository, SharedWorkflowRepository, type User } from '@n8n/db';
+import { PackageDirectoryInventoryReader } from '../../modules/n8n-packages/io/directory/package-directory-inventory-reader';
+import { PackageImportConfig } from '../../modules/n8n-packages/n8n-packages.config';
+import { N8nPackagesService } from '../../modules/n8n-packages/n8n-packages.service';
+import { ProjectService } from '../../services/project.service.ee';
+import { PromotionBindingPreflightService } from './promotion-binding-preflight.service';
+import { PromotionConfigResolver } from './promotion-config.resolver';
+import { PromotionProvidersService } from './promotion-providers.service';
+import { PromotionWorkingDirectoryService } from './promotion-working-directory.service';
+import { PromotionsGitService } from './promotions-git.service';
+import type { BranchPackage } from './promotions.types';
+import { WorkingCopyUpdater } from './working-copy-updater';
+export declare class PromotionsService {
+    private readonly resolver;
+    private readonly providersService;
+    private readonly workingDirectory;
+    private readonly workingCopy;
+    private readonly gitService;
+    private readonly projectRepository;
+    private readonly sharedWorkflowRepository;
+    private readonly projectService;
+    private readonly n8nPackagesService;
+    private readonly bindingPreflight;
+    private readonly inventoryReader;
+    private readonly packageImportConfig;
+    private readonly logger;
+    constructor(resolver: PromotionConfigResolver, providersService: PromotionProvidersService, workingDirectory: PromotionWorkingDirectoryService, workingCopy: WorkingCopyUpdater, gitService: PromotionsGitService, projectRepository: ProjectRepository, sharedWorkflowRepository: SharedWorkflowRepository, projectService: ProjectService, n8nPackagesService: N8nPackagesService, bindingPreflight: PromotionBindingPreflightService, inventoryReader: PackageDirectoryInventoryReader, packageImportConfig: PackageImportConfig, logger: Logger);
+    clone(connectionId: string, direction: PromotionDirection): Promise<PromotionCheckoutPublicDto>;
+    disconnect(connectionId: string, direction: PromotionDirection): Promise<PromotionCheckoutPublicDto>;
+    promote(connectionId: string, actor: User, request: PromotePackageDto & {
+        canExportVariableValues: boolean;
+    }): Promise<PromotePackageResultDto>;
+    private promoteSelectionResolved;
+    promoteProjectSelection(projectId: string, actor: User, request: PromoteRequest & {
+        canExportVariableValues: boolean;
+    }): Promise<PromotePackageResultDto>;
+    private classifySelection;
+    apply(connectionId: string, actor: User, expectedSource?: ApplyPackageDto['expectedSource']): Promise<ApplyPackageResultDto>;
+    continueApply(connectionId: string, actor: User, request: ContinueApplyPackageDto): Promise<ApplyPackageResultDto>;
+    applyProjectSelection(projectId: string, actor: User, request: ApplySelectionDto): Promise<ApplyPackageResultDto>;
+    continueApplyProjectSelection(projectId: string, actor: User, request: ContinueApplySelectionDto): Promise<ApplyPackageResultDto>;
+    private classifyApplySelection;
+    private applySelectionFromSource;
+    private applyFromSource;
+    readBranchPackage(projectId: string, direction: PromotionDirection): Promise<BranchPackage>;
+    private prepareTargetBranch;
+    private assertInstanceScope;
+    private assertTeamProject;
+    private assertCheckoutReady;
+    private descriptorFor;
+    private checkoutIdentity;
+    private credentialsFor;
+    private reconcileTeamProjects;
+    private commitAuthor;
+    private toApplyCounts;
+}

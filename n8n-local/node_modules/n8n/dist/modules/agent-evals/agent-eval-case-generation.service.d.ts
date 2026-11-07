@@ -1,0 +1,31 @@
+import { type AgentEvalDraftCase, type CreateDraftDatasetResult, type GenerateDraftCasesOptions, type GenerateDraftCasesResult, type PreviewRunOptions, type PreviewRunResult } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import type { User } from '@n8n/db';
+import { AgentEvalDatasetRepository } from '@n8n/db';
+import { CredentialsService } from '../../credentials/credentials.service';
+import { InstanceWriteAccessService } from '@n8n/backend-services';
+import { AgentEvalsFlagGate } from './agent-evals-flag-gate';
+import { AgentConfigService } from '../agents/agent-config.service';
+import { AgentTestRunService } from '../agents/agent-test-run.service';
+import { DataTableService } from '../data-table/data-table.service';
+export declare class AgentEvalCaseGenerationService {
+    private readonly logger;
+    private readonly agentConfigService;
+    private readonly credentialsService;
+    private readonly dataTableService;
+    private readonly datasetRepository;
+    private readonly flagGate;
+    private readonly instanceWriteAccess;
+    private readonly agentTestRunService;
+    constructor(logger: Logger, agentConfigService: AgentConfigService, credentialsService: CredentialsService, dataTableService: DataTableService, datasetRepository: AgentEvalDatasetRepository, flagGate: AgentEvalsFlagGate, instanceWriteAccess: InstanceWriteAccessService, agentTestRunService: AgentTestRunService);
+    generateDraftCases(user: User, projectId: string, agentId: string, options?: GenerateDraftCasesOptions): Promise<GenerateDraftCasesResult>;
+    createEmptyDataset(user: User, projectId: string, agentId: string, datasetName?: string): Promise<CreateDraftDatasetResult>;
+    previewRun(user: User, projectId: string, agentId: string, options?: PreviewRunOptions): Promise<PreviewRunResult>;
+    runPreviewCase(user: User, projectId: string, agentId: string, draftCase: Pick<AgentEvalDraftCase, 'input' | 'whatToCheck' | 'scenario'>): Promise<PreviewRunResult>;
+    private assertInstanceWriteAccess;
+    private resolveAgentModel;
+    private invokeModel;
+    private persistDataset;
+    deleteDraftTable(dataTableId: string, projectId: string): Promise<void>;
+    private rollBackDataTable;
+}

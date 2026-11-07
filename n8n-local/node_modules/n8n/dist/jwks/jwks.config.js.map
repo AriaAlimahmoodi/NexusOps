@@ -1,0 +1,1 @@
+{"version":3,"file":"jwks.config.js","sourceRoot":"","sources":["../../src/jwks/jwks.config.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,wCAA6D;AAGtD,IAAM,UAAU,GAAhB,MAAM,UAAU;IAAhB;QAON,2BAAsB,GAAW,EAAE,CAAC;IACrC,CAAC;CAAA,CAAA;;AADA;IADC,IAAA,YAAG,EAAC,+BAA+B,EAAE,0BAAiB,CAAC;;0DACpB;qBAPxB,UAAU;IADtB,eAAM;GACM,UAAU,CAQtB"}

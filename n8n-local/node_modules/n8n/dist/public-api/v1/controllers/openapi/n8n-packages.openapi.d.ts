@@ -1,0 +1,13 @@
+export declare const PACKAGE_TAGS: string[];
+export declare const EXPORT_SUMMARY = "Beta: Export agents, workflows, folders, or projects as an n8n package";
+export declare const EXPORT_DESCRIPTION: string;
+export declare const EXPORT_200_DESCRIPTION = "A gzipped tar archive containing the exported package contents.";
+export declare const EXPORT_COUNTS_HEADER_DESCRIPTION: string;
+export declare const IMPORT_SUMMARY = "Beta: Import an n8n package into a project";
+export declare const IMPORT_DESCRIPTION: string;
+export declare const IMPORT_409_DESCRIPTION: string;
+export declare const IMPORT_422_DESCRIPTION: string;
+export declare const IMPORT_SELECTION_SUMMARY = "Beta: Import a selected subset of workflows from an n8n package";
+export declare const IMPORT_SELECTION_DESCRIPTION: string;
+export declare const IMPORT_SELECTION_409_DESCRIPTION: string;
+export declare const IMPORT_SELECTION_422_DESCRIPTION: string;

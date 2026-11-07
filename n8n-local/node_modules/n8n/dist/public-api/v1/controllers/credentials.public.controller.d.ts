@@ -1,0 +1,34 @@
+import { CreateCredentialPublicDto, CredentialListPublicDto, CredentialPublicDto, CredentialSchemaPublicDto, CredentialTestPublicDto, DeleteCredentialPublicDto, ListCredentialsQueryDto, UpdateCredentialPublicDto, TransferCredentialPublicDto } from '@n8n/api-types';
+import { LicenseState } from '@n8n/backend-common';
+import { EventService, CredentialsFinderService } from '@n8n/backend-services';
+import type { AuthenticatedRequest } from '@n8n/db';
+import type { NextFunction, Request, Response } from 'express';
+import { CredentialDescriptionsService } from '../../../credentials/credential-descriptions.service';
+import { CredentialsOverwrites } from '../../../credentials-overwrites';
+import { CredentialTypes } from '../../../credential-types';
+import { CredentialsService } from '../../../credentials/credentials.service';
+import { EnterpriseCredentialsService } from '../../../credentials/credentials.service.ee';
+import { CredentialsHelper } from '../../../credentials-helper';
+export declare class CredentialsPublicController {
+    private readonly credentialsService;
+    private readonly credentialsFinderService;
+    private readonly credentialTypes;
+    private readonly credentialsHelper;
+    private readonly licenseState;
+    private readonly eventService;
+    private readonly enterpriseCredentialsService;
+    private readonly credentialDescriptions;
+    private readonly credentialsOverwrites;
+    constructor(credentialsService: CredentialsService, credentialsFinderService: CredentialsFinderService, credentialTypes: CredentialTypes, credentialsHelper: CredentialsHelper, licenseState: LicenseState, eventService: EventService, enterpriseCredentialsService: EnterpriseCredentialsService, credentialDescriptions: CredentialDescriptionsService, credentialsOverwrites: CredentialsOverwrites);
+    stripDisabledDescription(req: Request, _res: Response, next: NextFunction): Promise<void>;
+    getCredentials(req: AuthenticatedRequest, _res: Response, query: ListCredentialsQueryDto): Promise<CredentialListPublicDto>;
+    getCredential(_req: AuthenticatedRequest, _res: Response, credentialId: string): Promise<CredentialPublicDto>;
+    createCredential(req: AuthenticatedRequest, _res: Response, body: CreateCredentialPublicDto): Promise<CredentialPublicDto>;
+    updateCredential(req: AuthenticatedRequest, _res: Response, credentialId: string, body: UpdateCredentialPublicDto): Promise<CredentialPublicDto>;
+    private assertKnownCredentialType;
+    private buildUpdatePayload;
+    deleteCredential(req: AuthenticatedRequest, _res: Response, credentialId: string): Promise<DeleteCredentialPublicDto>;
+    transferCredential(req: AuthenticatedRequest, _res: Response, credentialId: string, body: TransferCredentialPublicDto): Promise<void>;
+    testCredential(req: AuthenticatedRequest, _res: Response, credentialId: string): Promise<CredentialTestPublicDto>;
+    getCredentialType(_req: AuthenticatedRequest, _res: Response, credentialTypeName: string): Promise<CredentialSchemaPublicDto>;
+}

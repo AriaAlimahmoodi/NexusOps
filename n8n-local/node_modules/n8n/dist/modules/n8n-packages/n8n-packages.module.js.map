@@ -1,0 +1,1 @@
+{"version":3,"file":"n8n-packages.module.js","sourceRoot":"","sources":["../../../src/modules/n8n-packages/n8n-packages.module.ts"],"names":[],"mappings":";;;;;;;;;AACA,gDAAgD;AAKzC,IAAM,iBAAiB,GAAvB,MAAM,iBAAiB;IAC7B,KAAK,CAAC,IAAI;QACT,MAAM,MAAM,CAAC,2BAA2B,CAAC,CAAC;IAC3C,CAAC;CACD,CAAA;;4BAJY,iBAAiB;IAH7B,IAAA,0BAAa,EAAC;QACd,IAAI,EAAE,cAAc;KACpB,CAAC;GACW,iBAAiB,CAI7B"}

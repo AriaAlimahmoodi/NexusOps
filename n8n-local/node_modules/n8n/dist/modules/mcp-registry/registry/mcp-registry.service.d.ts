@@ -1,0 +1,42 @@
+import { Logger } from '@n8n/backend-common';
+import { InstanceSettings } from 'n8n-core';
+import type { McpRegistryConnection } from 'n8n-workflow';
+import { LoadNodesAndCredentials } from '../../../load-nodes-and-credentials';
+import { Push } from '../../../push';
+import { Publisher } from '../../../scaling/pubsub/publisher.service';
+import { McpRegistryServerRepository } from './mcp-registry-server.repository';
+import { McpRegistryApiClient } from './mcp-registry-api.client';
+import { McpRegistryCapabilities } from './mcp-registry-capabilities';
+import { type McpRegistrySearchResult } from './mcp-registry-search';
+import type { McpRegistryServer } from './mcp-registry.types';
+export declare class McpRegistryService {
+    private readonly logger;
+    private readonly repository;
+    private readonly apiClient;
+    private readonly capabilities;
+    private readonly instanceSettings;
+    private readonly loadNodesAndCredentials;
+    private readonly push;
+    private readonly publisher;
+    constructor(logger: Logger, repository: McpRegistryServerRepository, apiClient: McpRegistryApiClient, capabilities: McpRegistryCapabilities, instanceSettings: InstanceSettings, loadNodesAndCredentials: LoadNodesAndCredentials, push: Push, publisher: Publisher);
+    init(): Promise<void>;
+    handleReloadMcpRegistry(): Promise<void>;
+    getAll({ includeDeprecated, }?: {
+        includeDeprecated?: boolean;
+    }): Promise<McpRegistryServer[]>;
+    get(slug: string): Promise<McpRegistryServer | undefined>;
+    getBySlugs(slugs: string[]): Promise<McpRegistryServer[]>;
+    search(queries: string[]): Promise<McpRegistrySearchResult[]>;
+    list(limit: number): Promise<McpRegistrySearchResult[]>;
+    resolveBySlugs(slugs: string[]): Promise<McpRegistrySearchResult[]>;
+    getConnection(nodeTypeName: string): Promise<McpRegistryConnection | undefined>;
+    refreshFromApi(signal?: AbortSignal): Promise<void>;
+    private getStoredServers;
+    private refreshUpdatedServers;
+    private shouldFetchFullServer;
+    private saveServers;
+    private refreshRegistryNodeTypes;
+    private publishReloadCommand;
+    private notifyNodeDescriptionsUpdated;
+    private isMainInstance;
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"tag.schema.js","sourceRoot":"","sources":["../../../../../src/modules/n8n-packages/spec/serialized/tag.schema.ts"],"names":[],"mappings":";;;AAAA,6BAAwB;AAEX,QAAA,mBAAmB,GAAG,OAAC;KAClC,MAAM,CAAC;IACP,EAAE,EAAE,OAAC,CAAC,MAAM,EAAE,CAAC,GAAG,CAAC,CAAC,CAAC;IACrB,IAAI,EAAE,OAAC,CAAC,MAAM,EAAE,CAAC,GAAG,CAAC,CAAC,CAAC;CACvB,CAAC;KACD,MAAM,EAAE,CAAC"}

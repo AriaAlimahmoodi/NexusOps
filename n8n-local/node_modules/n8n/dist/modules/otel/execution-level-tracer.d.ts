@@ -1,0 +1,31 @@
+import { Logger } from '@n8n/backend-common';
+import type { Context } from '@opentelemetry/api';
+import { type StartWorkflowParams, type EndWorkflowParams, type EndCrashedWorkflowParams, type StartNodeParams, type EndNodeParams } from './execution-level-tracer.types';
+import { OtelSettingsService } from './otel-settings.service';
+import { OtelCustomAttributesConfig } from './otel.config';
+import { OtelService } from './otel.service';
+import type { TracingContext } from './tracing-context';
+export declare class ExecutionLevelTracer {
+    private readonly otelService;
+    private readonly otelSettingsService;
+    private readonly logger;
+    private readonly customAttributesConfig;
+    private readonly activeWorkflowSpans;
+    private readonly activeNodeSpansByExecutionId;
+    constructor(otelService: OtelService, otelSettingsService: OtelSettingsService, logger: Logger, customAttributesConfig: OtelCustomAttributesConfig);
+    private get tracer();
+    startWorkflow(params: StartWorkflowParams): TracingContext;
+    endWorkflow(params: EndWorkflowParams): void;
+    endCrashedWorkflow(params: EndCrashedWorkflowParams): void;
+    private reconstructWorkflowSpan;
+    startNode(params: StartNodeParams): void;
+    endNode(params: EndNodeParams): void;
+    getActiveContext(executionId: string, nodeName?: string): Context | undefined;
+    injectTraceHeaders(executionId: string, nodeName: string | undefined, headers: Record<string, string>): void;
+    private emitStartMarker;
+    private parseTraceParentHeaders;
+    private buildContinuationLinks;
+    private findMostSpecificSpan;
+    private endDanglingNodeSpans;
+    private buildCustomAttributes;
+}

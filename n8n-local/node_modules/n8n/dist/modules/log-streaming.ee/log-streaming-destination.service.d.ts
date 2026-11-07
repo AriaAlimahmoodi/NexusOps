@@ -1,0 +1,33 @@
+import { Logger } from '@n8n/backend-common';
+import { OutboundHttp } from '@n8n/backend-network';
+import type { DeleteResult } from '@n8n/typeorm';
+import type { MessageEventBusDestinationOptions } from 'n8n-workflow';
+import type { EventMessageTypes } from '../../eventbus';
+import { MessageEventBus } from '../../eventbus/message-event-bus/message-event-bus';
+import { Publisher } from '../../scaling/pubsub/publisher.service';
+import { EventDestinationsRepository } from './database/repositories/event-destination.repository';
+import { MessageEventBusDestination } from './destinations/message-event-bus-destination.ee';
+export declare class LogStreamingDestinationService {
+    private readonly logger;
+    private readonly eventDestinationsRepository;
+    private readonly eventBus;
+    private readonly publisher;
+    private readonly outboundHttp;
+    private destinations;
+    private isListening;
+    private readonly messageHandler;
+    constructor(logger: Logger, eventDestinationsRepository: EventDestinationsRepository, eventBus: MessageEventBus, publisher: Publisher, outboundHttp: OutboundHttp);
+    loadDestinationsFromDb(): Promise<void>;
+    saveDestinationToDb(destination: MessageEventBusDestination): Promise<import("@n8n/typeorm").InsertResult>;
+    deleteDestinationFromDb(id: string): Promise<DeleteResult>;
+    addDestination(destination: MessageEventBusDestination, notifyInstances?: boolean): Promise<MessageEventBusDestination>;
+    removeDestination(id: string, notifyInstances?: boolean): Promise<DeleteResult>;
+    initialize(): Promise<void>;
+    private handleMessage;
+    findDestination(id?: string): Promise<MessageEventBusDestinationOptions[]>;
+    testDestination(destinationId: string): Promise<boolean>;
+    private hasAnyDestinationSubscribedToEvent;
+    shouldSendMsg(msg: EventMessageTypes): boolean;
+    close(): Promise<void>;
+    restart(): Promise<void>;
+}

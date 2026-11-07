@@ -1,0 +1,1 @@
+{"version":3,"file":"data-table-access-denied.error.js","sourceRoot":"","sources":["../../../../src/modules/data-table/errors/data-table-access-denied.error.ts"],"names":[],"mappings":";;;AAAA,+CAAyC;AAEzC,gCAAwC,SAAQ,wBAAS;IACxD,YAAY,MAAgB;QAC3B,KAAK,CAAC,qCAAqC,MAAM,gCAAgC,EAAE;YAClF,KAAK,EAAE,SAAS;SAChB,CAAC,CAAC;IACJ,CAAC;CACD"}

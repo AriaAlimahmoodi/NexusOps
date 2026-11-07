@@ -1,0 +1,36 @@
+/**
+ * OpenAI Node - Version 2.3
+ * Discriminator: resource=conversation, operation=update
+ */
+
+
+interface Credentials {
+  openAiApi: CredentialReference;
+}
+
+/** Update a conversation */
+export type LcOpenAiV23ConversationUpdateParams = {
+  resource: 'conversation';
+  operation: 'update';
+/**
+ * The ID of the conversation to update
+ */
+    conversationId: string | Expression<string>;
+/**
+ * Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a structured format, and querying for objects via API or the dashboard. Keys are strings with a maximum length of 64 characters. Values are strings with a maximum length of 512 characters.
+ * @default {}
+ */
+    metadata?: IDataObject | string | Expression<string>;
+};
+
+export interface LcOpenAiV23ConversationUpdateSubnodeConfig {
+  tools?: ToolInstance[];
+  memory?: MemoryInstance;
+}
+
+export type LcOpenAiV23ConversationUpdateNode = {
+  type: '@n8n/n8n-nodes-langchain.openAi';
+  version: 2.3;
+  isTrigger: true;
+  config: NodeConfig<LcOpenAiV23ConversationUpdateParams> & { credentials?: Credentials } & { subnodes?: LcOpenAiV23ConversationUpdateSubnodeConfig };
+};

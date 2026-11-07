@@ -1,0 +1,1 @@
+{"version":3,"file":"data-table-name-conflict.error.js","sourceRoot":"","sources":["../../../../src/modules/data-table/errors/data-table-name-conflict.error.ts"],"names":[],"mappings":";;;AAAA,+CAAyC;AAEzC,gCAAwC,SAAQ,wBAAS;IACxD,YAAY,IAAY;QACvB,KAAK,CAAC,yBAAyB,IAAI,kCAAkC,EAAE;YACtE,KAAK,EAAE,SAAS;SAChB,CAAC,CAAC;IACJ,CAAC;CACD"}

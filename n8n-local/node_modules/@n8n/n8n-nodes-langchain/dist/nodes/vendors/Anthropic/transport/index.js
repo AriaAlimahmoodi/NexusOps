@@ -1,0 +1,40 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.apiRequest = apiRequest;
+async function apiRequest(method, endpoint, parameters) {
+    const { body, qs, option, headers } = parameters ?? {};
+    const credentials = await this.getCredentials('anthropicApi');
+    const baseUrl = credentials.url ?? 'https://api.anthropic.com';
+    const url = `${baseUrl}${endpoint}`;
+    const betas = ['files-api-2025-04-14'];
+    if (parameters?.enableAnthropicBetas?.promptTools) {
+        betas.push('prompt-tools-2025-04-02');
+    }
+    if (parameters?.enableAnthropicBetas?.codeExecution) {
+        betas.push('code-execution-2025-05-22');
+    }
+    const requestHeaders = {
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': betas.join(','),
+        ...headers,
+    };
+    if (credentials.header &&
+        typeof credentials.headerName === 'string' &&
+        credentials.headerName &&
+        typeof credentials.headerValue === 'string') {
+        requestHeaders[credentials.headerName] = credentials.headerValue;
+    }
+    const options = {
+        headers: requestHeaders,
+        method,
+        body,
+        qs,
+        url,
+        json: true,
+    };
+    if (option && Object.keys(option).length !== 0) {
+        Object.assign(options, option);
+    }
+    return await this.helpers.httpRequestWithAuthentication.call(this, 'anthropicApi', options);
+}
+//# sourceMappingURL=index.js.map

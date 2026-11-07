@@ -1,0 +1,31 @@
+/**
+ * OpenAI Node - Version 2.3 - Zod Schema
+ * Discriminator: resource=image, operation=generate
+ *
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, toolInstanceSchema, memoryInstanceSchema }) {
+
+  // Static subnode schema
+  const subnodesSchema = z.object({
+    tools: z.array(toolInstanceSchema).optional(),
+    memory: memoryInstanceSchema.optional(),
+  }).strict();
+
+  return z.object({
+    parameters: z.object({
+      resource: z.literal('image'),
+      operation: z.literal('generate').default('generate'),
+      modelId: z.union([z.object({ __rl: z.literal(true), mode: z.union([z.literal('list'), z.literal('id')]), value: z.union([z.string(), z.number()]), cachedResultName: z.string().optional(), cachedResultUrl: z.string().optional() }), expressionSchema]).optional(),
+      prompt: stringOrExpression.optional(),
+      options: z.object({ n: numberOrExpression.optional(), dalleQuality: z.union([z.literal('hd'), z.literal('standard'), expressionSchema]).optional(), quality: z.union([z.literal('high'), z.literal('medium'), z.literal('low'), expressionSchema]).optional(), size: z.union([z.union([z.literal('256x256'), z.literal('512x512'), z.literal('1024x1024'), expressionSchema]), z.union([z.literal('1024x1024'), z.literal('1792x1024'), z.literal('1024x1792'), expressionSchema]), z.union([z.literal('1024x1024'), z.literal('1024x1536'), z.literal('1536x1024'), expressionSchema])]).optional(), style: z.union([z.literal('natural'), z.literal('vivid'), expressionSchema]).optional(), returnImageUrls: booleanOrExpression.optional(), binaryPropertyOutput: stringOrExpression.optional() }).optional(),
+    }).optional(),
+    subnodes: subnodesSchema.optional(),
+  });
+};

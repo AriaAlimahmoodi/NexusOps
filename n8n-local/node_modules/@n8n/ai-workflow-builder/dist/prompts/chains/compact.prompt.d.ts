@@ -1,0 +1,2 @@
+import { PromptTemplate } from '@langchain/core/prompts';
+export declare const compactPromptTemplate: PromptTemplate<import("@langchain/core/prompts").ParamsFromFString<"Please summarize the following conversation between a user and an AI assistant building an n8n workflow:\n\n<previous_summary>\n{previousSummary}\n</previous_summary>\n\n<conversation>\n{conversationText}\n</conversation>\n\nProvide a structured summary that captures the key points, decisions made, current state of the workflow, and suggested next steps.">, any>;

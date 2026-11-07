@@ -1,0 +1,1 @@
+{"version":3,"file":"workflow-name.prompt.js","sourceRoot":"","sources":["../../../src/prompts/chains/workflow-name.prompt.ts"],"names":[],"mappings":";;;AAAA,qDAAyD;AAEzD,wCAAoC;AAGvB,QAAA,4BAA4B,GAAG,wBAAc,CAAC,YAAY,CACtE,IAAA,gBAAM,GAAE;KACN,OAAO,CACP,MAAM,EACN,iHAAiH,CACjH;KACA,OAAO,CAAC,gBAAgB,EAAE,iBAAiB,CAAC;KAC5C,OAAO,CACP,cAAc,EACd,6OAA6O,CAC7O;KACA,KAAK,EAAE,CACT,CAAC"}

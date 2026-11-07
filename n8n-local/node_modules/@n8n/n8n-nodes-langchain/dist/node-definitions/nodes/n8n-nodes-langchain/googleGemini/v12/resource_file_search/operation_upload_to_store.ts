@@ -1,0 +1,51 @@
+/**
+ * Google Gemini Node - Version 1.2
+ * Discriminator: resource=fileSearch, operation=uploadToStore
+ */
+
+
+interface Credentials {
+  googlePalmApi: CredentialReference;
+}
+
+/** Upload a file to a File Search store for RAG (Retrieval Augmented Generation) */
+export type LcGoogleGeminiV12FileSearchUploadToStoreParams = {
+  resource: 'fileSearch';
+  operation: 'uploadToStore';
+/**
+ * The full name of the File Search store to upload to (format: fileSearchStores/...)
+ */
+    fileSearchStoreName: string | Expression<string>;
+/**
+ * A human-readable name for the file (will be visible in citations)
+ */
+    displayName: string | Expression<string>;
+/**
+ * Input Type
+ * @default url
+ */
+    inputType?: 'url' | 'binary' | Expression<string>;
+/**
+ * URL of the file to upload
+ * @displayOptions.show { inputType: ["url"] }
+ */
+    fileUrl?: string | Expression<string>;
+/**
+ * Name of the binary property which contains the file
+ * @hint The name of the input field containing the binary file data to be processed
+ * @displayOptions.show { inputType: ["binary"] }
+ * @default data
+ */
+    binaryPropertyName?: string | Expression<string>;
+};
+
+export interface LcGoogleGeminiV12FileSearchUploadToStoreSubnodeConfig {
+  tools?: ToolInstance[];
+}
+
+export type LcGoogleGeminiV12FileSearchUploadToStoreNode = {
+  type: '@n8n/n8n-nodes-langchain.googleGemini';
+  version: 1.2;
+  isTrigger: true;
+  config: NodeConfig<LcGoogleGeminiV12FileSearchUploadToStoreParams> & { credentials?: Credentials } & { subnodes?: LcGoogleGeminiV12FileSearchUploadToStoreSubnodeConfig };
+};

@@ -1,0 +1,37 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.categories = void 0;
+exports.categories = [
+    'AI',
+    'AI Chatbot',
+    'AI RAG',
+    'AI Summarization',
+    'Content Creation',
+    'CRM',
+    'Crypto Trading',
+    'DevOps',
+    'Document Extraction',
+    'Document Ops',
+    'Engineering',
+    'File Management',
+    'HR',
+    'Internal Wiki',
+    'Invoice Processing',
+    'IT Ops',
+    'Lead Generation',
+    'Lead Nurturing',
+    'Marketing',
+    'Market Research',
+    'Miscellaneous',
+    'Multimodal AI',
+    'Other',
+    'Personal Productivity',
+    'Project Management',
+    'Sales',
+    'SecOps',
+    'Social Media',
+    'Support',
+    'Support Chatbot',
+    'Ticket Management',
+];
+//# sourceMappingURL=templates.js.map

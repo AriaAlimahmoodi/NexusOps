@@ -1,0 +1,42 @@
+import type { Driver, TableColumnOptions } from '@n8n/typeorm';
+export declare class Column {
+    private name;
+    private type;
+    private isGenerated;
+    private isGenerated2;
+    private isNullable;
+    private isPrimary;
+    private length;
+    private defaultValue;
+    private primaryKeyConstraintName;
+    private commentValue;
+    private enumCheckValues;
+    constructor(name: string);
+    get bool(): this;
+    get int(): this;
+    get bigint(): this;
+    get smallint(): this;
+    get double(): this;
+    varchar(length?: number): this;
+    get text(): this;
+    get json(): this;
+    timestamp(msPrecision?: number): this;
+    timestampTimezone(msPrecision?: number): this;
+    timestampNoTimezone(msPrecision?: number): this;
+    get uuid(): this;
+    get binary(): this;
+    get primary(): this;
+    primaryWithName(name?: string): this;
+    get notNull(): this;
+    default(value: unknown): this;
+    get autoGenerate(): this;
+    get autoGenerate2(): this;
+    comment(comment: string): this;
+    withEnumCheck(values: string[]): this;
+    getEnumCheck(): {
+        columnName: string;
+        values: string[];
+    } | undefined;
+    toOptions(driver: Driver): TableColumnOptions;
+    private assertCanAutogenerate;
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"ai-preference-scope-full.error.js","sourceRoot":"","sources":["../../../src/errors/response-errors/ai-preference-scope-full.error.ts"],"names":[],"mappings":";;;AAEA,wCAA8C;AAG9C,gCAAwC,SAAQ,wBAAe;IAC9D,YACC,KAAwB,EACf,IAAuC;QAEhD,KAAK,CAAC,KAAK,KAAK,0BAA0B,IAAI,CAAC,KAAK,cAAc,CAAC,CAAC;oBAF3D,IAAI;QAGb,IAAI,CAAC,IAAI,GAAG,4BAA4B,CAAC;IAC1C,CAAC;CACD"}

@@ -1,0 +1,30 @@
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { WorkflowsConfig } from '@n8n/config';
+import { WorkflowDependencyRepository, WorkflowRepository } from '@n8n/db';
+import { ErrorReporter, Tracing } from 'n8n-core';
+import { INode, IWorkflowBase } from 'n8n-workflow';
+export declare class WorkflowIndexService {
+    private readonly dependencyRepository;
+    private readonly workflowRepository;
+    private readonly eventService;
+    private readonly logger;
+    private readonly errorReporter;
+    private readonly tracing;
+    private readonly batchSize;
+    constructor(dependencyRepository: WorkflowDependencyRepository, workflowRepository: WorkflowRepository, eventService: EventService, logger: Logger, errorReporter: ErrorReporter, tracing: Tracing, workflowsConfig: WorkflowsConfig);
+    init(): void;
+    buildIndex(): Promise<void>;
+    private buildIndexInternal;
+    updateIndexForDraft(workflow: IWorkflowBase): Promise<void>;
+    updateIndexForPublished(workflow: IWorkflowBase, publishedVersionId: string, publishedNodes: INode[]): Promise<void>;
+    removeDependenciesForWorkflow(workflowId: string): Promise<void>;
+    private updateIndexInternal;
+    private addNodeTypeDependencies;
+    private addCredentialDependencies;
+    private addDataTableDependencies;
+    private addWorkflowCallDependencies;
+    private addWebhookPathDependencies;
+    private addErrorWorkflowDependency;
+    private getCalledWorkflowIdFrom;
+}

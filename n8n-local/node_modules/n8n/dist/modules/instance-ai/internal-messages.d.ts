@@ -1,0 +1,57 @@
+import { type InstanceAiAgentPreviewHandoffContext, type InstanceAiResourceAttachment, type InstanceAiThreadArtifactsContext } from '@n8n/api-types';
+export declare const AUTO_FOLLOW_UP_MESSAGE = "(continue)";
+export declare const EDITOR_CONTEXT_OPEN_TAG = "<editor-context>";
+export declare const EDITOR_CONTEXT_CLOSE_TAG = "</editor-context>";
+export declare const CREDENTIAL_CONTEXT_OPEN_TAG = "<credential-context>";
+export declare const CREDENTIAL_CONTEXT_CLOSE_TAG = "</credential-context>";
+export declare const AGENT_PREVIEW_CONTEXT_OPEN_TAG = "<agent-preview-context>";
+export declare const AGENT_PREVIEW_CONTEXT_CLOSE_TAG = "</agent-preview-context>";
+export declare const INSTANCE_CONTEXT_OPEN_TAG = "<instance-context>";
+export declare const INSTANCE_CONTEXT_CLOSE_TAG = "</instance-context>";
+export declare const THREAD_CONTEXT_OPEN_TAG = "<thread-context>";
+export declare const THREAD_CONTEXT_CLOSE_TAG = "</thread-context>";
+export declare const THREAD_ARTIFACTS_OPEN_TAG = "<thread-artifacts>";
+export declare const THREAD_ARTIFACTS_CLOSE_TAG = "</thread-artifacts>";
+export declare const PROJECT_CONTEXT_OPEN_TAG = "<project-context>";
+export declare const PROJECT_CONTEXT_CLOSE_TAG = "</project-context>";
+export declare const PAST_CONVERSATIONS_OPEN_TAG = "<past-conversations>";
+export declare const PAST_CONVERSATIONS_CLOSE_TAG = "</past-conversations>";
+export declare const INSTANCE_URLS_OPEN_TAG = "<instance-urls>";
+export declare const INSTANCE_URLS_CLOSE_TAG = "</instance-urls>";
+export declare const WORKFLOW_SETUP_STATE_OPEN_TAG = "<workflow-setup-state>";
+export declare const WORKFLOW_SETUP_STATE_CLOSE_TAG = "</workflow-setup-state>";
+export declare const WORKFLOW_TEST_REQUEST_OPEN_TAG = "<workflow-test-request>";
+export declare const WORKFLOW_TEST_REQUEST_CLOSE_TAG = "</workflow-test-request>";
+export declare function buildWorkflowTestRequestBlock(workflowId: string): string;
+export declare function buildCurrentDateTimeBlock(dateTimeSection: string): string;
+export declare function buildProjectContextBlock(projectSection: string): string;
+export declare function buildPastConversationsBlock(section: string): string;
+export declare function buildInstanceUrlsBlock(urls: {
+    webhookBaseUrl: string;
+    formBaseUrl: string;
+}): string;
+export declare function asStoredThreadContextSection(section: string): string;
+export declare function buildThreadContextBlock(sections: Array<string | undefined>): string;
+export declare function withCurrentDateTime(message: string, dateTimeSection: string): string;
+export declare function withProjectContext(message: string, projectSection: string): string;
+export declare function withPastConversations(message: string, section: string): string;
+export declare function withAiPreferences(message: string, block: string): string;
+export declare function extractAiPreferencesBlock(stored: string): string | undefined;
+export declare function extractThreadArtifactsBlock(stored: string): string | undefined;
+export declare function sanitisePromptText(value: string, maxLength?: number): string;
+export declare function buildOnboardingSkillBlock(instructions: string): string;
+export interface OnboardingAnswer {
+    question: string;
+    selectedOptions: string[];
+    customText?: string;
+}
+export declare function buildOnboardingAnswerMessage(answers: OnboardingAnswer[]): string;
+export declare function getProjectContextSection(project: {
+    id: string;
+    name: string;
+    type: string;
+}): string;
+export declare function cleanStoredUserMessage(stored: string): string | null;
+export declare function extractEditorContextResourceAttachments(stored: string): InstanceAiResourceAttachment[];
+export declare function extractAgentPreviewHandoffContext(stored: string): InstanceAiAgentPreviewHandoffContext | undefined;
+export declare function buildThreadArtifactsBlock(context: InstanceAiThreadArtifactsContext | undefined, resourceAttachments?: InstanceAiResourceAttachment[]): string;

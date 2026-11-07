@@ -1,0 +1,1 @@
+{"version":3,"file":"workflow-metadata.schema.js","sourceRoot":"","sources":["../../../../../src/modules/n8n-packages/spec/serialized/workflow-metadata.schema.ts"],"names":[],"mappings":";;;AAAA,6BAAwB;AAMX,QAAA,gCAAgC,GAAG,OAAC,CAAC,MAAM,CAAC;IACxD,SAAS,EAAE,OAAC,CAAC,MAAM,EAAE;IACrB,kBAAkB,EAAE,OAAC,CAAC,MAAM,EAAE,CAAC,GAAG,CAAC,CAAC,CAAC,CAAC,QAAQ,EAAE;CAChD,CAAC,CAAC"}

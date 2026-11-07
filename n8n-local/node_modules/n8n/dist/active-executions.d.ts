@@ -1,0 +1,50 @@
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { ExecutionsConfig } from '@n8n/config';
+import { ExecutionRepository } from '@n8n/db';
+import { type IDeferredPromise } from '@n8n/utils/promise/deferred-promise';
+import { InstanceSettings } from 'n8n-core';
+import type { IExecuteResponsePromiseData, IRun, ExecutionStatus, IWorkflowExecutionDataProcess, StructuredChunk, WebhookResponseMode } from 'n8n-workflow';
+import { ExecutionCancelledError } from 'n8n-workflow';
+import type PCancelable from 'p-cancelable';
+import { ExecutionPersistence } from './executions/execution-persistence';
+import type { IExecutingWorkflowData, IExecutionsCurrentSummary, ResumableExecution } from './interfaces';
+import { ConcurrencyControlService } from './concurrency/concurrency-control.service';
+export declare class ActiveExecutions {
+    private readonly logger;
+    private readonly executionRepository;
+    private readonly executionPersistence;
+    private readonly concurrencyControl;
+    private readonly eventService;
+    private readonly executionsConfig;
+    private readonly instanceSettings;
+    private activeExecutions;
+    private responseModes;
+    constructor(logger: Logger, executionRepository: ExecutionRepository, executionPersistence: ExecutionPersistence, concurrencyControl: ConcurrencyControlService, eventService: EventService, executionsConfig: ExecutionsConfig, instanceSettings: InstanceSettings);
+    has(executionId: string): boolean;
+    add(executionData: IWorkflowExecutionDataProcess, existingExecution?: ResumableExecution): Promise<string>;
+    attachWorkflowExecution(executionId: string, workflowExecution: PCancelable<IRun>, options?: {
+        isQueueJob?: boolean;
+    }): void;
+    attachResponsePromise(executionId: string, responsePromise: IDeferredPromise<IExecuteResponsePromiseData>): void;
+    resolveResponsePromise(executionId: string, response: IExecuteResponsePromiseData): void;
+    sendChunk(executionId: string, chunkText: StructuredChunk): void;
+    stopExecution(executionId: string, cancellationError: ExecutionCancelledError): void;
+    finalizeExecution(executionId: string, fullRunData?: IRun): void;
+    resolveExecutionResponsePromise(executionId: string): void;
+    getPostExecutePromise(executionId: string): Promise<IRun | undefined>;
+    getActiveExecutions(): IExecutionsCurrentSummary[];
+    getRunningExecutionIds(): string[];
+    getDiagnosticCounts(): {
+        executions: number;
+        responseModes: number;
+    };
+    cancelRunningExecutions(writeDeadlineMs?: number): Promise<string[]>;
+    private recordAsCancelled;
+    setStatus(executionId: string, status: ExecutionStatus): void;
+    getStatus(executionId: string): ExecutionStatus;
+    setResponseMode(executionId: string, responseMode: WebhookResponseMode): void;
+    getResponseMode(executionId: string): WebhookResponseMode | undefined;
+    shutdown(cancelAll?: boolean): Promise<void>;
+    getExecutionOrFail(executionId: string): IExecutingWorkflowData;
+}

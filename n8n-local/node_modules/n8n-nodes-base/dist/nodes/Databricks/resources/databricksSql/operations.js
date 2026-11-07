@@ -1,0 +1,24 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.databricksSqlOperations = void 0;
+exports.databricksSqlOperations = {
+    displayName: 'Operation',
+    name: 'operation',
+    type: 'options',
+    noDataExpression: true,
+    displayOptions: {
+        show: {
+            resource: ['databricksSql'],
+        },
+    },
+    options: [
+        {
+            name: 'Execute Query',
+            value: 'executeQuery',
+            description: 'Execute a SQL query and wait for results',
+            action: 'Execute a SQL query',
+        },
+    ],
+    default: 'executeQuery',
+};
+//# sourceMappingURL=operations.js.map

@@ -1,0 +1,13 @@
+import { getConfiguredEndpointUrl, type ICredentialTypes, type McpOAuth2CredentialType, type McpRegistryConnection, type PrepareMcpRegistryConnectionInput, type PrepareMcpRegistryConnectionResult } from 'n8n-workflow';
+import type { McpRegistryServer, McpRegistryUsesCredential } from './registry/mcp-registry.types';
+export { getConfiguredEndpointUrl };
+export declare const MCP_REGISTRY_PACKAGE_NAME = "@n8n/mcp-registry";
+export declare const LANGCHAIN_PACKAGE_NAME = "@n8n/n8n-nodes-langchain";
+export declare const MCP_REGISTRY_BASE_NODE_NAME = "mcpRegistryClientTool";
+export declare const MCP_BASE_OAUTH2_CREDENTIAL_NAME = "mcpOAuth2Api";
+export declare function getMcpRegistryCredentialTypeName(server: McpRegistryServer): McpOAuth2CredentialType;
+export declare function getMcpRegistryCredentialOptions(server: McpRegistryServer): McpRegistryUsesCredential[];
+export declare function isSupportedMcpRegistryCredentialType(credentialTypes: ICredentialTypes, name: string): name is McpOAuth2CredentialType;
+export declare function resolveMcpRegistryConnection(server: McpRegistryServer): McpRegistryConnection | null;
+export declare function prepareMcpRegistryConnection({ connection, credentialType, credentialData, headers: preparedHeaders, }: PrepareMcpRegistryConnectionInput): PrepareMcpRegistryConnectionResult;
+export declare function toAgentMcpTransport(transport: McpRegistryConnection['transport']): 'streamableHttp' | 'sse';

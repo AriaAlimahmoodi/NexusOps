@@ -1,0 +1,38 @@
+import { AssignMigrationOwnerDto, BreakingChangeLightReportResult, BreakingChangeReportQueryDto, BreakingChangeRuleDetailResult, MigrationNotifyResult, MigrationOwnerCandidate, MigrationWorkflowOwnerResponse, NotifyMigrationOwnersRequestDto, UpdateMigrationFindingStatusRequestDto, UpdateMigrationFindingStatusesRequestDto, WorkflowMigrationResult } from '@n8n/api-types';
+import { EventService } from '@n8n/backend-services';
+import { AuthenticatedRequest } from '@n8n/db';
+import { Response } from 'express';
+import { WorkflowFinderService } from '../../workflows/workflow-finder.service';
+import { BreakingChangeMigrationService } from './breaking-changes.migration.service';
+import { RuleRegistry } from './breaking-changes.rule-registry.service';
+import { MigrationFindingNotificationService } from './notifications/migration-finding-notification.service';
+import { MigrationOwnerAssignmentService } from './owners/migration-owner-assignment.service';
+import { MigrationFindingQueryService } from './query/migration-finding-query.service';
+import { MigrationFindingSyncService } from './sync/migration-finding-sync.service';
+import { MigrationFindingTriageService } from './triage/migration-finding-triage.service';
+export declare class BreakingChangesController {
+    private readonly migrationService;
+    private readonly syncService;
+    private readonly queryService;
+    private readonly ruleRegistry;
+    private readonly triageService;
+    private readonly eventService;
+    private readonly ownerAssignmentService;
+    private readonly notificationService;
+    private readonly workflowFinderService;
+    constructor(migrationService: BreakingChangeMigrationService, syncService: MigrationFindingSyncService, queryService: MigrationFindingQueryService, ruleRegistry: RuleRegistry, triageService: MigrationFindingTriageService, eventService: EventService, ownerAssignmentService: MigrationOwnerAssignmentService, notificationService: MigrationFindingNotificationService, workflowFinderService: WorkflowFinderService);
+    private scopeFor;
+    private editableWorkflowIds;
+    private assertCanEdit;
+    getDetectionReport(req: AuthenticatedRequest, _res: Response, query: BreakingChangeReportQueryDto): Promise<BreakingChangeLightReportResult>;
+    regenerate(req: AuthenticatedRequest, _res: Response, query: BreakingChangeReportQueryDto): Promise<BreakingChangeLightReportResult>;
+    exportReport(req: AuthenticatedRequest, res: Response, query: BreakingChangeReportQueryDto): Promise<void>;
+    getDetectionReportForRule(req: AuthenticatedRequest, _res: Response, ruleId: string): Promise<BreakingChangeRuleDetailResult>;
+    updateFindingStatuses(req: AuthenticatedRequest, _res: Response, ruleId: string, body: UpdateMigrationFindingStatusesRequestDto): Promise<void>;
+    notifyOwners(req: AuthenticatedRequest, _res: Response, ruleId: string, body: NotifyMigrationOwnersRequestDto): Promise<MigrationNotifyResult>;
+    updateFindingStatus(req: AuthenticatedRequest, _res: Response, ruleId: string, workflowId: string, body: UpdateMigrationFindingStatusRequestDto): Promise<void>;
+    listOwnerCandidates(req: AuthenticatedRequest, _res: Response, workflowId: string): Promise<MigrationOwnerCandidate[]>;
+    assignOwner(req: AuthenticatedRequest, _res: Response, workflowId: string, body: AssignMigrationOwnerDto): Promise<MigrationWorkflowOwnerResponse>;
+    unassignOwner(req: AuthenticatedRequest, _res: Response, workflowId: string): Promise<MigrationWorkflowOwnerResponse>;
+    migrateWorkflow(req: AuthenticatedRequest, _res: Response, ruleId: string, workflowId: string): Promise<WorkflowMigrationResult>;
+}

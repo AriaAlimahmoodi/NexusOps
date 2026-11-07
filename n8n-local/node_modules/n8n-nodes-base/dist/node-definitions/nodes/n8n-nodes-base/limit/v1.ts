@@ -1,0 +1,29 @@
+/**
+ * Limit Node - Version 1
+ * Restrict the number of items
+ */
+
+
+export interface LimitV1Params {
+/**
+ * If there are more items than this number, some are removed
+ * @default 1
+ */
+    maxItems?: number | Expression<number>;
+/**
+ * When removing items, whether to keep the ones at the start or the ending
+ * @default firstItems
+ */
+    keep?: 'firstItems' | 'lastItems' | Expression<string>;
+}
+
+interface LimitV1NodeBase {
+  type: 'n8n-nodes-base.limit';
+  version: 1;
+}
+
+export type LimitV1ParamsNode = LimitV1NodeBase & {
+  config: NodeConfig<LimitV1Params>;
+};
+
+export type LimitV1Node = LimitV1ParamsNode;

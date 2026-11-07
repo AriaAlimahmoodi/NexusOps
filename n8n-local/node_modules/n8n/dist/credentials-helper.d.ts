@@ -1,0 +1,48 @@
+import { LicenseState } from '@n8n/backend-common';
+import type { ICredentialsDb } from '@n8n/db';
+import { CredentialsRepository, SecretsProviderConnectionRepository } from '@n8n/db';
+import { Credentials } from 'n8n-core';
+import type { ICredentialDataDecryptedObject, ICredentialsExpressionResolveValues, IHttpRequestOptions, INode, INodeCredentialsDetails, INodeProperties, IRequestOptionsSimplified, WorkflowExecuteMode, IHttpRequestHelper, IWorkflowExecuteAdditionalData, IExecuteData, IGetDecryptedCredentialsOptions } from 'n8n-workflow';
+import { ICredentialsHelper, Workflow } from 'n8n-workflow';
+import { CredentialTypes } from './credential-types';
+import { CredentialsOverwrites } from './credentials-overwrites';
+import { ExternalSecretsConfig } from './modules/external-secrets.ee/external-secrets.config';
+import type { PolicyActor } from './policy/policy-enforcement-backend';
+import { PolicyEnforcementService } from './policy/policy-enforcement.service';
+import { AiGatewayService } from './services/ai-gateway.service';
+import { DynamicCredentialsProxy } from './credentials/dynamic-credentials-proxy';
+export declare class CredentialsHelper extends ICredentialsHelper {
+    private readonly credentialTypes;
+    private readonly credentialsOverwrites;
+    private readonly credentialsRepository;
+    private readonly dynamicCredentialsProxy;
+    private readonly secretsProviderConnectionRepository;
+    private readonly licenseState;
+    private readonly externalSecretsConfig;
+    private readonly aiGatewayService;
+    private readonly policyEnforcementService;
+    private readonly storedDataByDecrypted;
+    constructor(credentialTypes: CredentialTypes, credentialsOverwrites: CredentialsOverwrites, credentialsRepository: CredentialsRepository, dynamicCredentialsProxy: DynamicCredentialsProxy, secretsProviderConnectionRepository: SecretsProviderConnectionRepository, licenseState: LicenseState, externalSecretsConfig: ExternalSecretsConfig, aiGatewayService: AiGatewayService, policyEnforcementService: PolicyEnforcementService);
+    authenticate(credentials: ICredentialDataDecryptedObject, typeName: string, incomingRequestOptions: IHttpRequestOptions | IRequestOptionsSimplified, workflow?: Workflow, node?: INode): Promise<IHttpRequestOptions>;
+    preAuthentication(helpers: IHttpRequestHelper, credentials: ICredentialDataDecryptedObject, typeName: string, node: INode, credentialsExpired: boolean): Promise<ICredentialDataDecryptedObject | undefined>;
+    runPreAuthentication(helpers: IHttpRequestHelper, credentials: ICredentialDataDecryptedObject, typeName: string): Promise<ICredentialDataDecryptedObject | undefined>;
+    private resolveValue;
+    getParentTypes(typeName: string): string[];
+    getCredentials(nodeCredential: INodeCredentialsDetails, type: string): Promise<Credentials>;
+    private getCredentialsEntity;
+    isCredentialUsableByNode(credentialType: string, nodeType: string): boolean;
+    getCredentialsProperties(type: string): INodeProperties[];
+    private resolveCredentialExpressions;
+    private resolveCredentialExpressionsByProperty;
+    private parseJsonLeafExpressionFields;
+    private stringifyJsonLeafExpressionFields;
+    private assertTriggerSupportsEndUserCredential;
+    getDecrypted(additionalData: IWorkflowExecuteAdditionalData, nodeCredentials: INodeCredentialsDetails, type: string, mode: WorkflowExecuteMode, executeData?: IExecuteData, raw?: boolean, expressionResolveValues?: ICredentialsExpressionResolveValues, options?: IGetDecryptedCredentialsOptions & {
+        actor?: PolicyActor;
+    }): Promise<ICredentialDataDecryptedObject>;
+    private trackStoredData;
+    applyDefaultsAndOverwrites(additionalData: IWorkflowExecuteAdditionalData, decryptedDataOriginal: ICredentialDataDecryptedObject, type: string, mode: WorkflowExecuteMode, executeData?: IExecuteData, expressionResolveValues?: ICredentialsExpressionResolveValues): Promise<ICredentialDataDecryptedObject>;
+    updateCredentials(nodeCredentials: INodeCredentialsDetails, type: string, data: ICredentialDataDecryptedObject): Promise<void>;
+    updateCredentialsOauthTokenData(nodeCredentials: INodeCredentialsDetails, type: string, data: ICredentialDataDecryptedObject, additionalData: IWorkflowExecuteAdditionalData): Promise<void>;
+}
+export declare function createCredentialsFromCredentialsEntity(credential: ICredentialsDb, encrypt?: boolean): Credentials;

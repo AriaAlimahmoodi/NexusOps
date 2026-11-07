@@ -1,0 +1,32 @@
+import { Logger } from '@n8n/backend-common';
+import { ExpressionEngineConfig, WorkflowsConfig } from '@n8n/config';
+import { WorkflowRepository } from '@n8n/db';
+import type { Response } from 'express';
+import type { IHttpRequestMethods } from 'n8n-workflow';
+import { NodeTypes } from '../node-types';
+import { WebhookService } from '../webhooks/webhook.service';
+import { WorkflowPublishedDataService } from '@n8n/backend-services';
+import { WorkflowPublisherService } from '../workflows/workflow-publisher.service';
+import { WorkflowStaticDataService } from '../workflows/workflow-static-data.service';
+import type { ExpectedWebhookNodeType } from './node-type-matcher';
+import type { IWebhookResponseCallbackData, IWebhookManager, WebhookAccessControlOptions, WebhookRequest } from './webhook.types';
+export declare class LiveWebhooks implements IWebhookManager {
+    private readonly logger;
+    private readonly nodeTypes;
+    private readonly webhookService;
+    private readonly workflowRepository;
+    private readonly workflowStaticDataService;
+    private readonly workflowsConfig;
+    private readonly workflowPublishedDataService;
+    private readonly expressionEngineConfig;
+    private readonly workflowPublisherService;
+    constructor(logger: Logger, nodeTypes: NodeTypes, webhookService: WebhookService, workflowRepository: WorkflowRepository, workflowStaticDataService: WorkflowStaticDataService, workflowsConfig: WorkflowsConfig, workflowPublishedDataService: WorkflowPublishedDataService, expressionEngineConfig: ExpressionEngineConfig, workflowPublisherService: WorkflowPublisherService);
+    getWebhookMethods(path: string): Promise<IHttpRequestMethods[]>;
+    findAccessControlOptions(path: string, httpMethod: IHttpRequestMethods): Promise<WebhookAccessControlOptions>;
+    executeWebhook(request: WebhookRequest, response: Response, expectedNodeType?: ExpectedWebhookNodeType): Promise<IWebhookResponseCallbackData>;
+    private webhookPhaseNeedsIsolate;
+    private loadWebhookExecutionData;
+    private loadFromPublishedVersion;
+    private loadFromActiveVersion;
+    private findWebhook;
+}

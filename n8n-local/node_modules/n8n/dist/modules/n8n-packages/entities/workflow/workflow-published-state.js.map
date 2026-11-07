@@ -1,0 +1,1 @@
+{"version":3,"file":"workflow-published-state.js","sourceRoot":"","sources":["../../../../../src/modules/n8n-packages/entities/workflow/workflow-published-state.ts"],"names":[],"mappings":";;;AAOA,8BAAqC,QAAoC;IACxE,IAAI,QAAQ,CAAC,kBAAkB,KAAK,IAAI;QAAE,OAAO,KAAK,CAAC;IACvD,OAAO,QAAQ,CAAC,kBAAkB,KAAK,QAAQ,CAAC,SAAS,CAAC,CAAC,CAAC,IAAI,CAAC,CAAC,CAAC,SAAS,CAAC;AAC9E,CAAC"}

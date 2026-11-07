@@ -1,0 +1,60 @@
+import { Logger } from '@n8n/backend-common';
+import { EventService, InstanceWriteAccessService, WorkflowPublishedDataService } from '@n8n/backend-services';
+import { GlobalConfig, WorkflowsConfig } from '@n8n/config';
+import type { Project, User, PollLeaseFence } from '@n8n/db';
+import { WorkflowRepository } from '@n8n/db';
+import type { IDeferredPromise } from '@n8n/utils/promise/deferred-promise';
+import type { Response } from 'express';
+import { ErrorReporter, ExecutionContextService } from 'n8n-core';
+import type { IExecuteResponsePromiseData, INode, INodeExecutionData, IPinData, IRunExecutionData, IWorkflowExecuteAdditionalData, WorkflowExecuteMode, IWorkflowExecutionDataProcess, IWorkflowBase, PollCursor } from 'n8n-workflow';
+import { ExecutionCrashService } from '../executions/execution-crash.service';
+import { ExecutionPersistence } from '../executions/execution-persistence';
+import { FailedRunFactory } from '../executions/failed-run-factory';
+import { SubworkflowPolicyChecker } from '../executions/pre-execution-checks';
+import type { IWorkflowErrorData } from '../interfaces';
+import { NodeTypes } from '../node-types';
+import { OwnershipService } from '../services/ownership.service';
+import { TestWebhooks } from '../webhooks/test-webhooks';
+import { WorkflowRunner } from '../workflow-runner';
+import { PollCursorService } from '../workflows/triggers/poll-cursor.service';
+import type { WorkflowRequest } from '../workflows/workflow.request';
+export declare class WorkflowExecutionService {
+    private readonly logger;
+    private readonly errorReporter;
+    private readonly executionPersistence;
+    private readonly workflowRepository;
+    private readonly nodeTypes;
+    private readonly testWebhooks;
+    private readonly workflowRunner;
+    private readonly globalConfig;
+    private readonly subworkflowPolicyChecker;
+    private readonly failedRunFactory;
+    private readonly eventService;
+    private readonly ownershipService;
+    private readonly executionContextService;
+    private readonly workflowsConfig;
+    private readonly workflowPublishedDataService;
+    private readonly pollCursorService;
+    private readonly executionCrashService;
+    private readonly instanceWriteAccess;
+    constructor(logger: Logger, errorReporter: ErrorReporter, executionPersistence: ExecutionPersistence, workflowRepository: WorkflowRepository, nodeTypes: NodeTypes, testWebhooks: TestWebhooks, workflowRunner: WorkflowRunner, globalConfig: GlobalConfig, subworkflowPolicyChecker: SubworkflowPolicyChecker, failedRunFactory: FailedRunFactory, eventService: EventService, ownershipService: OwnershipService, executionContextService: ExecutionContextService, workflowsConfig: WorkflowsConfig, workflowPublishedDataService: WorkflowPublishedDataService, pollCursorService: PollCursorService, executionCrashService: ExecutionCrashService, instanceWriteAccess: InstanceWriteAccessService);
+    runWorkflow(workflowData: IWorkflowBase, node: INode, data: INodeExecutionData[][], additionalData: IWorkflowExecuteAdditionalData, mode: WorkflowExecuteMode, responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>, deduplicationKey?: string, callerAwaitsOutcome?: IWorkflowExecutionDataProcess['callerAwaitsOutcome']): Promise<string>;
+    runPolledWorkflow(workflowData: IWorkflowBase, node: INode, data: INodeExecutionData[][], additionalData: IWorkflowExecuteAdditionalData, mode: WorkflowExecuteMode, cursor: PollCursor, responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>, fence?: PollLeaseFence, callerAwaitsOutcome?: IWorkflowExecutionDataProcess['callerAwaitsOutcome']): Promise<string | undefined>;
+    runPolledWorkflowV2(workflowData: IWorkflowBase, node: INode, data: INodeExecutionData[][], additionalData: IWorkflowExecuteAdditionalData, mode: WorkflowExecuteMode, cursor: PollCursor, responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>, fence?: PollLeaseFence): Promise<string>;
+    private crashFailedPolledExecution;
+    private isDestinationNodeATrigger;
+    executeManually(workflowData: IWorkflowBase, payload: WorkflowRequest.ManualRunPayload, user: User, pushRef?: string, n8nAuthCookie?: string): Promise<{
+        executionId: string;
+    } | {
+        waitingForWebhook: boolean;
+    }>;
+    executeChatWorkflow(user: User, workflowData: IWorkflowBase, executionData: IRunExecutionData, httpResponse?: Response, streamingEnabled?: boolean, executionMode?: WorkflowExecuteMode, pushRef?: string): Promise<{
+        executionId: string;
+    }>;
+    private loadErrorWorkflowData;
+    executeErrorWorkflow(workflowId: string, workflowErrorData: IWorkflowErrorData, runningProject: Project): Promise<void>;
+    selectPinnedTrigger(workflow: IWorkflowBase, destinationNode: string, pinData: IPinData): INode | undefined;
+    private findAllPinnedTriggers;
+    private partialExecutionFulfilsPreconditions;
+    private assertManualExecutionAllowed;
+}

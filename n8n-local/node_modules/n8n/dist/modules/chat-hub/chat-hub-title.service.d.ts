@@ -1,0 +1,31 @@
+import { type ChatSessionId, ChatHubConversationModel } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { User } from '@n8n/db';
+import { type INodeCredentials, type IBinaryData } from 'n8n-workflow';
+import { ExecutionPersistence } from '../../executions/execution-persistence';
+import { WorkflowFinderService } from '../../workflows/workflow-finder.service';
+import { ChatHubAgentService } from './chat-hub-agent.service';
+import { ChatHubCredentialsService } from './chat-hub-credentials.service';
+import { ChatHubExecutionService } from './chat-hub-execution.service';
+import { ChatHubWorkflowService } from './chat-hub-workflow.service';
+import { ChatHubSettingsService } from './chat-hub.settings.service';
+import { ChatHubSessionRepository } from './chat-session.repository';
+export declare class ChatHubTitleService {
+    private readonly logger;
+    private readonly chatHubWorkflowService;
+    private readonly chatHubCredentialsService;
+    private readonly workflowFinderService;
+    private readonly executionService;
+    private readonly sessionRepository;
+    private readonly executionPersistence;
+    private readonly chatHubAgentService;
+    private readonly chatHubSettingsService;
+    constructor(logger: Logger, chatHubWorkflowService: ChatHubWorkflowService, chatHubCredentialsService: ChatHubCredentialsService, workflowFinderService: WorkflowFinderService, executionService: ChatHubExecutionService, sessionRepository: ChatHubSessionRepository, executionPersistence: ExecutionPersistence, chatHubAgentService: ChatHubAgentService, chatHubSettingsService: ChatHubSettingsService);
+    generateSessionTitle(user: User, sessionId: ChatSessionId, humanMessage: string, attachments: IBinaryData[], credentials: INodeCredentials, model: ChatHubConversationModel): Promise<void>;
+    private prepareTitleGenerationWorkflow;
+    private runTitleWorkflowAndGetTitle;
+    private resolveCredentialsAndModelForTitle;
+    private resolveFromN8nWorkflow;
+    private findSupportedLLMNodes;
+    private resolveFromCustomAgent;
+}

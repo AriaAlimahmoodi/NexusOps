@@ -1,0 +1,65 @@
+import { AiGatewayConfigDto, type AiGatewayUsageResponse, type AiGatewayWalletResponse } from '@n8n/api-types';
+import { LicenseState } from '@n8n/backend-common';
+import { OutboundHttp } from '@n8n/backend-network';
+import { GlobalConfig } from '@n8n/config';
+import { UserRepository } from '@n8n/db';
+import { InstanceSettings } from 'n8n-core';
+import type { ICredentialDataDecryptedObject, INode } from 'n8n-workflow';
+import { License } from '../license';
+import { OwnershipService } from '../services/ownership.service';
+import { UrlService } from '@n8n/backend-services';
+export type AiGatewayAvailability = {
+    available: true;
+    config: AiGatewayConfigDto;
+} | {
+    available: false;
+};
+export declare class AiGatewayService {
+    private readonly globalConfig;
+    private readonly license;
+    private readonly licenseState;
+    private readonly instanceSettings;
+    private readonly ownershipService;
+    private readonly userRepository;
+    private readonly urlService;
+    private readonly outboundHttp;
+    private readonly tokenCache;
+    private readonly TOKEN_CACHE_MAX_SIZE;
+    private readonly pendingTokenRequests;
+    private gatewayConfig;
+    private configFetchedAt;
+    private static readonly CONFIG_TTL_MS;
+    private configFetchFailedAt;
+    private static readonly CONFIG_FAILURE_TTL_MS;
+    private static readonly GATEWAY_PATH_PREFIX;
+    constructor(globalConfig: GlobalConfig, license: License, licenseState: LicenseState, instanceSettings: InstanceSettings, ownershipService: OwnershipService, userRepository: UserRepository, urlService: UrlService, outboundHttp: OutboundHttp);
+    isEnabled(): boolean;
+    assertEnabled(): void;
+    private gatewayRequest;
+    private resolveUserId;
+    private resolveProjectId;
+    getSyntheticCredential({ credentialType, userId, workflowId, projectId, executionId, agentId, node, }: {
+        credentialType: string;
+        userId: string | undefined;
+        workflowId?: string;
+        projectId?: string;
+        executionId?: string;
+        agentId?: string;
+        node?: Pick<INode, 'type' | 'typeVersion' | 'parameters'>;
+    }): Promise<ICredentialDataDecryptedObject>;
+    private buildUrlFields;
+    getUsage(userId: string, offset: number, limit: number): Promise<AiGatewayUsageResponse>;
+    getWallet(userId: string): Promise<AiGatewayWalletResponse>;
+    private parseWalletResponse;
+    private buildGatewayUrl;
+    private requireBaseUrl;
+    private isConfigStale;
+    isAvailable(): Promise<AiGatewayAvailability>;
+    getGatewayConfig(): Promise<AiGatewayConfigDto>;
+    getCredentialTypeForProvider(provider: string): Promise<string | undefined>;
+    getCredentialTypeForProviderCached(provider: string): string | null | undefined;
+    private static matchCredentialTypeForProvider;
+    private buildGatewayCredentialsHeaders;
+    private getOrFetchToken;
+    private fetchAndCacheToken;
+}

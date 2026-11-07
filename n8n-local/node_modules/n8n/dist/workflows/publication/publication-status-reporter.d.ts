@@ -1,0 +1,30 @@
+import type { WorkflowPublicationStatusMessage } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { WorkflowPublicationOutbox, WorkflowPublicationOutboxRepository, WorkflowPublicationRetryStateRepository, WorkflowPublicationTriggerStatusRepository, TransactionRunner } from '@n8n/db';
+import { ErrorReporter } from 'n8n-core';
+import { ActivationErrorsService } from '../../activation-errors.service';
+import { Publisher } from '../../scaling/pubsub/publisher.service';
+import type { PublicationResult } from '../../workflows/publication/publication-result';
+import { WorkflowPushNotifier } from '../../workflows/workflow-push-notifier.service';
+export declare class PublicationStatusReporter {
+    private readonly logger;
+    private readonly errorReporter;
+    private readonly outboxRepository;
+    private readonly retryStateRepository;
+    private readonly transactionRunner;
+    private readonly activationErrorsService;
+    private readonly publisher;
+    private readonly triggerStatusRepository;
+    private readonly workflowPushNotifier;
+    constructor(logger: Logger, errorReporter: ErrorReporter, outboxRepository: WorkflowPublicationOutboxRepository, retryStateRepository: WorkflowPublicationRetryStateRepository, transactionRunner: TransactionRunner, activationErrorsService: ActivationErrorsService, publisher: Publisher, triggerStatusRepository: WorkflowPublicationTriggerStatusRepository, workflowPushNotifier: WorkflowPushNotifier);
+    report(record: WorkflowPublicationOutbox, result: PublicationResult): Promise<void>;
+    private reportPartial;
+    private toRows;
+    private formatPartialActivationError;
+    private pushFailedToActivate;
+    private pushStatus;
+    handleDisplayWorkflowPublicationStatus(pushMsg: WorkflowPublicationStatusMessage): Promise<void>;
+    private surfaceTeardownFailures;
+    private complete;
+    private logSkip;
+}

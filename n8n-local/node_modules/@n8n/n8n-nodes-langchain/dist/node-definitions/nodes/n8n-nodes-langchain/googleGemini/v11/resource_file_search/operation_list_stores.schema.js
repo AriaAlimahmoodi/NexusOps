@@ -1,0 +1,29 @@
+/**
+ * Google Gemini Node - Version 1.1 - Zod Schema
+ * Discriminator: resource=fileSearch, operation=listStores
+ *
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, toolInstanceSchema }) {
+
+  // Static subnode schema
+  const subnodesSchema = z.object({
+    tools: z.array(toolInstanceSchema).optional(),
+  }).strict();
+
+  return z.object({
+    parameters: z.object({
+      resource: z.literal('fileSearch'),
+      operation: z.literal('listStores'),
+      pageSize: numberOrExpression.optional(),
+      pageToken: stringOrExpression.optional(),
+    }).optional(),
+    subnodes: subnodesSchema.optional(),
+  });
+};

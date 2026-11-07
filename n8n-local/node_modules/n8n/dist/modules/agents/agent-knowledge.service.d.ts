@@ -1,0 +1,33 @@
+import { type AgentFileDto } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { AgentKnowledgeFileStore } from './agent-knowledge-file-store';
+import { AgentKnowledgeMirrorService } from './agent-knowledge-mirror.service';
+import { AgentSandboxRuntimeService } from './agent-sandbox-runtime.service';
+import { AgentFileRepository } from './repositories/agent-file.repository';
+import { AgentRepository } from './repositories/agent.repository';
+export declare class AgentKnowledgeService {
+    private readonly agentRepository;
+    private readonly agentFileRepository;
+    private readonly agentSandboxRuntimeService;
+    private readonly agentKnowledgeMirrorService;
+    private readonly agentKnowledgeFileStore;
+    private readonly logger;
+    constructor(agentRepository: AgentRepository, agentFileRepository: AgentFileRepository, agentSandboxRuntimeService: AgentSandboxRuntimeService, agentKnowledgeMirrorService: AgentKnowledgeMirrorService, agentKnowledgeFileStore: AgentKnowledgeFileStore, logger: Logger);
+    uploadFiles(agentId: string, projectId: string, files: Express.Multer.File[]): Promise<AgentFileDto[]>;
+    listFiles(agentId: string, projectId: string): Promise<AgentFileDto[]>;
+    warmKnowledgeSandbox(agentId: string, projectId: string): Promise<void>;
+    deleteFile(agentId: string, projectId: string, fileId: string): Promise<void>;
+    deleteAllFilesForAgent(_projectId: string, agentId: string): Promise<void>;
+    destroyKnowledgeSandbox(projectId: string, agentId: string): Promise<void>;
+    private storeAgentFile;
+    private saveAgentFile;
+    private prepareUploadContent;
+    private cleanupUploadedFiles;
+    private extractPdfText;
+    private validateUploadMetadata;
+    private validateUploadBatch;
+    private duplicateFileNameError;
+    private validateMetadataLength;
+    private cleanupUploadTempFiles;
+    private cleanupUploadTempFile;
+}

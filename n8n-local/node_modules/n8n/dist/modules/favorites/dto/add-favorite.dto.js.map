@@ -1,0 +1,1 @@
+{"version":3,"file":"add-favorite.dto.js","sourceRoot":"","sources":["../../../../src/modules/favorites/dto/add-favorite.dto.ts"],"names":[],"mappings":";;;AAAA,8CAA4D;AAC5D,6BAAwB;AAExB,oBAA4B,SAAQ,aAAC,CAAC,KAAK,CAAC;IAC3C,UAAU,EAAE,OAAC,CAAC,MAAM,EAAE;IACtB,YAAY,EAAE,OAAC,CAAC,IAAI,CAAC,mCAAuB,CAAC;CAC7C,CAAC;CAAG"}

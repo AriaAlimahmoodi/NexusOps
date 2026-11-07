@@ -1,0 +1,60 @@
+/**
+ * Simple Vector Store Node - Version 1.3
+ * Discriminator: mode=retrieve
+ */
+
+
+/** Retrieve documents from vector store to be used as vector store with AI nodes */
+export type LcVectorStoreInMemoryV13RetrieveParams = {
+  /**
+   * Exposes the store as an `ai_vectorStore` subnode for another node (e.g. `toolVectorStore`). Declare with `vectorStore({...})`. Required subnodes: `embedding`. For RAG with an AI Agent directly, prefer `mode: 'retrieve-as-tool'`.
+   * <patterns>
+   * <pattern title="retrieve mode — feed another node as a subnode (generic)">
+   * // Substitute the type literal and provider-specific parameters — see the rest of this file.
+   * const store = vectorStore({
+   *   type: '@n8n/n8n-nodes-langchain.vectorStoreXxx',
+   *   config: {
+   *     name: 'Knowledge Base',
+   *     parameters: { mode: 'retrieve' /* + provider-specific parameters *\/ },
+   *     subnodes: { embedding: embeddingsOpenAi }
+   *   }
+   * });
+   * 
+   * const retrieverTool = tool({
+   *   type: '@n8n/n8n-nodes-langchain.toolVectorStore',
+   *   config: {
+   *     name: 'KB Retriever',
+   *     parameters: { description: 'Search the product knowledge base' },
+   *     subnodes: { vectorStore: store, model: openAiModel }
+   *   }
+   * });
+   * </pattern>
+   * </patterns>
+   */
+  mode: 'retrieve';
+/**
+ * The key to use to store the vector memory in the workflow data. These keys are shared between workflows.
+ * @searchListMethod vectorStoresSearch
+ * @default {"mode":"list","value":"vector_store_key"}
+ */
+    memoryKey?: { __rl: true; mode: 'list' | 'id'; value: string; cachedResultName?: string };
+/**
+ * Whether or not to rerank results
+ * @default false
+ */
+    useReranker?: boolean | Expression<boolean>;
+};
+
+export interface LcVectorStoreInMemoryV13RetrieveSubnodeConfig {
+  embedding: EmbeddingInstance | EmbeddingInstance[];
+  /**
+   * @displayOptions.show { useReranker: [true] }
+   */
+  reranker: RerankerInstance;
+}
+
+export type LcVectorStoreInMemoryV13RetrieveNode = {
+  type: '@n8n/n8n-nodes-langchain.vectorStoreInMemory';
+  version: 1.3;
+  config: NodeConfig<LcVectorStoreInMemoryV13RetrieveParams> & { subnodes: LcVectorStoreInMemoryV13RetrieveSubnodeConfig };
+};

@@ -1,0 +1,42 @@
+import { type InstanceAiEvalSeedAgent, type InstanceAiEvalSeedDataTable, type InstanceAiEvalSeedFolder, type InstanceAiEvalSeedWorkflow } from '@n8n/api-types';
+import { LicenseState } from '@n8n/backend-common';
+import { CredentialsRepository, SharedWorkflowRepository, WorkflowPublishedVersionRepository, WorkflowRepository, type User } from '@n8n/db';
+import { DataTableService } from '../../../modules/data-table/data-table.service';
+import { PolicyEnforcementService } from '../../../policy/policy-enforcement.service';
+import { FolderService } from '../../../services/folder.service';
+import { WorkflowHistoryService } from '../../../workflows/workflow-history/workflow-history.service';
+import { WorkflowService } from '../../../workflows/workflow.service';
+export declare class EvalThreadRestoreService {
+    private readonly workflowRepo;
+    private readonly sharedWorkflowRepo;
+    private readonly credentialsRepo;
+    private readonly workflowPublishedVersionRepo;
+    private readonly dataTableService;
+    private readonly policyEnforcementService;
+    private readonly workflowHistoryService;
+    private readonly workflowService;
+    private readonly folderService;
+    private readonly licenseState;
+    constructor(workflowRepo: WorkflowRepository, sharedWorkflowRepo: SharedWorkflowRepository, credentialsRepo: CredentialsRepository, workflowPublishedVersionRepo: WorkflowPublishedVersionRepository, dataTableService: DataTableService, policyEnforcementService: PolicyEnforcementService, workflowHistoryService: WorkflowHistoryService, workflowService: WorkflowService, folderService: FolderService, licenseState: LicenseState);
+    restoreFolders(folders: InstanceAiEvalSeedFolder[], projectId: string, user: User): Promise<Map<string, string>>;
+    deleteFolders(folders: InstanceAiEvalSeedFolder[], idMap: Map<string, string>, projectId: string, user: User): Promise<void>;
+    restoreDataTables(dataTables: InstanceAiEvalSeedDataTable[], projectId: string, options?: {
+        uniquifyNames?: boolean;
+    }): Promise<Map<string, string>>;
+    reseedDataTableRows(tableId: string, projectId: string, rows: NonNullable<InstanceAiEvalSeedDataTable['rows']>): Promise<void>;
+    deleteDataTables(dataTableIds: string[], projectId: string): Promise<void>;
+    restoreAgents(agents: InstanceAiEvalSeedAgent[], projectId: string, user: User, dataTableIdMap?: Map<string, string>, allowedCredentialIds?: Set<string>): Promise<string[]>;
+    private bindModelCredentials;
+    private remapDataTableIds;
+    deleteAgents(agentIds: string[], projectId: string): Promise<void>;
+    private agentsService;
+    restoreWorkflows(workflows: InstanceAiEvalSeedWorkflow[], projectId: string, user: User, dataTableIdMap?: Map<string, string>, allowedCredentialIds?: Set<string>, folderIdMap?: Map<string, string>): Promise<string[]>;
+    publishSeedWorkflows(workflows: InstanceAiEvalSeedWorkflow[], user: User): Promise<string[]>;
+    unpublishWorkflows(workflowIds: string[]): Promise<void>;
+    deleteWorkflows(workflowIds: string[]): Promise<void>;
+    private awaitPublicationTeardown;
+    private createWorkflowPinnedToId;
+    private resolveNodeCredentials;
+    private findStoredWorkflow;
+    private enforceSeedWorkflowSave;
+}

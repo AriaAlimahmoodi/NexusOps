@@ -1,0 +1,40 @@
+import { Logger } from '@n8n/backend-common';
+import { SettingsRepository, TransactionRunner } from '@n8n/db';
+import { InstanceSettings } from 'n8n-core';
+import { AgentRepository } from '../repositories/agent.repository';
+import { SkillRepository } from '../repositories/skill.repository';
+import { SkillsHubRollout } from './skills-hub-rollout';
+export declare const SKILLS_HUB_COPY_PROGRESS_KEY = "agents.skillsHubCopy";
+type CopyCounts = {
+    scanned: number;
+    skipped: number;
+    agents: number;
+    skills: number;
+    versions: number;
+    pins: number;
+    failed: number;
+};
+export declare class SkillsHubStartupCopy {
+    private readonly logger;
+    private readonly rollout;
+    private readonly instanceSettings;
+    private readonly agentRepository;
+    private readonly skillRepository;
+    private readonly txRunner;
+    private readonly settingsRepository;
+    constructor(logger: Logger, rollout: SkillsHubRollout, instanceSettings: InstanceSettings, agentRepository: AgentRepository, skillRepository: SkillRepository, txRunner: TransactionRunner, settingsRepository: SettingsRepository);
+    runOnStartup(): Promise<void>;
+    copyAll(): Promise<CopyCounts>;
+    private warnAboutHubOnlySkills;
+    private copyAgentWithRetry;
+    private readProgress;
+    private saveProgress;
+    private findWork;
+    private copyAgent;
+    private loadState;
+    private versionFor;
+    private addVersion;
+    private ownSkillOfRef;
+    private newSkillId;
+}
+export {};

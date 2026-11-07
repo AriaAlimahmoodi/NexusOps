@@ -1,0 +1,1 @@
+{"version":3,"file":"task-cancelled.error.js","sourceRoot":"","sources":["../../../src/task-runners/errors/task-cancelled.error.ts"],"names":[],"mappings":";;;AAAA,+CAAgD;AAEhD,wBAAgC,SAAQ,+BAAgB;IACvD,YAAY,MAAc;QACzB,KAAK,CAAC,mBAAmB,MAAM,EAAE,EAAE,EAAE,KAAK,EAAE,SAAS,EAAE,YAAY,EAAE,KAAK,EAAE,CAAC,CAAC;IAC/E,CAAC;CACD"}

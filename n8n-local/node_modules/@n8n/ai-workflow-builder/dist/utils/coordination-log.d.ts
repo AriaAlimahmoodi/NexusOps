@@ -1,0 +1,17 @@
+import type { CoordinationLogEntry, SubgraphPhase, DiscoveryMetadata, BuilderMetadata, AssistantMetadata, StateManagementMetadata } from '../types/coordination';
+export type RoutingDecision = 'discovery' | 'builder' | 'assistant' | 'responder';
+export declare function getLastCompletedPhase(log: CoordinationLogEntry[]): SubgraphPhase | null;
+export declare function getPhaseEntry(log: CoordinationLogEntry[], phase: SubgraphPhase): CoordinationLogEntry | null;
+export declare function hasPhaseCompleted(log: CoordinationLogEntry[], phase: SubgraphPhase): boolean;
+export declare function getBuilderOutput(log: CoordinationLogEntry[]): string | null;
+export declare function getPhaseMetadata(log: CoordinationLogEntry[], phase: 'discovery'): DiscoveryMetadata | null;
+export declare function getPhaseMetadata(log: CoordinationLogEntry[], phase: 'builder'): BuilderMetadata | null;
+export declare function getPhaseMetadata(log: CoordinationLogEntry[], phase: 'assistant'): AssistantMetadata | null;
+export declare function getPhaseMetadata(log: CoordinationLogEntry[], phase: 'state_management'): StateManagementMetadata | null;
+export declare function hasBuilderPhaseInLog(log: CoordinationLogEntry[]): boolean;
+export declare function hasErrorInLog(log: CoordinationLogEntry[]): boolean;
+export declare function getErrorEntry(log: CoordinationLogEntry[]): CoordinationLogEntry | null;
+export declare function hasRecursionErrorsCleared(log: CoordinationLogEntry[]): boolean;
+export declare function getNextPhaseFromLog(log: CoordinationLogEntry[]): RoutingDecision;
+export declare function getCurrentTurnEntries(log: CoordinationLogEntry[]): CoordinationLogEntry[];
+export declare function summarizeCoordinationLog(log: CoordinationLogEntry[]): string;

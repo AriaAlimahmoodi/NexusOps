@@ -1,0 +1,43 @@
+import type { AgentIntegrationConfig } from '@n8n/api-types';
+import type { Lock, QueueEntry, StateAdapter } from 'chat';
+import type { PubSubCommandMap } from '../../../scaling/pubsub/pubsub.event-map';
+import type { AgentChatSubscriptionRepository } from '../repositories/agent-chat-subscription.repository';
+import { type AgentChannelRef } from '../utils/agent-channel';
+export type SubscriptionAction = PubSubCommandMap['agent-chat-subscription-changed']['action'];
+export declare class AgentChatSubscriptionStateAdapter implements StateAdapter {
+    private readonly scope;
+    private readonly integration;
+    private readonly delegate;
+    private readonly repository;
+    private readonly publishChange;
+    private readonly onDisconnect;
+    private connected;
+    private readonly negativeSubscriptionCache;
+    constructor(scope: AgentChannelRef, integration: AgentIntegrationConfig, delegate: StateAdapter, repository: AgentChatSubscriptionRepository, publishChange: (integration: AgentIntegrationConfig, threadId: string, action: SubscriptionAction) => Promise<void>, onDisconnect: (state: AgentChatSubscriptionStateAdapter) => void);
+    get key(): string;
+    connect(): Promise<void>;
+    disconnect(): Promise<void>;
+    subscribe(threadId: string): Promise<void>;
+    unsubscribe(threadId: string): Promise<void>;
+    isSubscribed(threadId: string): Promise<boolean>;
+    applyRemoteChange(threadId: string, action: SubscriptionAction): Promise<void>;
+    private hasFreshNegativeSubscription;
+    private rememberNegativeSubscription;
+    private pruneExpiredNegativeSubscriptions;
+    acquireLock(threadId: string, ttlMs: number): Promise<Lock | null>;
+    appendToList(key: string, value: unknown, options?: {
+        maxLength?: number;
+        ttlMs?: number;
+    }): Promise<void>;
+    delete(key: string): Promise<void>;
+    dequeue(threadId: string): Promise<QueueEntry | null>;
+    enqueue(threadId: string, entry: QueueEntry, maxSize: number): Promise<number>;
+    extendLock(lock: Lock, ttlMs: number): Promise<boolean>;
+    forceReleaseLock(threadId: string): Promise<void>;
+    get<T = unknown>(key: string): Promise<T | null>;
+    getList<T = unknown>(key: string): Promise<T[]>;
+    queueDepth(threadId: string): Promise<number>;
+    releaseLock(lock: Lock): Promise<void>;
+    set<T = unknown>(key: string, value: T, ttlMs?: number): Promise<void>;
+    setIfNotExists(key: string, value: unknown, ttlMs?: number): Promise<boolean>;
+}

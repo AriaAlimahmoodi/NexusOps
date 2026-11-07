@@ -1,0 +1,2 @@
+import { i as LocaleMessages, n as GetBaseTextKey, r as INodeTranslationHeaders, t as BaseTextKey } from "./types2.cjs";
+export { BaseTextKey, GetBaseTextKey, INodeTranslationHeaders, LocaleMessages };

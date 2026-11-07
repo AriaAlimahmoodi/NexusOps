@@ -1,0 +1,25 @@
+/**
+ * xAI Grok Chat Model Node - Version 1 - Zod Validation Schemas
+ *
+ * These schemas validate node configuration at runtime.
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, resolveSchema, resolveOneOfSchemas }) {
+
+  // Parameters schema
+  const parametersSchema = z.object({
+    model: stringOrExpression.optional(),
+    options: z.object({ frequencyPenalty: numberOrExpression.optional(), maxTokens: numberOrExpression.optional(), responseFormat: z.union([z.literal('text'), z.literal('json_object'), expressionSchema]).optional(), presencePenalty: numberOrExpression.optional(), temperature: numberOrExpression.optional(), timeout: numberOrExpression.optional(), maxRetries: numberOrExpression.optional(), topP: numberOrExpression.optional(), priority: booleanOrExpression.optional(), reasoning: z.union([z.literal('none'), z.literal('low'), z.literal('medium'), z.literal('high'), expressionSchema]).optional() }).optional(),
+  });
+
+  // Return combined config schema
+  return z.object({
+    parameters: parametersSchema.nullable().optional(),
+  });
+};

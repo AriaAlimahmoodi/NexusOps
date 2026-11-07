@@ -1,0 +1,1074 @@
+import type { AuthenticationMethod, BreakingChangeLightReportResult, BreakingChangeVersion, ProjectRelation, RedactionFloor } from '@n8n/api-types';
+import type { AuthProviderType, User, IWorkflowDb } from '@n8n/db';
+import type { CancellationReason, HitlResponseTelemetryPayload, IPersonalizationSurveyAnswersV4, IRun, IWorkflowBase, IWorkflowExecutionDataProcess, IWorkflowSettings, JsonValue, WorkflowExecuteMode, WorkflowSettings } from 'n8n-workflow';
+import type { ConcurrencyQueueType } from '../../concurrency/concurrency-control.service';
+import type { CredentialAuthProbeOutcome } from '../../services/credentials-tester.service';
+import type { CredentialExportPolicy, ExportPackageEventCounts, ImportAuditCredentialIds, ImportPackageEventCounts, ImportPackageEventOptions, PackageFailureReason } from '../../modules/n8n-packages/n8n-packages.types';
+import type { TokenExchangeFailureReason } from '../../modules/token-exchange/token-exchange.types';
+import type { AdminCredentialSelection as InstanceAiCredentialSelection } from '../../modules/instance-ai/instance-ai-settings.service';
+import type { AuditedActor, PolicyDecisionAudit } from '../../modules/policy-infrastructure/policy-decision-audit';
+import type { PolicyAction, PolicyAttachment, PolicyRule } from '../../modules/type-availability-policies/policy-rule.types';
+import type { TracingContext } from '../../modules/otel/tracing-context';
+import type { McpCallerAuth } from '@n8n/backend-services/auth';
+import type { UserLike } from '../../types/user-like.types';
+import type { AiEventMap } from './ai.event-map';
+export type WorkflowActionSource = 'ui' | 'api' | 'n8n-mcp' | 'n8n-ai' | 'import' | 'review-approval';
+export type { UserLike };
+export type PolicyWriteOrigin = 'composed-save' | 'document-api';
+export type CrashDetector = 'stall' | 'queue-recovery' | 'startup-recovery' | 'start-failure' | 'workflow-deactivation';
+export type ProjectSummary = {
+    id: string;
+    name: string;
+};
+export type RelayEventMap = {
+    'server-started': {};
+    'session-started': {
+        pushRef?: string;
+    };
+    'instance-stopped': {};
+    'instance-owner-setup': {
+        userId: string;
+    };
+    'first-production-workflow-succeeded': {
+        projectId: string;
+        workflowId: string;
+        userId: string | null;
+    };
+    'instance-first-production-workflow-failed': {
+        projectId: string;
+        workflowId: string;
+        workflowName: string;
+        userId: string;
+    };
+    'first-workflow-data-loaded': {
+        userId: string;
+        workflowId: string;
+        nodeType: string;
+        nodeId: string;
+        credentialType?: string;
+        credentialId?: string;
+    };
+    'instance-report-delivered': {};
+    'instance-report-failed': {};
+    'workflow-created': {
+        user: UserLike;
+        workflow: IWorkflowBase;
+        publicApi: boolean;
+        projectId: string;
+        projectType: string;
+        uiContext?: string;
+        source?: WorkflowActionSource;
+    };
+    'n8n-package-imported': {
+        user: UserLike;
+        projectIds: string[];
+        folderId: string | null;
+        workflowIds: string[];
+        options: ImportPackageEventOptions;
+        packageSourceId: string;
+        packageVersion: string;
+        credentialIds: ImportAuditCredentialIds;
+        counts: ImportPackageEventCounts;
+    };
+    'n8n-package-exported': {
+        user: UserLike;
+        agentIds?: string[];
+        workflowIds?: string[];
+        folderIds?: string[];
+        projectIds?: string[];
+        counts: ExportPackageEventCounts;
+        credentialExportPolicy: CredentialExportPolicy;
+        includeArchivedWorkflows: boolean;
+    };
+    'n8n-package-export-failed': {
+        user: UserLike;
+        reason: PackageFailureReason;
+        agentIds?: string[];
+        workflowIds?: string[];
+        folderIds?: string[];
+        projectIds?: string[];
+    };
+    'n8n-package-import-failed': {
+        user: UserLike;
+        reason: PackageFailureReason;
+        projectId?: string;
+        folderId?: string;
+    };
+    'workflow-deleted': {
+        user: UserLike;
+        workflowId: string;
+        workflowName: string;
+        projectId: string | undefined;
+        publicApi: boolean;
+    };
+    'workflow-archived': {
+        user: UserLike;
+        workflowId: string;
+        publicApi: boolean;
+    };
+    'workflow-unarchived': {
+        user: UserLike;
+        workflowId: string;
+        publicApi: boolean;
+    };
+    'workflow-saved': {
+        user: UserLike;
+        workflow: IWorkflowDb;
+        publicApi: boolean;
+        previousWorkflow?: IWorkflowDb;
+        aiBuilderAssisted?: boolean;
+        settingsChanged?: Record<string, {
+            from: JsonValue;
+            to: JsonValue;
+        }>;
+        source?: WorkflowActionSource;
+    };
+    'workflow-activated': {
+        user: UserLike;
+        workflowId: string;
+        workflow: IWorkflowDb;
+        publicApi: boolean;
+        source?: WorkflowActionSource;
+    };
+    'workflow-deactivated': {
+        user: UserLike;
+        workflowId: string;
+        workflow: IWorkflowDb;
+        publicApi: boolean;
+        deactivatedVersionId: string | null;
+        source?: WorkflowActionSource;
+    };
+    'workflow-pre-execute': {
+        executionId: string;
+        data: IWorkflowExecutionDataProcess | IWorkflowBase;
+        mode: WorkflowExecuteMode;
+        projectId?: string;
+        projectName?: string;
+    };
+    'workflow-post-execute': {
+        executionId: string;
+        userId?: string;
+        workflow: IWorkflowBase;
+        runData?: IRun;
+        projectId?: string;
+        projectName?: string;
+        source?: IWorkflowExecutionDataProcess['source'];
+        telemetryMetadata?: IWorkflowExecutionDataProcess['telemetryMetadata'];
+    };
+    'workflow-sharing-updated': {
+        workflowId: string;
+        userIdSharer: string;
+        userIdList: string[];
+    };
+    'workflow-executed': {
+        user?: UserLike;
+        workflowId: string;
+        workflowName: string;
+        executionId: string;
+        projectId: string;
+        projectName: string;
+        source: 'user-manual' | 'user-retry' | 'webhook' | 'trigger' | 'error' | 'cli' | 'integrated' | 'evaluation' | 'chat';
+    };
+    'workflow-version-updated': {
+        user: UserLike;
+        workflowId: string;
+        workflowName: string;
+        versionId: string;
+        versionName?: string | null;
+        versionDescription?: string | null;
+    };
+    'workflow-imported': {
+        workflowId: string;
+    };
+    'node-pre-execute': {
+        executionId: string;
+        workflow: IWorkflowBase;
+        nodeId?: string;
+        nodeName: string;
+        nodeType?: string;
+    };
+    'node-post-execute': {
+        executionId: string;
+        workflow: IWorkflowBase;
+        nodeId?: string;
+        nodeName: string;
+        nodeType?: string;
+    };
+    'hitl-response-actioned': HitlResponseTelemetryPayload;
+    'user-submitted-personalization-survey': {
+        userId: string;
+        answers: IPersonalizationSurveyAnswersV4;
+    };
+    'user-deleted': {
+        user: UserLike;
+        publicApi: boolean;
+        targetUserOldStatus: 'active' | 'invited';
+        migrationStrategy?: 'transfer_data' | 'delete_data';
+        targetUserId?: string;
+        migrationUserId?: string;
+    };
+    'user-invited': {
+        user: UserLike;
+        targetUserId: string[];
+        publicApi: boolean;
+        emailSent: boolean;
+        inviteeRole: string;
+    };
+    'user-reinvited': {
+        user: UserLike;
+        targetUserId: string[];
+    };
+    'user-updated': {
+        user: UserLike;
+        fieldsChanged: string[];
+    };
+    'user-mfa-enabled': {
+        user: UserLike;
+    };
+    'user-mfa-disabled': {
+        user: UserLike;
+        disableMethod: 'mfaCode' | 'recoveryCode';
+    };
+    'user-signed-up': {
+        user: UserLike;
+        userType: AuthProviderType;
+        wasDisabledLdapUser: boolean;
+    };
+    'user-logged-in': {
+        user: UserLike;
+        authenticationMethod: AuthenticationMethod;
+    };
+    'user-login-failed': {
+        userEmail: string;
+        authenticationMethod: AuthenticationMethod;
+        reason?: string;
+    };
+    'user-changed-role': {
+        userId: string;
+        targetUserId: string;
+        publicApi: boolean;
+        targetUserNewRole: string;
+    };
+    'user-retrieved-user': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-all-users': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-execution': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-all-executions': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retried-execution': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-workflow': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-workflow-version': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-retrieved-all-workflows': {
+        userId: string;
+        publicApi: boolean;
+    };
+    'user-invite-email-click': {
+        inviter: UserLike;
+        invitee: UserLike;
+    };
+    'user-password-reset-email-click': {
+        user: UserLike;
+    };
+    'user-password-reset-request-click': {
+        user: UserLike;
+    };
+    'user-transactional-email-sent': {
+        userId: string;
+        messageType: 'Reset password' | 'New user invite' | 'Resend invite' | 'Workflow auto-deactivated' | 'Workflow shared' | 'Credentials shared' | 'Project shared' | 'Email change confirmation';
+        publicApi: boolean;
+    };
+    'public-api-key-created': {
+        user: UserLike;
+        publicApi: boolean;
+    };
+    'public-api-key-deleted': {
+        user: UserLike;
+        publicApi: boolean;
+        isOwn: boolean;
+    };
+    'public-api-key-rotated': {
+        user: UserLike;
+        publicApi: boolean;
+    };
+    'public-api-invoked': {
+        userId: string;
+        path: string;
+        method: string;
+        apiVersion: string;
+        userAgent?: string;
+    };
+    'email-failed': {
+        user: UserLike;
+        messageType: 'Reset password' | 'New user invite' | 'Resend invite' | 'Workflow shared' | 'Workflow auto-deactivated' | 'Credentials shared' | 'Project shared' | 'Email change confirmation';
+        publicApi: boolean;
+    };
+    'credentials-created': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        credentialName: string;
+        credentialDescriptionLength?: number;
+        publicApi: boolean;
+        projectId?: string;
+        projectType?: string;
+        uiContext?: string;
+        isDynamic?: boolean;
+        usesExternalSecrets?: boolean;
+        jweEnabled?: boolean;
+        supportsManagedAuth?: boolean;
+        usesManagedAuth?: boolean;
+    };
+    'credentials-shared': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        userIdSharer: string;
+        userIdsShareesAdded: string[];
+        shareesRemoved: number | null;
+    };
+    'credentials-updated': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        credentialName: string;
+        credentialDescriptionLength?: number;
+        isDynamic?: boolean;
+        usesExternalSecrets?: boolean;
+        jweEnabled?: boolean;
+        supportsManagedAuth?: boolean;
+        usesManagedAuth?: boolean;
+    };
+    'credentials-deleted': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        credentialName: string;
+        projectId: string | undefined;
+    };
+    'credentials-user-disconnected': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+    };
+    'credentials-probed': {
+        user: UserLike;
+        credentialId: string;
+        outcome: CredentialAuthProbeOutcome;
+    };
+    'oauth-callback-binding-rejected': {
+        reason: 'cookie-missing' | 'hash-mismatch';
+        credentialId?: string;
+        origin?: 'static-credential' | 'dynamic-credential';
+    };
+    'dynamic-credential-authorize-rejected': {
+        reason: 'unauthenticated' | 'user-mismatch';
+        credentialId?: string;
+    };
+    'private-credential-created': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        projectId?: string;
+        projectType?: string;
+    };
+    'private-credential-toggled-to-private': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+    };
+    'private-credential-toggled-to-static': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+    };
+    'private-credential-connections-cleared': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+    };
+    'private-credential-deleted': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+    };
+    'private-credential-user-connected': {
+        user: UserLike;
+        credentialType: string;
+        credentialId: string;
+        supportsManagedAuth?: boolean;
+        usesManagedAuth?: boolean;
+    };
+    'community-package-installed': {
+        user: UserLike;
+        inputString: string;
+        packageName: string;
+        success: boolean;
+        packageVersion?: string;
+        packageNodeNames?: string[];
+        packageAuthor?: string;
+        packageAuthorEmail?: string;
+        failureReason?: string;
+    };
+    'community-package-updated': {
+        user: UserLike;
+        packageName: string;
+        packageVersionCurrent: string;
+        packageVersionNew: string;
+        packageNodeNames: string[];
+        packageAuthor?: string;
+        packageAuthorEmail?: string;
+    };
+    'community-package-deleted': {
+        user: UserLike;
+        packageName: string;
+        packageVersion: string;
+        packageNodeNames: string[];
+        packageAuthor?: string;
+        packageAuthorEmail?: string;
+    };
+    'execution-throttled': {
+        executionId: string;
+        type: ConcurrencyQueueType;
+    };
+    'execution-started-during-bootup': {
+        executionId: string;
+    };
+    'execution-cancelled': {
+        executionId: string;
+        workflowId?: string;
+        workflowName?: string;
+        reason: CancellationReason;
+    };
+    'execution-crashed': {
+        executionId: string;
+        workflowId: string;
+        workflowName?: string;
+        mode: WorkflowExecuteMode;
+        startedAt?: Date;
+        stoppedAt: Date;
+        detector: CrashDetector;
+        hostId: string;
+        tracingContext?: TracingContext;
+        workflowVersionId?: string;
+        retryOf?: string;
+        workflowCustomTelemetryTags?: IWorkflowSettings['customTelemetryTags'];
+        project?: {
+            id: string;
+            customTelemetryTags: Array<{
+                key: string;
+                value: string;
+            }>;
+        };
+    };
+    'execution-deleted': {
+        user: UserLike;
+        executionIds: string[];
+        deleteBefore?: Date;
+    };
+    'execution-waiting': {
+        executionId: string;
+        workflowId: string;
+    };
+    'execution-resumed': {
+        executionId: string;
+        workflowId: string;
+        resumeSource: 'webhook';
+        responseAt: Date;
+    };
+    'execution-data-revealed': {
+        user: UserLike;
+        executionId: string;
+        workflowId: string;
+        ipAddress: string;
+        userAgent: string;
+        redactionPolicy: WorkflowSettings.RedactionPolicy;
+    };
+    'execution-data-reveal-failure': {
+        user: UserLike;
+        executionId: string;
+        workflowId: string;
+        ipAddress: string;
+        userAgent: string;
+        redactionPolicy: WorkflowSettings.RedactionPolicy;
+        rejectionReason: string;
+    };
+    'team-project-updated': {
+        userId: string;
+        role: string;
+        members?: ProjectRelation[];
+        projectId: string;
+        otelProjectCustomTagsCount?: number;
+    };
+    'team-project-deleted': {
+        userId: string;
+        role: string;
+        projectId: string;
+        removalType: 'transfer' | 'delete';
+        targetProjectId?: string;
+    };
+    'team-project-created': {
+        userId: string;
+        role: string;
+        uiContext?: string;
+    };
+    'source-control-settings-updated': {
+        branchName: string;
+        readOnlyInstance: boolean;
+        repoType: 'github' | 'gitlab' | 'other';
+        connected: boolean;
+        connectionType: 'ssh' | 'https';
+    };
+    'source-control-user-started-pull-ui': {
+        userId?: string;
+        workflowUpdates: number;
+        workflowConflicts: number;
+        credConflicts: number;
+        publicApi: boolean;
+    };
+    'source-control-user-finished-pull-ui': {
+        userId?: string;
+        workflowUpdates: number;
+    };
+    'source-control-user-pulled-api': {
+        workflowUpdates: number;
+        forced: boolean;
+    };
+    'source-control-user-started-push-ui': {
+        userId?: string;
+        workflowsEligible: number;
+        workflowsEligibleWithConflicts: number;
+        credsEligible: number;
+        credsEligibleWithConflicts: number;
+        variablesEligible: number;
+        publicApi: boolean;
+    };
+    'source-control-user-finished-push-ui': {
+        userId: string;
+        workflowsEligible: number;
+        workflowsPushed: number;
+        credsPushed: number;
+        variablesPushed: number;
+        publicApi: boolean;
+    };
+    'license-renewal-attempted': {
+        success: boolean;
+    };
+    'license-community-plus-registered': {
+        userId: User['id'];
+        email: string;
+        licenseKey: string;
+    };
+    'variable-created': {
+        user: UserLike;
+        variableId: string;
+        variableKey: string;
+        projectId?: string;
+    };
+    'variable-updated': {
+        user: UserLike;
+        variableId: string;
+        variableKey: string;
+        projectId?: string;
+    };
+    'variable-deleted': {
+        user: UserLike;
+        variableId: string;
+        variableKey: string;
+        projectId?: string;
+    };
+    'external-secrets-provider-settings-saved': {
+        userId?: string;
+        vaultType: string;
+        isValid: boolean;
+        isNew: boolean;
+        errorMessage?: string;
+    };
+    'external-secrets-provider-reloaded': {
+        vaultType: string;
+    };
+    'external-secrets-connection-created': {
+        userId: string;
+        userRole?: string;
+        providerKey: string;
+        vaultType: string;
+        projects: ProjectSummary[];
+    };
+    'external-secrets-connection-updated': {
+        userId: string;
+        userRole?: string;
+        providerKey: string;
+        vaultType: string;
+        projects: ProjectSummary[];
+    };
+    'external-secrets-connection-deleted': {
+        userId: string;
+        userRole?: string;
+        providerKey: string;
+        vaultType: string;
+        projects: ProjectSummary[];
+    };
+    'external-secrets-connection-tested': {
+        userId: string;
+        userRole?: string;
+        providerKey: string;
+        vaultType: string;
+        projects: ProjectSummary[];
+        isValid: boolean;
+        errorMessage?: string;
+    };
+    'external-secrets-connection-reloaded': {
+        userId: string;
+        userRole?: string;
+        providerKey: string;
+        vaultType: string;
+        projects: ProjectSummary[];
+    };
+    'external-secrets-system-roles-toggled': {
+        userId: string;
+        enabled: boolean;
+    };
+    'ldap-general-sync-finished': {
+        type: string;
+        succeeded: boolean;
+        usersSynced: number;
+        error: string;
+    };
+    'ldap-settings-updated': {
+        userId: string;
+        loginIdAttribute: string;
+        firstNameAttribute: string;
+        lastNameAttribute: string;
+        emailAttribute: string;
+        ldapIdAttribute: string;
+        searchPageSize: number;
+        searchTimeout: number;
+        synchronizationEnabled: boolean;
+        synchronizationInterval: number;
+        loginLabel: string;
+        loginEnabled: boolean;
+    };
+    'ldap-login-sync-failed': {
+        error: string;
+    };
+    'login-failed-due-to-ldap-disabled': {
+        userId: string;
+    };
+    'sso-user-project-access-updated': {
+        projectsRemoved: number;
+        projectsAdded: number;
+        userId: string;
+    };
+    'sso-user-instance-role-updated': {
+        role: string;
+        userId: string;
+    };
+    'expression-mapping-roles-resolved': {
+        userId: string;
+        userEmail: string;
+        provider: 'oidc' | 'saml' | 'ldap' | 'oauth2';
+        instanceRole: {
+            role: string;
+            previousRole: string;
+            changed: boolean;
+            matchedRuleId: string | null;
+            expression: string | null;
+            isFallback: boolean;
+        };
+        projectRoles: Array<{
+            projectId: string;
+            role: string;
+            previousRole: string | null;
+            changed: boolean;
+            matchedRuleId: string;
+            expression: string;
+        }>;
+        removedProjectIds: string[];
+    };
+    'role-mapping-rule-created': {
+        user: UserLike;
+        ruleId: string;
+        ruleType: 'instance' | 'project';
+        expression: string;
+        role: string;
+    };
+    'role-mapping-rule-updated': {
+        user: UserLike;
+        ruleId: string;
+        ruleType: 'instance' | 'project';
+        patchedFields: string[];
+    };
+    'role-mapping-rule-deleted': {
+        user: UserLike;
+        ruleId: string;
+        ruleType: 'instance' | 'project';
+    };
+    'role-mapping-rules-bulk-deleted': {
+        ruleType: 'instance' | 'project';
+        count: number;
+        reason: 'strategy-switch';
+    };
+    'trusted-source-identity-linked': {
+        userId: string;
+        sourceId: string;
+        issuer: string;
+        subject: string;
+        provenance: 'claim-match';
+    };
+    'trusted-source-user-provisioned': {
+        userId: string;
+        sourceId: string;
+        issuer: string;
+        subject: string;
+        role: string;
+    };
+    'trusted-source-created': {
+        user: UserLike;
+        sourceId: string;
+        issuer: string;
+    };
+    'trusted-source-updated': {
+        user: UserLike;
+        sourceId: string;
+        issuer: string;
+    };
+    'trusted-source-deleted': {
+        user: UserLike;
+        sourceId: string;
+        issuer: string;
+    };
+    'token-exchange-succeeded': {
+        subject: string;
+        actor?: string;
+        scopes?: string;
+        resource?: string;
+        grantType: string;
+        kid?: string;
+        issuer: string;
+        tokenId?: string;
+        clientIp: string;
+    };
+    'token-exchange-failed': {
+        subject?: string;
+        failureReason: TokenExchangeFailureReason;
+        grantType: string;
+        clientIp: string;
+    };
+    'embed-login': {
+        subject: string;
+        issuer: string;
+        kid: string;
+        clientIp: string;
+    };
+    'embed-login-failed': {
+        failureReason: TokenExchangeFailureReason;
+        clientIp: string;
+    };
+    'token-exchange-identity-linked': {
+        userId: string;
+        sub: string;
+        email: string;
+        kid: string;
+        issuer: string;
+    };
+    'token-exchange-identity-rebound': {
+        userId: string;
+        sub: string;
+        kid: string;
+        issuer: string;
+    };
+    'token-exchange-user-provisioned': {
+        userId: string;
+        sub: string;
+        email: string;
+        role: string;
+        kid: string;
+        issuer: string;
+    };
+    'token-exchange-role-updated': {
+        userId: string;
+        previousRole: string;
+        newRole: string;
+        kid: string;
+        issuer: string;
+    };
+    'runner-task-requested': {
+        taskId: string;
+        nodeId: string;
+        workflowId: string;
+        executionId: string;
+    };
+    'runner-response-received': {
+        taskId: string;
+        nodeId: string;
+        workflowId: string;
+        executionId: string;
+    };
+    'runner-disconnected': {
+        reason: 'failed-heartbeat-check' | 'runner-unresponsive';
+        mode: 'internal' | 'external';
+    };
+    'job-enqueued': {
+        executionId: string;
+        workflowId: string;
+        hostId: string;
+        jobId: string;
+    };
+    'job-dequeued': {
+        executionId: string;
+        workflowId: string;
+        hostId: string;
+        jobId: string;
+    };
+    'job-stalled': {
+        executionId: string;
+        workflowId: string;
+        hostId: string;
+        jobId: string;
+    };
+    'migration-report-viewed': {
+        user: UserLike;
+        targetVersion: BreakingChangeVersion;
+        refreshed: boolean;
+        report: BreakingChangeLightReportResult;
+    };
+    'history-compacted': {
+        workflowsProcessed: number;
+        totalVersionsSeen: number;
+        totalVersionsDeleted: number;
+        errorCount: number;
+        durationMs: number;
+        windowStartIso: string;
+        windowEndIso: string;
+        compactionStartTime: Date;
+    };
+    'data-table-deleted': {
+        dataTableId: string;
+        projectId: string;
+    };
+    'folder-deleted': {
+        folderId: string;
+        projectId: string;
+    };
+    'agent-saved': {
+        agentId: string;
+    };
+    'agent-deleted': {
+        agentId: string;
+        projectId: string;
+    };
+    'instance-policies-updated': {
+        user: UserLike;
+    } & ({
+        settingName: '2fa_enforcement' | 'workflow_publishing' | 'workflow_sharing' | 'workflow_reviews';
+        value: boolean;
+    } | {
+        settingName: 'data_redaction_enforcement_floor';
+        value: RedactionFloor;
+    });
+    'redaction-enforcement-updated': {
+        user: UserLike;
+        before: RedactionFloor;
+        after: RedactionFloor;
+    };
+    'workflow-review-requested': {
+        user: UserLike;
+        workflowReviewRequestId: string;
+        projectId: string;
+        workflowId: string;
+        workflowVersionId: string;
+        reviewerCount: number;
+    };
+    'workflow-review-version-updated': {
+        user: UserLike;
+        workflowReviewRequestId: string;
+        workflowId: string;
+        workflowVersionId: string;
+    };
+    'workflow-review-decided': {
+        user: UserLike;
+        workflowReviewRequestId: string;
+        workflowId: string;
+        workflowVersionId: string | null;
+        decision: 'approved' | 'changes_requested';
+        decidedVia: 'assigned-reviewer' | 'admin-override';
+        reviewCreatedAt: Date;
+    };
+    'workflow-review-closed': {
+        workflowReviewRequestId: string;
+        cause: {
+            trigger: 'workflow-archived' | 'workflow-moved' | 'workflow-deleted' | 'unknown';
+            actorKind: 'user' | 'system';
+            userId: string | null;
+        };
+    };
+    'workflow-review-comment-created': {
+        user: UserLike;
+        workflowReviewRequestId: string;
+    };
+    'custom-role-created': {
+        userId: string;
+        roleSlug: string;
+        scopes: string[];
+        source: 'ui' | 'public-api';
+    };
+    'custom-role-updated': {
+        userId: string;
+        roleSlug: string;
+        scopes: string[];
+    };
+    'custom-role-deleted': {
+        userId: string;
+        roleSlug: string;
+    };
+    'instance-ai-settings-updated': {
+        mcpSettingsChanged: boolean;
+        credentialSelections?: {
+            previous: InstanceAiCredentialSelection;
+            next: InstanceAiCredentialSelection;
+            connectionsUpdated: {
+                model: boolean;
+                sandbox: boolean;
+                search: boolean;
+            };
+        };
+    };
+    'instance-ai-mcp-registry-connection-created': {
+        userId: string;
+        serverSlug: string;
+    };
+    'instance-ai-mcp-registry-connection-deleted': {
+        userId: string;
+        serverSlug: string;
+    };
+    'server-cli-import': {
+        activeState: 'false' | 'fromJson';
+        workflowCount: number;
+        separate: boolean;
+    };
+    'server-cli-export': {
+        selector: 'all' | 'id' | 'projectId';
+        published: boolean;
+        separate: boolean;
+        backup: boolean;
+        workflowCount: number;
+    };
+    'mcp-oauth-completed': {
+        userId: string;
+        clientId: string;
+        clientName?: string;
+    };
+    'mcp-tool-called': {
+        user: UserLike;
+        toolName: string;
+        workflowId?: string;
+        status: 'success' | 'error';
+        errorMessage?: string;
+        clientName?: string;
+    } & (McpCallerAuth | {
+        authType?: undefined;
+        clientId?: undefined;
+    });
+    'mcp-access-updated': {
+        user: UserLike;
+        enabled: boolean;
+    };
+    'node-type-policy-scope-updated': {
+        updatedBy: string;
+        kind: string;
+        projectId: string | null;
+        scopeId: string;
+        before: {
+            defaultAction: PolicyAction;
+            version: number;
+        } | null;
+        after: {
+            defaultAction: PolicyAction;
+            version: number;
+        };
+    };
+    'node-type-policy-document-created': {
+        updatedBy: string;
+        kind: string;
+        policyId: string;
+        origin: PolicyWriteOrigin;
+        after: {
+            rules: readonly PolicyRule[];
+            version: number;
+        };
+    };
+    'node-type-policy-document-updated': {
+        updatedBy: string;
+        kind: string;
+        policyId: string;
+        origin: PolicyWriteOrigin;
+        before: {
+            rules: readonly PolicyRule[];
+            version: number;
+        };
+        after: {
+            rules: readonly PolicyRule[];
+            version: number;
+        };
+    };
+    'node-type-policy-document-deleted': {
+        updatedBy: string;
+        kind: string;
+        policyId: string;
+        before: {
+            rules: readonly PolicyRule[];
+            version: number;
+        };
+    };
+    'node-type-policy-saved': {
+        updatedBy: string;
+        kind: string;
+        projectId: string | null;
+        scopeId: string;
+        before: {
+            defaultAction: PolicyAction;
+            version: number;
+        } | null;
+        after: {
+            defaultAction: PolicyAction;
+            version: number;
+        };
+        rulesBefore: readonly PolicyRule[] | null;
+        rulesAfter: readonly PolicyRule[];
+        shadowWarningCount: number;
+        notLoadedWarningCount: number;
+    };
+    'node-type-policy-attachments-updated': {
+        updatedBy: string;
+        kind: string;
+        projectId: string | null;
+        scopeId: string;
+        before: {
+            attachments: readonly PolicyAttachment[];
+            version: number;
+        };
+        after: {
+            attachments: readonly PolicyAttachment[];
+            version: number;
+        };
+    };
+    'policy-decision-blocked': PolicyDecisionAudit & AuditedActor;
+} & AiEventMap;

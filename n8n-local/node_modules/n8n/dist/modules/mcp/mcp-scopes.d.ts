@@ -1,0 +1,10 @@
+import type { McpScope } from '@n8n/api-types';
+export declare const TOOLS_BY_SCOPE: Record<McpScope, readonly string[]>;
+export declare const FOLDER_FEATURE_TOOLS: ReadonlySet<string>;
+export declare const BUILDER_TOOLS: ReadonlySet<string>;
+export declare const COMMUNITY_PACKAGE_TOOLS: ReadonlySet<string>;
+export declare const ACTIVITY_LOG_TOOLS: ReadonlySet<string>;
+export declare const INSTANCE_CONTEXT_TOOLS: ReadonlySet<string>;
+export declare const AGENT_TOOLS: ReadonlySet<string>;
+export declare const SKILL_TOOLS: ReadonlySet<string>;
+export declare function getAllowedToolNames(grantedScopes: string[] | undefined): Set<string> | undefined;

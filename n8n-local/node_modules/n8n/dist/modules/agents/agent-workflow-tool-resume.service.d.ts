@@ -1,0 +1,41 @@
+import { Logger } from '@n8n/backend-common';
+import { UserRepository } from '@n8n/db';
+import { type WorkflowExecuteAfterContext } from '@n8n/decorators';
+import { InstanceSettings } from 'n8n-core';
+import type { RelatedAgentRun } from 'n8n-workflow';
+import { Publisher } from '../../scaling/pubsub/publisher.service';
+import { AgentExecutionUpdateBroadcaster } from './agent-execution-update-broadcaster';
+import { AgentExecutionOrchestratorService } from './agent-execution-orchestrator.service';
+import { AgentRepository } from './repositories/agent.repository';
+import { AgentTestRunService } from './agent-test-run.service';
+import { AgentBackgroundJobService } from './background/agent-background-job.service';
+import { ChatIntegrationService } from './integrations/chat-integration.service';
+import { IntegrationMessageContextService } from './integrations/integration-message-context.service';
+import { N8NCheckpointStorage } from './integrations/n8n-checkpoint-storage';
+export declare class AgentWorkflowToolResumeService {
+    private readonly logger;
+    private readonly userRepository;
+    private readonly agentTestRunService;
+    private readonly chatIntegrationService;
+    private readonly messageContextService;
+    private readonly executionUpdateBroadcaster;
+    private readonly checkpointStorage;
+    private readonly instanceSettings;
+    private readonly publisher;
+    private readonly backgroundJobService;
+    private readonly agentExecutionOrchestratorService;
+    private readonly agentRepository;
+    constructor(logger: Logger, userRepository: UserRepository, agentTestRunService: AgentTestRunService, chatIntegrationService: ChatIntegrationService, messageContextService: IntegrationMessageContextService, executionUpdateBroadcaster: AgentExecutionUpdateBroadcaster, checkpointStorage: N8NCheckpointStorage, instanceSettings: InstanceSettings, publisher: Publisher, backgroundJobService: AgentBackgroundJobService, agentExecutionOrchestratorService: AgentExecutionOrchestratorService, agentRepository: AgentRepository);
+    handleWorkflowExecuteAfter(ctx: WorkflowExecuteAfterContext): Promise<void>;
+    handleResumeRelay({ agentRun, status, }: {
+        agentRun: RelatedAgentRun;
+        status: string;
+    }): Promise<void>;
+    private settleBackgroundJob;
+    private resumeSafely;
+    resume(agentRun: RelatedAgentRun, status: string): Promise<void>;
+    private resumeInProductionChat;
+    private resumeInPreviewChat;
+    private getIntegrationResumeRoute;
+    private loadLegacyMessageContext;
+}

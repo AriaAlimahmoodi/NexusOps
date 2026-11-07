@@ -1,0 +1,35 @@
+import type { AgentExecutionStatus } from '@n8n/api-types';
+import { BaseRepository, TransactionRunner, type OperationContext } from '@n8n/db';
+import { DataSource } from '@n8n/typeorm';
+import { AgentExecution } from '../entities/agent-execution.entity';
+import type { ThreadFailureSummary } from '../utils/execution-failure-summary';
+export type RunningAgentExecution = Pick<AgentExecution, 'id' | 'threadId' | 'startedAt' | 'updatedAt' | 'timeline'>;
+type AgentExecutionFinalizationValues = Pick<AgentExecution, 'status' | 'stoppedAt' | 'duration' | 'timeline' | 'storedAt' | 'error' | 'failureSummary'> & Partial<Pick<AgentExecution, 'model' | 'promptTokens' | 'completionTokens' | 'totalTokens' | 'hitlStatus'>>;
+export declare class AgentExecutionRepository extends BaseRepository<AgentExecution> {
+    constructor(dataSource: DataSource, transactionRunner: TransactionRunner);
+    saveInContext(execution: AgentExecution, ctx: OperationContext): Promise<AgentExecution>;
+    findByThreadIdOrdered(threadId: string): Promise<AgentExecution[]>;
+    findRunning(): Promise<RunningAgentExecution[]>;
+    existsRunningByThread(threadId: string, ctx?: OperationContext): Promise<boolean>;
+    findRunningByThread(threadId: string, ctx: OperationContext): Promise<AgentExecution[]>;
+    findExecution(executionId: string, ctx?: OperationContext): Promise<AgentExecution | null>;
+    findLatestByThreadId(threadId: string): Promise<AgentExecution | null>;
+    touchRunning(executionId: string): Promise<boolean>;
+    updateTimelineIfRunning(executionId: string, timeline: AgentExecution['timeline'], ctx?: OperationContext): Promise<boolean>;
+    findSteerable(threadId: string, ctx?: OperationContext): Promise<AgentExecution | null>;
+    closeSteering(threadId: string, executionId: string, ctx: OperationContext): Promise<void>;
+    updateIfRunning(executionId: string, values: AgentExecutionFinalizationValues, staleBefore?: Date, ctx?: OperationContext, costIncrement?: number): Promise<boolean>;
+    moveTimelineToBlob(executionId: string, storedAt: Exclude<AgentExecution['storedAt'], 'db'>): Promise<void>;
+    findTimelineStorageLocation(executionId: string): Promise<AgentExecution['storedAt'] | null>;
+    findFirstUserMessageByThreadIds(threadIds: string[]): Promise<Map<string, string>>;
+    findFirstSourceByThreadIds(threadIds: string[], ctx?: OperationContext): Promise<Map<string, string>>;
+    findLatestStatusesByThreadIds(threadIds: string[]): Promise<Map<string, AgentExecutionStatus>>;
+    findFailureSummariesByThreadIds(threadIds: string[]): Promise<Map<string, ThreadFailureSummary>>;
+    findSuspendedWithoutModel(threadId: string): Promise<AgentExecution[]>;
+    findLatestSuspendedByThreadId(threadId: string): Promise<AgentExecution | null>;
+    backfillModel(executionIds: string[], model: string): Promise<void>;
+    incrementCost(executionId: string, cost: number, ctx?: OperationContext): Promise<void>;
+    deleteByThreadId(threadId: string): Promise<void>;
+    findBlobRefsByAgentId(agentId: string): Promise<Array<Pick<AgentExecution, 'id' | 'threadId' | 'storedAt'>>>;
+}
+export {};

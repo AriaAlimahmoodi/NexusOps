@@ -1,0 +1,20 @@
+import type { BaseMessage } from '@langchain/core/messages';
+import { HumanMessage } from '@langchain/core/messages';
+import type { CoordinationLogEntry } from '../types/coordination';
+import type { DiscoveryContext } from '../types/discovery-types';
+import type { SimpleWorkflow } from '../types/workflow';
+import type { ChatPayload } from '../workflow-builder-agent';
+export declare function buildWorkflowSummary(workflow: SimpleWorkflow): string;
+export declare function buildWorkflowJsonBlock(workflow: SimpleWorkflow): string;
+export declare function buildWorkflowOverview(workflow: SimpleWorkflow): string;
+export declare function buildDiscoveryContextBlock(discoveryContext: DiscoveryContext | null, includeBestPractices?: boolean): string;
+export declare function buildConversationContext(messages: BaseMessage[], coordinationLog: CoordinationLogEntry[], previousSummary?: string): string;
+export declare function buildExecutionContextBlock(workflowContext: ChatPayload['workflowContext'] | undefined): string;
+export declare function buildExecutionSchemaBlock(workflowContext: ChatPayload['workflowContext'] | undefined): string;
+export declare function buildSimplifiedExecutionContext(workflowContext: ChatPayload['workflowContext'] | undefined, workflowNodes?: Array<{
+    name: string;
+    disabled?: boolean;
+}>): string;
+export declare function buildSelectedNodesContextBlock(workflowContext: ChatPayload['workflowContext'] | undefined): string;
+export declare function buildSelectedNodesSummary(workflowContext: ChatPayload['workflowContext'] | undefined): string;
+export declare function createContextMessage(contextParts: string[]): HumanMessage;

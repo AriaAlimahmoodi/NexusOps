@@ -1,0 +1,33 @@
+/**
+ * MongoDB Atlas Vector Store Node - Version 1.3 - Zod Schema
+ * Discriminator: mode=insert
+ *
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, embeddingInstanceSchema, documentLoaderInstanceSchema }) {
+
+  // Static subnode schema
+  const subnodesSchema = z.object({
+    embedding: z.union([embeddingInstanceSchema, z.array(embeddingInstanceSchema)]),
+    documentLoader: z.union([documentLoaderInstanceSchema, z.array(documentLoaderInstanceSchema)]),
+  }).strict();
+
+  return z.object({
+    parameters: z.object({
+      mode: z.literal('insert'),
+      mongoCollection: z.union([z.object({ __rl: z.literal(true), mode: z.union([z.literal('list'), z.literal('name')]), value: z.union([z.string(), z.number()]), cachedResultName: z.string().optional(), cachedResultUrl: z.string().optional() }), expressionSchema]).optional(),
+      embedding: stringOrExpression.optional(),
+      metadata_field: stringOrExpression.optional(),
+      vectorIndexName: stringOrExpression,
+      embeddingBatchSize: numberOrExpression.optional(),
+      options: z.object({ clearNamespace: booleanOrExpression.optional(), namespace: stringOrExpression.optional() }).optional(),
+    }).optional(),
+    subnodes: subnodesSchema,
+  });
+};

@@ -1,0 +1,31 @@
+import type { StreamOutput } from '../types/streaming';
+import type { ChatPayload } from '../workflow-builder-agent';
+import type { HistoryContext } from './prompts';
+import type { CodeBuilderAgentConfig } from './types';
+export type { CodeBuilderAgentConfig } from './types';
+export declare class CodeBuilderAgent {
+    private nodeTypeParser;
+    private logger?;
+    private tools;
+    private toolsMap;
+    private parseValidateHandler;
+    private autoFinalizeHandler;
+    private validateToolHandler;
+    private iterationHandler;
+    private finalResponseHandler;
+    private chatSetupHandler;
+    private toolDispatchHandler;
+    private onTelemetryEvent?;
+    private originalOnTokenUsage?;
+    private accumulatedTokens;
+    constructor(config: CodeBuilderAgentConfig);
+    private resetAccumulatedTokens;
+    private emitTelemetryEvent;
+    chat(payload: ChatPayload, userId: string, abortSignal?: AbortSignal, historyContext?: HistoryContext): AsyncGenerator<StreamOutput, void, unknown>;
+    private runAgenticLoop;
+    private checkConsecutiveParseErrors;
+    private processIteration;
+    private handleToolCalls;
+    private handleTextEditorAutoFinalize;
+    private handleFinalResponse;
+}

@@ -1,0 +1,54 @@
+/**
+ * OpenAI Node - Version 2.3
+ * Discriminator: resource=conversation, operation=create
+ */
+
+
+interface Credentials {
+  openAiApi: CredentialReference;
+}
+
+/** Create a conversation */
+export type LcOpenAiV23ConversationCreateParams = {
+  resource: 'conversation';
+  operation: 'create';
+/**
+ * Messages
+ * @default {"values":[{"type":"text"}]}
+ */
+    messages?: {
+        /** Message
+     */
+    values?: Array<{
+      /** Role in shaping the model's response, it tells the model how it should behave and interact with the user
+       * @default user
+       */
+      role?: 'user' | 'assistant' | 'system' | Expression<string>;
+      /** The content of the message to be send
+       */
+      content?: string | Expression<string>;
+    }>;
+  };
+/**
+ * Options
+ * @default {}
+ */
+    options?: {
+    /** Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a structured format, and querying for objects via API or the dashboard. Keys are strings with a maximum length of 64 characters. Values are strings with a maximum length of 512 characters.
+     * @default {}
+     */
+    metadata?: IDataObject | string | Expression<string>;
+  };
+};
+
+export interface LcOpenAiV23ConversationCreateSubnodeConfig {
+  tools?: ToolInstance[];
+  memory?: MemoryInstance;
+}
+
+export type LcOpenAiV23ConversationCreateNode = {
+  type: '@n8n/n8n-nodes-langchain.openAi';
+  version: 2.3;
+  isTrigger: true;
+  config: NodeConfig<LcOpenAiV23ConversationCreateParams> & { credentials?: Credentials } & { subnodes?: LcOpenAiV23ConversationCreateSubnodeConfig };
+};

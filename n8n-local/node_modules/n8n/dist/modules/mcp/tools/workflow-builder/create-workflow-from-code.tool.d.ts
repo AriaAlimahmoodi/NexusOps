@@ -1,0 +1,30 @@
+import type { Logger } from '@n8n/backend-common';
+import { type ProjectRepository, type User } from '@n8n/db';
+import z from 'zod';
+import type { CredentialsService } from '../../../../credentials/credentials.service';
+import type { DataTableUserOperations } from '../../../../modules/data-table/data-table-proxy.service';
+import type { NodeTypes } from '../../../../node-types';
+import type { AiGatewayService } from '../../../../services/ai-gateway.service';
+import type { UrlService } from '@n8n/backend-services';
+import type { WorkflowCreationService } from '../../../../workflows/workflow-creation.service';
+import type { WorkflowFinderService } from '../../../../workflows/workflow-finder.service';
+import { type FindUninstalledNodeTypes } from './uninstalled-node-warnings';
+import type { McpPostSaveMetricsService } from '../../mcp-post-save-metrics.service';
+import type { ToolDefinition } from '../../mcp.types';
+import type { Telemetry } from '../../../../telemetry';
+export type CreateWorkflowFromCodeToolOptions = {
+    findUninstalledNodeTypes?: FindUninstalledNodeTypes;
+    installToolAvailable?: boolean;
+};
+declare const inputSchema: {
+    code: z.ZodString;
+    skillsUsed: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    name: z.ZodOptional<z.ZodString>;
+    description: z.ZodOptional<z.ZodString>;
+    versionName: z.ZodOptional<z.ZodString>;
+    versionDescription: z.ZodOptional<z.ZodString>;
+    projectId: z.ZodOptional<z.ZodString>;
+    folderId: z.ZodOptional<z.ZodString>;
+};
+export declare const createCreateWorkflowFromCodeTool: (user: User, workflowCreationService: WorkflowCreationService, workflowFinderService: WorkflowFinderService, urlService: UrlService, telemetry: Telemetry, nodeTypes: NodeTypes, credentialsService: CredentialsService, projectRepository: ProjectRepository, dataTableOps: DataTableUserOperations, aiGatewayService: AiGatewayService, options: CreateWorkflowFromCodeToolOptions | undefined, logger: Logger, postSaveMetrics: McpPostSaveMetricsService) => ToolDefinition<typeof inputSchema>;
+export {};

@@ -1,0 +1,37 @@
+import { EventEmitter } from 'events';
+import { Facility, Severity, Transport } from './constants';
+import type { ClientOptions, DateFormatter, LogOptions, SyslogCallback } from './types';
+export declare class SyslogClient extends EventEmitter {
+    readonly target: string;
+    readonly syslogHostname: string;
+    readonly port: number;
+    readonly tcpTimeout: number;
+    readonly facility: Facility;
+    readonly severity: Severity;
+    readonly rfc3164: boolean;
+    readonly appName: string;
+    readonly dateFormatter: DateFormatter;
+    readonly udpBindAddress?: string;
+    readonly transport: Transport;
+    readonly tlsCA?: string | string[] | Buffer | Buffer[];
+    private transport_?;
+    private connecting;
+    private getTransportRequests;
+    constructor(target?: string, options?: ClientOptions);
+    log(message: string, options?: LogOptions | SyslogCallback, errorCb?: SyslogCallback): Promise<void> | void;
+    private logInternal;
+    private sendMessage;
+    private getTransport;
+    private createTcpTransport;
+    private createTlsTransport;
+    private setupSocketHandlers;
+    private onSocketConnected;
+    private createUdpTransport;
+    close(): this;
+    private onClose;
+    private onError;
+    private isStreamSocket;
+    private isUdpSocket;
+    private getTransportName;
+    private normalizeError;
+}

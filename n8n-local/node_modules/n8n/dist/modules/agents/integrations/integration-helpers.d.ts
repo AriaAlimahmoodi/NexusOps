@@ -1,0 +1,33 @@
+import { type IntegrationErrorCode } from './integration-error-codes';
+import type { IntegrationActionResult } from './integration-tool-types';
+export type IntegrationErrorResponse = Extract<IntegrationActionResult, {
+    ok: false;
+}>;
+export declare function integrationError(code: IntegrationErrorCode, message: string): IntegrationErrorResponse;
+export declare function rateLimitExceeded(message: string): IntegrationErrorResponse;
+export declare function connectionUnavailable(): IntegrationErrorResponse;
+export declare function unsupportedQuery(platform: string, query: string): IntegrationErrorResponse;
+export declare function unsupportedAction(platform: string, action: string): IntegrationErrorResponse;
+export declare function normalizePlatformId(platform: string, id: string): string;
+export declare function stringValue(value: unknown): string | undefined;
+export declare function stringProperty(value: unknown, key: string): string | undefined;
+export declare function numberProperty(value: unknown, key: string): number | undefined;
+export declare function booleanProperty(value: unknown, key: string): boolean | undefined;
+export declare function isoDateProperty(value: unknown, key: string): string | undefined;
+export declare function removeUndefinedValues<T extends Record<string, unknown>>(value: T): Record<string, unknown>;
+export declare function isDefined<T>(value: T | undefined): value is T;
+export declare function deriveWhatsAppVerifyToken(hmacSignatureSecret: string, agentId: string): string;
+export declare function hasUpdateIssueField(input: {
+    issueId: string;
+    teamId?: string | null;
+    title?: string;
+    description?: string | null;
+    assigneeId?: string | null;
+    projectId?: string | null;
+    labelIds?: string[];
+    priority?: number | null;
+    stateId?: string | null;
+    parentId?: string | null;
+}): boolean;
+export declare function sanitiseAppName(raw: string, maxLength: number, fallback: string): string;
+export declare function truncateToCodePoints(value: string, max: number): string;

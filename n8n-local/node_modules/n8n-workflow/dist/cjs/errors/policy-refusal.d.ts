@@ -1,0 +1,6 @@
+/**
+ * Whether an error carries the own `isPolicyRefusal` marker that a policy refusal sets.
+ * Lets packages that cannot import the refusal class recognise one, also after serialization.
+ */
+export declare function hasPolicyRefusalMarker(error: unknown): boolean;
+//# sourceMappingURL=policy-refusal.d.ts.map

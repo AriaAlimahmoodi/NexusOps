@@ -1,0 +1,33 @@
+import type { CreateWorkflowReviewRequestDto, GetWorkflowReviewEligibleReviewersQueryDto, UpdateWorkflowReviewRequestVersionDto, WorkflowReviewEligibleReviewersList, WorkflowReviewRequestSummary } from '@n8n/api-types';
+import { EventService, RoleService } from '@n8n/backend-services';
+import { DbLockService, SharedWorkflowRepository, UserRepository, WorkflowHistoryRepository, WorkflowReviewRequestAuthorRepository, WorkflowReviewRequestRepository, WorkflowReviewActivityRepository, WorkflowReviewRequestReviewerRepository, WorkflowReviewRequestWorkflowRepository, type User } from '@n8n/db';
+import { WorkflowFinderService } from '../../workflows/workflow-finder.service';
+import { WorkflowHistoryService } from '../../workflows/workflow-history/workflow-history.service';
+import { WorkflowReviewFeatureGate } from './workflow-review-feature-gate.service';
+import { WorkflowReviewRequestMutationGuard } from './workflow-review-request-mutation-guard.service';
+import { WorkflowReviewStateNotifier } from './workflow-review-state-notifier.service';
+export declare class WorkflowReviewRequestSubmissionService {
+    private readonly featureGate;
+    private readonly workflowFinderService;
+    private readonly workflowHistoryService;
+    private readonly workflowHistoryRepository;
+    private readonly sharedWorkflowRepository;
+    private readonly workflowReviewRequestRepository;
+    private readonly workflowReviewRequestWorkflowRepository;
+    private readonly workflowReviewRequestAuthorRepository;
+    private readonly workflowReviewRequestReviewerRepository;
+    private readonly activityRepository;
+    private readonly userRepository;
+    private readonly roleService;
+    private readonly dbLockService;
+    private readonly eventService;
+    private readonly mutationGuard;
+    private readonly stateNotifier;
+    constructor(featureGate: WorkflowReviewFeatureGate, workflowFinderService: WorkflowFinderService, workflowHistoryService: WorkflowHistoryService, workflowHistoryRepository: WorkflowHistoryRepository, sharedWorkflowRepository: SharedWorkflowRepository, workflowReviewRequestRepository: WorkflowReviewRequestRepository, workflowReviewRequestWorkflowRepository: WorkflowReviewRequestWorkflowRepository, workflowReviewRequestAuthorRepository: WorkflowReviewRequestAuthorRepository, workflowReviewRequestReviewerRepository: WorkflowReviewRequestReviewerRepository, activityRepository: WorkflowReviewActivityRepository, userRepository: UserRepository, roleService: RoleService, dbLockService: DbLockService, eventService: EventService, mutationGuard: WorkflowReviewRequestMutationGuard, stateNotifier: WorkflowReviewStateNotifier);
+    private findEligibleReviewers;
+    getEligibleReviewers(user: User, query: GetWorkflowReviewEligibleReviewersQueryDto): Promise<WorkflowReviewEligibleReviewersList>;
+    private nameVersion;
+    private updateVersionMetadataIfChanged;
+    create(user: User, dto: CreateWorkflowReviewRequestDto): Promise<WorkflowReviewRequestSummary>;
+    updateVersion(user: User, workflowReviewRequestId: string, dto: UpdateWorkflowReviewRequestVersionDto): Promise<WorkflowReviewRequestSummary>;
+}

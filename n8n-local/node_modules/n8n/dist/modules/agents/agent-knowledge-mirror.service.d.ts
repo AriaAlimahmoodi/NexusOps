@@ -1,0 +1,35 @@
+import { Logger } from '@n8n/backend-common';
+import { AgentsConfig } from '@n8n/config';
+import { AgentKnowledgeFileStore } from './agent-knowledge-file-store';
+import { type GlobKnowledgeFilesRequest, type GlobKnowledgeFilesResult, type ReadKnowledgeRequest, type ReadKnowledgeResult, type SearchKnowledgeRequest, type SearchKnowledgeResult } from './agent-knowledge-retrieval';
+import { AgentSandboxRuntimeService } from './agent-sandbox-runtime.service';
+import { AgentFileRepository } from './repositories/agent-file.repository';
+import { AgentRepository } from './repositories/agent.repository';
+export declare class AgentKnowledgeMirrorService {
+    private readonly agentsConfig;
+    private readonly logger;
+    private readonly agentSandboxRuntimeService;
+    private readonly agentFileRepository;
+    private readonly agentRepository;
+    private readonly agentKnowledgeFileStore;
+    private readonly pendingMirrorSyncs;
+    constructor(agentsConfig: AgentsConfig, logger: Logger, agentSandboxRuntimeService: AgentSandboxRuntimeService, agentFileRepository: AgentFileRepository, agentRepository: AgentRepository, agentKnowledgeFileStore: AgentKnowledgeFileStore);
+    searchKnowledge(projectId: string, agentId: string, request: SearchKnowledgeRequest): Promise<SearchKnowledgeResult>;
+    globKnowledgeFiles(projectId: string, agentId: string, request: GlobKnowledgeFilesRequest): Promise<GlobKnowledgeFilesResult>;
+    readKnowledge(projectId: string, agentId: string, request: ReadKnowledgeRequest): Promise<ReadKnowledgeResult>;
+    prewarmMirrorInBackground(projectId: string, agentId: string): void;
+    private executeKnowledgeOperation;
+    private ensureMirrorSynced;
+    private syncMirror;
+    private uploadMirrorFiles;
+    private loadKnowledgeReferenceLookup;
+    private loadKnowledgeFileReferences;
+    private resolveRequiredFile;
+    private resolveOptionalFile;
+    private assertKnowledgeAccess;
+    private acquireKnowledgeRuntime;
+    private resolveSearchFiles;
+    private parseSearchResult;
+    private finalizeMirror;
+    private cleanMirrorStaging;
+}

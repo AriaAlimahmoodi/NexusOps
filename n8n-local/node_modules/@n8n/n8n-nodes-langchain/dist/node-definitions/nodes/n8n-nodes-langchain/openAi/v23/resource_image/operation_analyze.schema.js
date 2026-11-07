@@ -1,0 +1,35 @@
+/**
+ * OpenAI Node - Version 2.3 - Zod Schema
+ * Discriminator: resource=image, operation=analyze
+ *
+ * Use .parse() for strict validation or .safeParse() for error handling.
+ *
+ * Schema helpers (z, expressionSchema, etc.) are passed as parameters
+ * by the schema-validator, not imported from external files.
+ *
+ * @generated - CommonJS JavaScript for runtime loading
+ */
+
+module.exports = function getSchema({ parameters, z, expressionSchema, stringOrExpression, numberOrExpression, booleanOrExpression, resourceLocatorValueSchema, resourceMapperValueSchema, filterValueSchema, assignmentCollectionValueSchema, iDataObjectSchema, resolveSchema, resolveOneOfSchemas, toolInstanceSchema, memoryInstanceSchema }) {
+
+  // Static subnode schema
+  const subnodesSchema = z.object({
+    tools: z.array(toolInstanceSchema).optional(),
+    memory: memoryInstanceSchema.optional(),
+  }).strict();
+
+  return z.object({
+    parameters: z.object({
+      resource: z.literal('image'),
+      operation: z.literal('analyze'),
+      modelId: z.union([z.object({ __rl: z.literal(true), mode: z.union([z.literal('list'), z.literal('id')]), value: z.union([z.string(), z.number()]), cachedResultName: z.string().optional(), cachedResultUrl: z.string().optional() }), expressionSchema]).optional(),
+      text: stringOrExpression.optional(),
+      inputType: z.union([z.literal('url'), z.literal('base64'), expressionSchema]).optional(),
+      imageUrls: resolveSchema({ parameters, schema: stringOrExpression, required: false, displayOptions: {"show":{"inputType":["url"]}}, defaults: {"inputType":"url"} }),
+      binaryPropertyName: resolveSchema({ parameters, schema: stringOrExpression, required: false, displayOptions: {"show":{"inputType":["base64"]}}, defaults: {"inputType":"url"} }),
+      simplify: booleanOrExpression.optional(),
+      options: z.object({ detail: z.union([z.literal('auto'), z.literal('low'), z.literal('high'), expressionSchema]).optional(), maxTokens: numberOrExpression.optional() }).optional(),
+    }).optional(),
+    subnodes: subnodesSchema.optional(),
+  });
+};

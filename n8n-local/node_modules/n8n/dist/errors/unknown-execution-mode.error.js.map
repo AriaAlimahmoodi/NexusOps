@@ -1,0 +1,1 @@
+{"version":3,"file":"unknown-execution-mode.error.js","sourceRoot":"","sources":["../../src/errors/unknown-execution-mode.error.ts"],"names":[],"mappings":";;;AAAA,wCAA8C;AAE9C,+BAAuC,SAAQ,wBAAe;IAC7D,YAAY,IAAY;QACvB,KAAK,CAAC,wBAAwB,EAAE,EAAE,KAAK,EAAE,EAAE,IAAI,EAAE,EAAE,CAAC,CAAC;IACtD,CAAC;CACD"}

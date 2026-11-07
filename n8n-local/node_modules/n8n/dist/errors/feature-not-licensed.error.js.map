@@ -1,0 +1,1 @@
+{"version":3,"file":"feature-not-licensed.error.js","sourceRoot":"","sources":["../../src/errors/feature-not-licensed.error.ts"],"names":[],"mappings":";;;AACA,wCAAwC;AAExC,6BAAqC,SAAQ,kBAAS;IACrD,YACC,OAAiE,EACjE,IAAI,GAAwC,EAAE;QAE9C,KAAK,CACJ,mCAAmC,OAAO,eAAe,OAAO,2DAA2D,EAC3H,EAAE,KAAK,EAAE,SAAS,EAAE,KAAK,EAAE,IAAI,CAAC,KAAK,EAAE,CACvC,CAAC;IACH,CAAC;CACD"}

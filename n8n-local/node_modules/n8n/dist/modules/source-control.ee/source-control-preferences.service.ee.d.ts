@@ -1,0 +1,48 @@
+import { Logger } from '@n8n/backend-common';
+import { SettingsRepository } from '@n8n/db';
+import type { ValidationError } from 'class-validator';
+import { Cipher, InstanceSettings } from 'n8n-core';
+import { InstanceWriteAccessService } from '@n8n/backend-services';
+import { SourceControlConfig } from './source-control.config';
+import type { KeyPairType } from './types/key-pair-type';
+import { SourceControlPreferences } from './types/source-control-preferences';
+export declare class SourceControlPreferencesService {
+    private readonly instanceSettings;
+    private readonly logger;
+    private readonly cipher;
+    private readonly settingsRepository;
+    private readonly sourceControlConfig;
+    private readonly instanceWriteAccess;
+    private _sourceControlPreferences;
+    readonly sshKeyName: string;
+    readonly sshFolder: string;
+    readonly gitFolder: string;
+    constructor(instanceSettings: InstanceSettings, logger: Logger, cipher: Cipher, settingsRepository: SettingsRepository, sourceControlConfig: SourceControlConfig, instanceWriteAccess: InstanceWriteAccessService);
+    get sourceControlPreferences(): SourceControlPreferences;
+    set sourceControlPreferences(preferences: Partial<SourceControlPreferences>);
+    isSourceControlSetup(): string | false;
+    private getKeyPairFromDatabase;
+    private getPrivateKeyFromDatabase;
+    private getPublicKeyFromDatabase;
+    private getHttpsCredentialsFromDatabase;
+    getDecryptedHttpsCredentials(): Promise<{
+        username: string;
+        password: string;
+    }>;
+    saveHttpsCredentials(username: string, password: string): Promise<void>;
+    deleteHttpsCredentials(): Promise<void>;
+    getPrivateKeyPath(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    deleteKeyPair(): Promise<void>;
+    resetKnownHosts(): Promise<void>;
+    generateAndSaveKeyPair(keyPairType?: KeyPairType): Promise<SourceControlPreferences>;
+    isBranchReadOnly(): boolean;
+    isSourceControlConnected(): boolean;
+    isSourceControlLicensedAndEnabled(): boolean;
+    getBranchName(): string;
+    getPreferences(): SourceControlPreferences;
+    validateSourceControlPreferences(preferences: Partial<SourceControlPreferences>, allowMissingProperties?: boolean): Promise<ValidationError[]>;
+    setPreferences(preferences: Partial<SourceControlPreferences>, saveToDb?: boolean, broadcastReload?: boolean): Promise<SourceControlPreferences>;
+    private broadcastReloadSourceControlConfiguration;
+    loadFromDbAndApplySourceControlPreferences(): Promise<SourceControlPreferences | undefined>;
+}

@@ -1,0 +1,92 @@
+import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
+import type { AuthorizationParams, OAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/provider.js';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
+import type { OAuthClientInformationFull, OAuthTokens, OAuthTokenRevocationRequest } from '@modelcontextprotocol/sdk/shared/auth.js';
+import type { McpClientConnectedPeriod, McpClientTypeFilter } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { EventService, UrlService } from '@n8n/backend-services';
+import { ProtectedResourceRegistry } from '@n8n/backend-services/auth';
+import { GlobalConfig } from '@n8n/config';
+import type { User } from '@n8n/db';
+import type { Response } from 'express';
+import { AuthService } from '../../auth/auth.service';
+import { UserManagementMailer } from '../../user-management/email';
+import { OAuthClient } from './database/entities/oauth-client.entity';
+import { OAuthClientRepository } from './database/repositories/oauth-client.repository';
+import { UserConsentRepository } from './database/repositories/oauth-user-consent.repository';
+import { OAuthAuthorizationCodeService } from './oauth-authorization-code.service';
+import { OAuthConsentService } from './oauth-consent.service';
+import { OAuthSessionService } from './oauth-session.service';
+import { OAuthGrantService } from './oauth-grant.service';
+import { OAuthTokenService } from './oauth-token.service';
+export type ConnectedOAuthClientOwner = {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+};
+export type ConnectedOAuthClient = Omit<OAuthClient, 'clientSecret' | 'clientSecretExpiresAt' | 'setUpdateDate'> & {
+    grantedAt: number;
+    scopes: string[];
+    owner?: ConnectedOAuthClientOwner;
+};
+export type ConnectedOAuthClientTotals = {
+    mine: number;
+    all?: number;
+};
+export type ListConnectedClientsOptions = {
+    ownership?: 'mine' | 'all';
+    skip?: number;
+    take?: number;
+    name?: string;
+    ownerId?: string;
+    type?: McpClientTypeFilter;
+    connected?: McpClientConnectedPeriod;
+};
+export declare class OAuthServerService implements OAuthServerProvider {
+    private readonly logger;
+    private readonly globalConfig;
+    private readonly oauthSessionService;
+    private readonly oauthClientRepository;
+    private readonly tokenService;
+    private readonly authorizationCodeService;
+    private readonly userConsentRepository;
+    private readonly resourceRegistry;
+    private readonly mailer;
+    private readonly urlService;
+    private readonly eventService;
+    private readonly authService;
+    private readonly oauthConsentService;
+    private readonly grantService;
+    constructor(logger: Logger, globalConfig: GlobalConfig, oauthSessionService: OAuthSessionService, oauthClientRepository: OAuthClientRepository, tokenService: OAuthTokenService, authorizationCodeService: OAuthAuthorizationCodeService, userConsentRepository: UserConsentRepository, resourceRegistry: ProtectedResourceRegistry, mailer: UserManagementMailer, urlService: UrlService, eventService: EventService, authService: AuthService, oauthConsentService: OAuthConsentService, grantService: OAuthGrantService);
+    get clientsStore(): OAuthRegisteredClientsStore;
+    isClientLimitReached(): Promise<boolean>;
+    getInstanceClientStats(): Promise<{
+        count: number;
+        limit: number;
+        atCapacity: boolean;
+    }>;
+    private enforceClientLimit;
+    private resolveVirtualClient;
+    private isTriggerResourceClientId;
+    private validateClientRegistration;
+    private isRedirectUriAllowed;
+    private isLoopbackHost;
+    authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void>;
+    challengeForAuthorizationCode(client: OAuthClientInformationFull, authorizationCode: string): Promise<string>;
+    exchangeAuthorizationCode(client: OAuthClientInformationFull, authorizationCode: string, _codeVerifier?: string, redirectUri?: string, resource?: URL): Promise<OAuthTokens>;
+    exchangeRefreshToken(client: OAuthClientInformationFull, refreshToken: string, _scopes?: string[], resource?: URL): Promise<OAuthTokens>;
+    verifyAccessToken(token: string): Promise<AuthInfo>;
+    private tryAutoApproveConsent;
+    private isResourceUnavailable;
+    private resolveAndValidateResourceIndicator;
+    revokeToken(client: OAuthClientInformationFull, request: OAuthTokenRevocationRequest): Promise<void>;
+    getAllClients(user: User, options?: ListConnectedClientsOptions): Promise<{
+        clients: ConnectedOAuthClient[];
+        count: number;
+        totals: ConnectedOAuthClientTotals;
+        owners?: ConnectedOAuthClientOwner[];
+    }>;
+    getInstanceScopeTools(): Promise<Record<string, string[]> | undefined>;
+    deleteClient(clientId: string, userId: string, revoker?: User): Promise<void>;
+}

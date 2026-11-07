@@ -1,0 +1,32 @@
+import type { AgentExecutionStatus, AgentMessageAuthor, AgentPersistedMessageDto } from '@n8n/api-types';
+import { type ExecutionDataStorageLocation, WithTimestampsAndStringId } from '@n8n/db';
+import { AgentExecutionThread } from './agent-execution-thread.entity';
+import type { TimelineEvent } from '../execution-recorder';
+import type { StoredAttachmentRef } from '../types/agent-chat-attachment';
+import type { AgentExecutionFailureSummary } from '../utils/execution-failure-summary';
+export type AgentExecutionHitlStatus = 'suspended' | 'resumed';
+export declare class AgentExecution extends WithTimestampsAndStringId {
+    inputMessageIds?: string[];
+    inputMessages?: AgentPersistedMessageDto[];
+    thread: AgentExecutionThread;
+    threadId: string;
+    status: AgentExecutionStatus;
+    acceptsSteering: boolean;
+    startedAt: Date | null;
+    stoppedAt: Date | null;
+    duration: number;
+    userMessage: string | null;
+    author: AgentMessageAuthor | null;
+    attachments: StoredAttachmentRef[] | null;
+    model: string | null;
+    promptTokens: number | null;
+    completionTokens: number | null;
+    totalTokens: number | null;
+    cost: number | null;
+    timeline: TimelineEvent[] | null;
+    error: string | null;
+    failureSummary: AgentExecutionFailureSummary | null;
+    hitlStatus: AgentExecutionHitlStatus | null;
+    source: string | null;
+    storedAt: ExecutionDataStorageLocation;
+}

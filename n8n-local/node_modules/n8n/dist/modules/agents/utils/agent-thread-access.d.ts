@@ -1,0 +1,12 @@
+import type { AgentExecutionThread } from '../entities/agent-execution-thread.entity';
+export type AgentSessionMode = 'new' | 'existing';
+export declare const PREVIEW_THREAD_SOURCES: readonly ['', 'chat', 'n8n_chat'];
+export declare const N8N_CHAT_PRODUCTION_SOURCE: 'n8n_chat_production';
+export declare const SYSTEM_CHAT_SOURCE: 'system_chat';
+export type AgentChatSurface = 'preview' | 'n8n-chat' | 'system';
+export declare function chatSurfaceMemoryResourceId(surface: AgentChatSurface, userId: string): string;
+export declare function threadBelongsTo(thread: AgentExecutionThread, projectId: string, agentId: string, userId: string): boolean;
+export declare function canContinueThreadInPreview(thread: AgentExecutionThread, userId: string, source?: string | null): boolean;
+export declare function canContinueThreadInN8nChat(thread: AgentExecutionThread, userId: string, source?: string | null): boolean;
+export declare function canContinueSystemThread(thread: AgentExecutionThread, userId: string, source?: string | null): boolean;
+export declare function canUseTopLevelDraftThread(thread: AgentExecutionThread, userId: string): boolean;

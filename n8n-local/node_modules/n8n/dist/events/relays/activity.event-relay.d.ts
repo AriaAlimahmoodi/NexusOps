@@ -1,0 +1,33 @@
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { GlobalConfig } from '@n8n/config';
+import { ActivityEventRepository, SharedCredentialsRepository, SharedWorkflowRepository } from '@n8n/db';
+import { EventRelay } from '../../events/relays/event-relay';
+import { PostHogClient } from '../../posthog';
+export declare class ActivityEventRelay extends EventRelay {
+    private readonly activityEventRepository;
+    private readonly sharedWorkflowRepository;
+    private readonly sharedCredentialsRepository;
+    private readonly globalConfig;
+    private readonly postHogClient;
+    private readonly logger;
+    constructor(eventService: EventService, activityEventRepository: ActivityEventRepository, sharedWorkflowRepository: SharedWorkflowRepository, sharedCredentialsRepository: SharedCredentialsRepository, globalConfig: GlobalConfig, postHogClient: PostHogClient, logger: Logger);
+    init(): void;
+    private overrideEnablesFlag;
+    private gateCheck?;
+    private shouldRecord;
+    private readGate;
+    private guarded;
+    private onWorkflowCreated;
+    private onWorkflowSaved;
+    private onPublishToggled;
+    private onWorkflowFlagged;
+    private onWorkflowDeleted;
+    private onWorkflowVersionUpdated;
+    private onCredentialCreated;
+    private onCredentialUpdated;
+    private onCredentialDeleted;
+    private record;
+    private resolveWorkflowProject;
+    private resolveCredentialProject;
+}

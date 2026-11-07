@@ -1,0 +1,31 @@
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { AuthStrategyRegistry } from '@n8n/backend-services/auth';
+import { ControllerRegistryMetadata } from '@n8n/decorators';
+import type { Router } from 'express';
+import { IdempotencyKeyService } from '../public-api/idempotency-key.service';
+import { PublicApiRateLimitService } from '../public-api/public-api-rate-limit.service';
+import { LastActiveAtService } from '../services/last-active-at.service';
+export declare class PublicApiControllerRegistry {
+    private readonly metadata;
+    private readonly authStrategyRegistry;
+    private readonly lastActiveAtService;
+    private readonly eventService;
+    private readonly rateLimitService;
+    private readonly idempotencyKeyService;
+    private readonly logger;
+    constructor(metadata: ControllerRegistryMetadata, authStrategyRegistry: AuthStrategyRegistry, lastActiveAtService: LastActiveAtService, eventService: EventService, rateLimitService: PublicApiRateLimitService, idempotencyKeyService: IdempotencyKeyService, logger: Logger);
+    activate(router: Router, apiVersion: string): void;
+    private activateController;
+    private storeIdempotencyResponse;
+    private releaseIdempotencyClaim;
+    private releaseIdempotencyClaimById;
+    private createAuthMiddleware;
+    private createDeprecationMiddleware;
+    private createApiKeyScopeMiddleware;
+    private createLicenseMiddleware;
+    private createUserQuotaMiddleware;
+    private createBodyMiddleware;
+    private createPathParamMiddleware;
+    private createAccessScopeMiddleware;
+}

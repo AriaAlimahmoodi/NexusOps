@@ -1,0 +1,42 @@
+import type { RunningJobSummary } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
+import { EventService } from '@n8n/backend-services';
+import { ExecutionsConfig } from '@n8n/config';
+import { ExecutionRepository, WorkflowRepository } from '@n8n/db';
+import { InstanceSettings } from 'n8n-core';
+import { ExecutionPersistence } from '../executions/execution-persistence';
+import { ManualExecutionService } from '../manual-execution.service';
+import { NodeTypes } from '../node-types';
+import type { Job, JobId, JobResult } from './scaling.types';
+import { WebhookResponseRelay } from './webhook-response-relay';
+export declare class JobProcessor {
+    private readonly logger;
+    private readonly executionRepository;
+    private readonly executionPersistence;
+    private readonly workflowRepository;
+    private readonly nodeTypes;
+    private readonly instanceSettings;
+    private readonly manualExecutionService;
+    private readonly executionsConfig;
+    private readonly eventService;
+    private readonly webhookResponseRelay;
+    private readonly runningJobs;
+    private readonly trackedJobs;
+    private readonly cancellationReasons;
+    private suspensionRequested;
+    constructor(logger: Logger, executionRepository: ExecutionRepository, executionPersistence: ExecutionPersistence, workflowRepository: WorkflowRepository, nodeTypes: NodeTypes, instanceSettings: InstanceSettings, manualExecutionService: ManualExecutionService, executionsConfig: ExecutionsConfig, eventService: EventService, webhookResponseRelay: WebhookResponseRelay);
+    processJob(job: Job): Promise<JobResult>;
+    private runJob;
+    private deriveJobFinishedProps;
+    stopJob(jobId: JobId): void;
+    private cancelJob;
+    getTrackedJobIds(): JobId[];
+    getJobsInPreflight(): Array<{
+        jobId: JobId;
+        executionId: string;
+    }>;
+    private isJobSuspendable;
+    suspendRunningJobs(): void;
+    getRunningJobsSummary(): RunningJobSummary[];
+    private invokeTool;
+}
