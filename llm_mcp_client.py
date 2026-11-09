@@ -15,6 +15,7 @@ from query_planner import (
     validate_mcp_result,
     validate_tool_arguments,
 )
+from llm_query_planner import build_analytics_query_plan
 
 
 MCP_URL = "http://127.0.0.1:8000/mcp"
@@ -1804,6 +1805,60 @@ def render_most_relevant_course(
     )
 
 
+def render_analytics_query_answer(data: dict, language: str = "fa") -> str | None:
+    """Render generic analytics responses without changing source values."""
+    if data.get("status") != "success":
+        return None
+    dataset_id = data.get("dataset_id", "unknown")
+    operation = data.get("operation")
+    result = data.get("result")
+    metadata = data.get("metadata") or {}
+
+    if operation == "count" and isinstance(result, dict):
+        count_value = result.get("count")
+        if language == "fa":
+            return f"تعداد رکوردهای منطبق در {dataset_id}: {count_value}"
+        return f"Matching records in {dataset_id}: {count_value}"
+
+    if operation == "select" and isinstance(result, list):
+        if not result:
+            return "هیچ رکورد منطبقی پیدا نشد." if language == "fa" else "No matching records were found."
+        lines = [
+            f"رکوردهای بازیابی‌شده از {dataset_id}:" if language == "fa" else f"Records retrieved from {dataset_id}:",
+            "",
+        ]
+        for index, record in enumerate(result, start=1):
+            lines.append(f"{index}.")
+            for field_name, value in record.items():
+                lines.append(f"   {field_name}: {value}")
+            lines.append("")
+        total = metadata.get("total_records")
+        if isinstance(total, int) and total > len(result):
+            lines.append(f"نمایش {len(result)} رکورد از {total} رکورد منطبق." if language == "fa" else f"Showing {len(result)} of {total} matching records.")
+        return "\n".join(lines).strip()
+
+    if operation == "aggregate" and isinstance(result, dict):
+        buckets = result.get("buckets")
+        if not isinstance(buckets, list):
+            return None
+        if not buckets:
+            return "نتیجه‌ای برای گروه‌بندی پیدا نشد." if language == "fa" else "No aggregation groups were found."
+        lines = [
+            f"نتایج تحلیل گروه‌بندی‌شده از {dataset_id}:" if language == "fa" else f"Grouped analytics results from {dataset_id}:",
+            "",
+        ]
+        for index, bucket in enumerate(buckets, start=1):
+            for field_name, value in bucket.get("group", {}).items():
+                lines.append(f"{index}. {field_name}: {value}")
+            for metric_name, value in bucket.get("metrics", {}).items():
+                lines.append(f"   {metric_name}: {value}")
+            if "document_count" in bucket:
+                lines.append(f"   document_count: {bucket['document_count']}")
+            lines.append("")
+        return "\n".join(lines).strip()
+    return None
+
+
 # ============================================================
 # DETERMINISTIC ANSWER DISPATCHER
 # ============================================================
@@ -1841,7 +1896,18 @@ def render_verified_answer(
         return None
 
     # ---------------------------------------------------------
-    # 1. Top skill gaps
+    # 1. Generic analytics query
+    # ---------------------------------------------------------
+
+    if tool_name == "analytics_query":
+        for data in data_objects:
+            answer = render_analytics_query_answer(data, language=language)
+            if answer is not None:
+                return answer
+        return None
+
+    # ---------------------------------------------------------
+    # 2. Top skill gaps
     # ---------------------------------------------------------
 
     if tool_name == "get_top_skill_gaps":
@@ -2489,6 +2555,21 @@ async def ask_nexusops(
             question,
             conversation_context=conversation_summary,
         )
+
+        # Exact graduate/course IDs remain on the document lookup path.
+        # Other data questions use the local model's validated analytics plan.
+        has_structured_id = any(
+            entity.get("type") in {"graduate_id", "course_id"}
+            for entity in plan.requested_entities
+        )
+        if plan.tool_name == "search_elasticsearch" and not has_structured_id:
+            analytics_plan = await build_analytics_query_plan(
+                client=client,
+                question=question,
+                conversation_context=conversation_summary,
+            )
+            if analytics_plan is not None:
+                plan = analytics_plan
 
         # Any deterministic MCP plan requires fresh source data.
         if plan.tool_name is not None:
