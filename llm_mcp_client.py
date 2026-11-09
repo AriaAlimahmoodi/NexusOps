@@ -2267,165 +2267,116 @@ def build_final_answer_evidence(
 # CONVERSATION HISTORY
 # ============================================================
 
-def make_base_messages():
+def make_base_messages(
+    history: list[list[dict[str, str]]] | None = None,
+    summary: str | None = None,
+):
+    active_history = conversation_history if history is None else history
+    active_summary = conversation_summary if summary is None else summary
 
-    messages = [
-        {
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if active_summary:
+        messages.append({
             "role": "system",
-            "content": SYSTEM_PROMPT,
-        }
-    ]
+            "content": (
+                "Memory summary from older conversation turns. "
+                "Use it only to resolve conversational references. "
+                "Do not treat it as a replacement for verified "
+                "dataset evidence:\n" + active_summary
+            ),
+        })
 
-    if conversation_summary:
-
-        messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Memory summary from older conversation turns. "
-                    "Use it only to resolve conversational references. "
-                    "Do not treat it as a replacement for verified "
-                    "dataset evidence:\n"
-                    + conversation_summary
-                ),
-            }
-        )
-
-    for turn in conversation_history:
+    for turn in active_history:
         messages.extend(turn)
-
     return messages
 
 
-async def summarize_old_turns(
+async def _generate_history_summary(
     client,
-    old_turns,
-):
-
-    global conversation_summary
-
-    old_messages = []
-
-    for turn in old_turns:
-        old_messages.extend(
-            turn
-        )
-
-    summary_input = [
-        {
-            "role": "system",
-            "content": SUMMARY_PROMPT,
-        }
+    old_turns: list[list[dict[str, str]]],
+    existing_summary: str,
+) -> str | None:
+    old_messages = [
+        message
+        for turn in old_turns
+        for message in turn
     ]
-
-    if conversation_summary:
-
-        summary_input.append(
-            {
-                "role": "system",
-                "content": (
-                    "Existing memory summary. Treat it as "
-                    "fallible memory, not authoritative evidence:\n"
-                    + conversation_summary
-                ),
-            }
-        )
-
-    summary_input.extend(
-        old_messages
-    )
+    summary_input = [{"role": "system", "content": SUMMARY_PROMPT}]
+    if existing_summary:
+        summary_input.append({
+            "role": "system",
+            "content": (
+                "Existing memory summary. Treat it as fallible memory, "
+                "not authoritative evidence:\n" + existing_summary
+            ),
+        })
+    summary_input.extend(old_messages)
 
     try:
-
-        response = (
-            await client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=summary_input,
-                temperature=0.0,
-            )
+        response = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=summary_input,
+            temperature=0.0,
         )
-
-        new_summary = (
-            response.choices[0]
-            .message
-            .content
-        )
-
+        new_summary = response.choices[0].message.content
         if not new_summary or not new_summary.strip():
+            logger.warning("Conversation summarization returned empty content")
+            return None
+        return new_summary.strip()
+    except Exception:
+        logger.exception("Conversation summarization failed")
+        return None
 
-            print(
-                "[Memory] Empty summary; "
-                "old turns will be preserved."
-            )
 
-            return False
-
-        conversation_summary = (
-            new_summary.strip()
-        )
-
-        print(
-            "[Memory] Older conversation summarized."
-        )
-
-        return True
-
-    except Exception as exc:
-
-        print(
-            "[Memory] Summarization failed; "
-            "old turns will be preserved. "
-            f"Details: {exc}"
-        )
-
+async def summarize_old_turns(client, old_turns):
+    """Backward-compatible wrapper for the default conversation."""
+    global conversation_summary
+    new_summary = await _generate_history_summary(
+        client,
+        old_turns,
+        conversation_summary,
+    )
+    if new_summary is None:
         return False
+    conversation_summary = new_summary
+    return True
 
 
 async def manage_history(
     client,
+    history: list[list[dict[str, str]]] | None = None,
+    summary: str | None = None,
 ):
+    """
+    Compact one conversation's history only after a successful summary.
+    With no explicit state, preserve the legacy default-conversation API.
+    """
+    global conversation_history, conversation_summary
 
-    global conversation_history
+    use_legacy_state = history is None
+    active_history = conversation_history if use_legacy_state else history
+    active_summary = conversation_summary if summary is None else summary
 
-    if (
-        len(conversation_history)
-        <= MAX_HISTORY_TURNS
-    ):
-        return
+    if len(active_history) <= MAX_HISTORY_TURNS:
+        return active_summary
 
-    number_to_summarize = (
-        len(conversation_history)
-        - KEEP_RECENT_TURNS
-    )
-
-    old_turns = (
-        conversation_history[
-            :number_to_summarize
-        ]
-    )
-
-    success = await summarize_old_turns(
+    number_to_summarize = len(active_history) - KEEP_RECENT_TURNS
+    old_turns = active_history[:number_to_summarize]
+    new_summary = await _generate_history_summary(
         client,
         old_turns,
+        active_summary,
     )
+    if new_summary is None:
+        logger.warning("Conversation history retained because summarization failed")
+        return active_summary
 
-    if not success:
-
-        print(
-            "[Memory] History was not trimmed "
-            "because summarization failed."
-        )
-
-        return
-
-    conversation_history = (
-        conversation_history[
-            number_to_summarize:
-        ]
-    )
+    del active_history[:number_to_summarize]
+    if use_legacy_state:
+        conversation_summary = new_summary
+    return new_summary
 
 
-# ============================================================
 # LANGUAGE
 # ============================================================
 
