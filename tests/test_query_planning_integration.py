@@ -305,3 +305,155 @@ def test_query_plan_resolution_preserves_exact_course_id_lookup():
         assert plan.tool_name == "search_elasticsearch"
         assert plan.requested_entities[0]["value"] == "C001"
     asyncio.run(run())
+
+
+def test_analytics_count_response_rejects_inconsistent_total_metadata():
+    plan = QueryPlan(tool_name="analytics_query", arguments={"dataset_id": "university_courses", "operation": "count"})
+    data = {
+        "status": "success", "dataset_id": "university_courses", "operation": "count",
+        "result": {"count": 20},
+        "metadata": {"returned_records": 1, "total_records": 19},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "COUNT metadata is inconsistent" in message
+
+
+def test_analytics_select_response_rejects_returned_record_mismatch():
+    plan = QueryPlan(tool_name="analytics_query", arguments={"dataset_id": "university_courses", "operation": "select"})
+    data = {
+        "status": "success", "dataset_id": "university_courses", "operation": "select",
+        "result": [{"course_id": "C001"}],
+        "metadata": {"returned_records": 2, "total_records": 2},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "SELECT metadata is inconsistent" in message
+
+
+def test_analytics_select_response_rejects_total_below_returned():
+    plan = QueryPlan(tool_name="analytics_query", arguments={"dataset_id": "university_courses", "operation": "select"})
+    data = {
+        "status": "success", "dataset_id": "university_courses", "operation": "select",
+        "result": [{"course_id": "C001"}, {"course_id": "C002"}],
+        "metadata": {"returned_records": 2, "total_records": 1},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "SELECT metadata is inconsistent" in message
+
+
+def test_analytics_aggregate_response_must_match_planned_group_and_metric_fields():
+    plan = QueryPlan(
+        tool_name="analytics_query",
+        arguments={
+            "dataset_id": "university_graduates",
+            "operation": "aggregate",
+            "group_by": ["major"],
+            "metrics": [{"function": "avg", "field": "career_relevance", "alias": "average_relevance"}],
+        },
+    )
+    data = {
+        "status": "success", "dataset_id": "university_graduates", "operation": "aggregate",
+        "result": {"buckets": [{
+            "group": {"study_level": "Bachelor"},
+            "metrics": {"average_relevance": 4.2},
+            "document_count": 8,
+        }]},
+        "metadata": {"returned_records": 1, "total_records": 30},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "missing planned group fields" in message
+
+
+def test_analytics_aggregate_response_rejects_missing_metric_alias():
+    plan = QueryPlan(
+        tool_name="analytics_query",
+        arguments={
+            "dataset_id": "university_graduates",
+            "operation": "aggregate",
+            "group_by": ["major"],
+            "metrics": [{"function": "avg", "field": "career_relevance", "alias": "average_relevance"}],
+        },
+    )
+    data = {
+        "status": "success", "dataset_id": "university_graduates", "operation": "aggregate",
+        "result": {"buckets": [{
+            "group": {"major": "Computer Engineering"},
+            "metrics": {"avg_career_relevance": 4.2},
+            "document_count": 8,
+        }]},
+        "metadata": {"returned_records": 1, "total_records": 30},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "missing planned metric aliases" in message
+
+
+def test_analytics_aggregate_response_rejects_invalid_numeric_metric():
+    plan = QueryPlan(
+        tool_name="analytics_query",
+        arguments={
+            "dataset_id": "university_graduates",
+            "operation": "aggregate",
+            "group_by": ["major"],
+            "metrics": [{"function": "avg", "field": "career_relevance", "alias": "average_relevance"}],
+        },
+    )
+    data = {
+        "status": "success", "dataset_id": "university_graduates", "operation": "aggregate",
+        "result": {"buckets": [{
+            "group": {"major": "Computer Engineering"},
+            "metrics": {"average_relevance": float("nan")},
+            "document_count": 8,
+        }]},
+        "metadata": {"returned_records": 1, "total_records": 30},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "invalid value for metric" in message
+
+
+def test_analytics_aggregate_response_rejects_invalid_document_count():
+    plan = QueryPlan(
+        tool_name="analytics_query",
+        arguments={
+            "dataset_id": "university_graduates",
+            "operation": "aggregate",
+            "group_by": ["major"],
+            "metrics": [{"function": "avg", "field": "career_relevance", "alias": "average_relevance"}],
+        },
+    )
+    data = {
+        "status": "success", "dataset_id": "university_graduates", "operation": "aggregate",
+        "result": {"buckets": [{
+            "group": {"major": "Computer Engineering"},
+            "metrics": {"average_relevance": 4.2},
+            "document_count": True,
+        }]},
+        "metadata": {"returned_records": 1, "total_records": 30},
+        "warnings": [], "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "invalid document_count" in message
+
+
+def test_analytics_response_rejects_malformed_warnings_and_execution_time():
+    plan = QueryPlan(tool_name="analytics_query", arguments={"dataset_id": "university_courses", "operation": "count"})
+    data = {
+        "status": "success", "dataset_id": "university_courses", "operation": "count",
+        "result": {"count": 20},
+        "metadata": {"returned_records": 1, "total_records": 20, "execution_time_ms": float("inf")},
+        "warnings": "not-a-list", "error": None,
+    }
+    valid, message = validate_mcp_result(plan, data)
+    assert not valid
+    assert "warnings must be a list" in message
