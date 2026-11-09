@@ -39,6 +39,12 @@ def test_local_plan_rejects_aggregate_without_grouping():
     payload = valid_aggregate_payload(); payload['group_by'] = []
     with pytest.raises(AnalyticsPlanningError, match='requires group_by and metrics'): _validate_plan(payload)
 
+def test_local_plan_accepts_engine_supported_cardinality_metric():
+    payload = valid_aggregate_payload()
+    payload['metrics'] = [{'function': 'cardinality', 'field': 'credits', 'alias': 'distinct_credit_values'}]
+    plan = _validate_plan(payload)
+    assert plan['metrics'][0]['function'] == 'cardinality'
+
 def test_local_plan_rejects_invalid_operator():
     payload = valid_aggregate_payload(); payload['filters']['conditions'][0]['operator'] = 'contains'
     with pytest.raises(AnalyticsPlanningError, match='Unsupported filter operator'): _validate_plan(payload)
