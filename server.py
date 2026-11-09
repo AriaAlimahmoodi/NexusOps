@@ -321,36 +321,56 @@ Do not rely only on exact keyword matching.
 
 DATASET RESOLUTION:
 
-For university course questions, use:
+For university course catalog questions, use:
 dataset_id="university_courses"
+Fields: course_id, course_name, course_category, credits, skills.
 
-Registered university course fields:
-- course_id
-- course_name
-- course_category
-- credits
-- skills
-
-For labor-market questions, use:
+For labor-market demand and job-skill questions, use:
 dataset_id="labor_market"
+Fields: market_record_id, job_title, job_field, skill, demand_score,
+frequency, experience_level, source_type.
 
-Registered labor-market fields:
-- market_record_id
-- job_title
-- job_field
-- skill
-- demand_score
-- frequency
-- experience_level
-- source_type
+For graduate employment, career relevance, and graduate-profile questions, use:
+dataset_id="university_graduates"
+Fields: graduate_id, major, graduation_year, study_level, job_title,
+job_field, employment_months, career_relevance, additional_training,
+additional_skills.
+
+For course-to-graduate relationship questions based on existing relationship
+records, use:
+dataset_id="course_graduate_records"
+Fields: course_id, course_name, graduate_id, job_field, related_skills.
+
+For university-market skill coverage and precomputed gap questions, use:
+dataset_id="skill_mapping"
+Fields: skill, course_id, course_name, course_coverage, market_demand,
+market_gap.
+
+IMPORTANT DATA BOUNDARY:
+Each analytics_query call operates on exactly one registered dataset/index.
+Registration does not create JOINs or cross-index relationships. Do not claim
+that a query combines documents from multiple indexes. Use the denormalized
+course_graduate_records or skill_mapping dataset only for the fields already
+stored in those records.
 
 Never invent a dataset_id.
 Never invent a field name.
 
 FILTER RULES:
 
-Use filter_conditions whenever the user's question restricts
-which records should be selected or analyzed.
+Use filter_conditions for a flat set of conditions.
+
+Use the recursive filters object when the user's question contains nested
+boolean logic, such as:
+A AND (B OR C)
+
+The recursive structure has:
+- logic: "and" or "or"
+- conditions: a list of field/operator/value objects
+- groups: a list of nested filter groups
+
+Do not send both filters and filter_conditions in the same request.
+Use filter_logic only with the legacy flat filter_conditions interface.
 
 Supported operators:
 - eq
@@ -477,8 +497,8 @@ Use the tool default.
 
 MULTI-CONDITION REQUESTS:
 
-Multiple filter conditions must be represented inside
-filter_conditions.
+Flat filter conditions must be represented inside filter_conditions.
+Nested AND/OR expressions must use the recursive filters structure.
 
 Do not create multiple unnecessary analytics_query calls when
 one structured request can represent the complete question.
