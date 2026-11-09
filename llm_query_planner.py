@@ -398,7 +398,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             dataset_id = "university_graduates"
         elif has_any("درس", "دروس", "course", "courses"):
             dataset_id = "university_courses"
-        elif has_any("بازار کار", "آگهی شغلی", "job market", "demand_score", "frequency"):
+        elif has_any("بازار کار", "آگهی شغلی", "job market", "demand_score", "demand score", "frequency"):
             dataset_id = "labor_market"
         else:
             dataset_id = None
