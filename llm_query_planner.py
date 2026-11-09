@@ -329,6 +329,8 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
         }, "Deterministic fallback: graduate count.")
 
     if has_any("درس", "دروس", "course", "courses"):
+        count_requested = has_any("تعداد", "چه تعداد", "چند", "count", "how many", "number of")
+        list_requested = has_any("نشان بده", "نمایش بده", "فهرست", "لیست", "تمامی", "همه", "تمام", "show", "list", "all")
         conditions = []
         credit_match = re.search(
             r"(حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(\d+(?:\.\d+)?)",
@@ -358,13 +360,21 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "operator": "in" if len(categories) > 1 else "eq",
                 "value": [value.title() for value in categories] if len(categories) > 1 else categories[0].title(),
             })
-        if conditions and has_any("نشان بده", "نمایش بده", "فهرست", "لیست", "تمامی", "همه", "تمام", "show", "list", "all"):
+        if count_requested:
+            return make_plan({
+                "dataset_id": "university_courses", "operation": "count",
+                "group_by": [], "metrics": [],
+                "filters": {"logic": "and", "conditions": conditions, "groups": []} if conditions else None,
+                "sort": [], "limit": 10, "options": {},
+            }, "Deterministic fallback: university course count.")
+        if list_requested and (conditions or has_any("تمامی", "همه", "تمام", "all")):
             return make_plan({
                 "dataset_id": "university_courses", "operation": "select",
                 "group_by": [], "metrics": [],
-                "filters": {"logic": "and", "conditions": conditions, "groups": []},
-                "sort": [], "limit": 100, "options": {},
-            }, "Deterministic fallback: filtered university course selection.")
+                "filters": {"logic": "and", "conditions": conditions, "groups": []} if conditions else None,
+                "sort": [], "limit": 1000 if has_any("تمامی", "همه", "تمام", "all") else 100,
+                "options": {},
+            }, "Deterministic fallback: university course selection.")
     return None
 
 
