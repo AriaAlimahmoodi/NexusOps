@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import asyncio
 import json
 import pytest
 from llm_query_planner import AnalyticsPlanningError, _extract_json_object, _validate_plan, build_analytics_query_plan
@@ -45,8 +46,7 @@ def test_local_plan_rejects_invalid_operator():
 def test_json_extractor_accepts_fenced_response():
     assert _extract_json_object('```json\n{"operation":"count"}\n```') == {'operation': 'count'}
 
-@pytest.mark.asyncio
-async def test_local_planner_returns_registry_validated_plan():
+def test_local_planner_returns_registry_validated_plan():
     payload = {'dataset_id': 'labor_market', 'operation': 'aggregate', 'group_by': ['skill'],
                'metrics': [{'function': 'avg', 'field': 'demand_score', 'alias': 'average_demand'},
                            {'function': 'sum', 'field': 'frequency', 'alias': 'total_frequency'}],
@@ -57,9 +57,12 @@ async def test_local_planner_returns_registry_validated_plan():
             assert kwargs['model'] == 'qwen3:4b' and kwargs['temperature'] == 0.0
             return completion
     client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
-    plan = await build_analytics_query_plan(client, 'Top 7 skills by market demand')
-    assert plan is not None and plan.tool_name == 'analytics_query'
-    assert plan.arguments['dataset_id'] == 'labor_market' and plan.arguments['limit'] == 7
+    async def run():
+        plan = await build_analytics_query_plan(client, 'Top 7 skills by market demand')
+        assert plan is not None and plan.tool_name == 'analytics_query'
+        assert plan.arguments['dataset_id'] == 'labor_market' and plan.arguments['limit'] == 7
+
+    asyncio.run(run())
 
 def test_skill_gap_tool_is_reserved_for_ranked_gap_requests():
     assert build_query_plan('بیشترین شکاف مهارتی').tool_name == 'get_top_skill_gaps'
