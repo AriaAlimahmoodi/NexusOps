@@ -951,7 +951,6 @@ def build_query_plan(
 
             arguments={
                 "query": query,
-                "entities": entities,
             },
 
             requested_entities=entities,
