@@ -424,9 +424,15 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "credits": ("واحد", "اعتبار", "credit", "credits"),
                 "experience_level": ("سطح تجربه", "experience level"),
             }
+            grouping_intent = has_any(
+                "به تفکیک", "برای هر", "بر اساس", "گروه بندی",
+                "گروه‌بندی", "group by", "per ", "مقایسه", "compare",
+                "comparison", "رتبه بندی", "رتبه‌بندی", "rank", "ranking",
+            )
             requested_dimensions = [
                 field for field, aliases in field_aliases.items()
-                if field in profile.get("fields", {})
+                if grouping_intent
+                and field in profile.get("fields", {})
                 and "group_by" in profile["fields"][field].get("roles", [])
                 and any(alias in query for alias in aliases)
             ]
