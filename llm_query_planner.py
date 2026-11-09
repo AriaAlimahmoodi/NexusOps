@@ -62,7 +62,16 @@ def _normalize_filter_tree(node: Any) -> Any:
     if not isinstance(node, dict):
         raise AnalyticsPlanningError("filters must be an object.")
     logic = node.get("logic", "and")
-    conditions, groups = node.get("conditions", []), node.get("groups", [])
+    if logic is None:
+        logic = "and"
+    conditions = node.get("conditions", [])
+    groups = node.get("groups", [])
+    # Ollama models sometimes serialize optional arrays as JSON null.
+    # Normalize null only; reject all other malformed container types.
+    if conditions is None:
+        conditions = []
+    if groups is None:
+        groups = []
     if logic not in {"and", "or"}:
         raise AnalyticsPlanningError("Filter logic must be 'and' or 'or'.")
     if not isinstance(conditions, list) or not isinstance(groups, list):
@@ -108,8 +117,26 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
     except (ValueError, KeyError):
         raise AnalyticsPlanningError(f"Dataset '{dataset_id}' is not registered.") from None
     fields = profile.get("fields", {})
-    group_by, metrics = payload.get("group_by", []), payload.get("metrics", [])
-    sort, limit, options = payload.get("sort", []), payload.get("limit", 10), payload.get("options", {})
+    group_by = payload.get("group_by", [])
+    metrics = payload.get("metrics", [])
+    sort = payload.get("sort", [])
+    limit = payload.get("limit", 10)
+    options = payload.get("options", {})
+
+    # Optional JSON fields are occasionally emitted as null by local models.
+    # Treat null as the documented empty/default value, without weakening
+    # validation for strings, numbers, or other invalid types.
+    if group_by is None:
+        group_by = []
+    if metrics is None:
+        metrics = []
+    if sort is None:
+        sort = []
+    if limit is None:
+        limit = 10
+    if options is None:
+        options = {}
+
     if not isinstance(group_by, list) or not isinstance(metrics, list):
         raise AnalyticsPlanningError("group_by and metrics must be lists.")
     if not isinstance(sort, list):
@@ -218,6 +245,11 @@ REGISTERED DATASETS AND FIELD CONTRACTS:
 
 Return exactly one JSON object, no prose or Markdown. Required keys:
 dataset_id, operation, group_by, metrics, filters, sort, limit, options.
+IMPORTANT JSON SHAPE RULES:
+- group_by, metrics, and sort MUST always be JSON arrays. Use [] when empty; NEVER use null.
+- options MUST always be a JSON object. Use {} when empty; NEVER use null.
+- filters MUST be null when no filtering is needed, otherwise a non-empty filter-group object.
+- Never omit a required key and never replace an array/object with a scalar.
 Use only registered dataset IDs and fields above.
 Allowed operations: select, count, aggregate.
 Allowed metrics: count_documents, value_count, sum, avg, min, max, cardinality.
