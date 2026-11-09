@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import asyncio
 import json
+import logging
+import sys
+import time
+import uuid
+from pathlib import Path
 from typing import Any
 from tools.market_skills import get_market_skill_details
 from typing import Any, Literal
@@ -86,6 +90,8 @@ class AnalyticsFilterGroupInput(BaseModel):
 class AnalyticsSortInput(BaseModel):
     field: str
     order: Literal["asc", "desc"] = "desc"
+logger = logging.getLogger("nexusops.mcp")
+
 server = MCPServer(
     name="NexusOps MCP Server",
     instructions="MCP Server for NexusOps University Analytics",
@@ -107,8 +113,23 @@ AnalyticsFilterGroupInput.model_rebuild()
     ),
 )
 async def market_skill_details_tool(skills: list[str]) -> str:
-    result = get_market_skill_details(skills)
-    return json.dumps(result, ensure_ascii=False, indent=2)
+    request_id = uuid.uuid4().hex
+    try:
+        result = await asyncio.to_thread(get_market_skill_details, skills)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception:
+        logger.exception(
+            "MCP tool failed",
+            extra={"request_id": request_id, "tool_name": "get_market_skill_details"},
+        )
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "code": "TOOL_EXECUTION_ERROR",
+                "message": "The requested market-skill analysis could not be completed.",
+                "request_id": request_id,
+            },
+        }, ensure_ascii=False)
 
 @server.tool(
     name="get_top_market_skills",
@@ -128,13 +149,23 @@ async def market_skill_details_tool(skills: list[str]) -> str:
     ),
 )
 async def top_market_skills_tool(limit: int = 10) -> str:
-    result = get_top_market_skills(limit)
-
-    return json.dumps(
-        result,
-        ensure_ascii=False,
-        indent=2,
-    )
+    request_id = uuid.uuid4().hex
+    try:
+        result = await asyncio.to_thread(get_top_market_skills, limit)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception:
+        logger.exception(
+            "MCP tool failed",
+            extra={"request_id": request_id, "tool_name": "get_top_market_skills"},
+        )
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "code": "TOOL_EXECUTION_ERROR",
+                "message": "The market-skill ranking could not be completed.",
+                "request_id": request_id,
+            },
+        }, ensure_ascii=False)
 
 
 @server.tool(
@@ -156,13 +187,23 @@ async def top_market_skills_tool(limit: int = 10) -> str:
     ),
 )
 async def top_skill_gaps_tool(limit: int = 10) -> str:
-    result = get_top_skill_gaps(limit)
-
-    return json.dumps(
-        result,
-        ensure_ascii=False,
-        indent=2,
-    )
+    request_id = uuid.uuid4().hex
+    try:
+        result = await asyncio.to_thread(get_top_skill_gaps, limit)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception:
+        logger.exception(
+            "MCP tool failed",
+            extra={"request_id": request_id, "tool_name": "get_top_skill_gaps"},
+        )
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "code": "TOOL_EXECUTION_ERROR",
+                "message": "The skill-gap analysis could not be completed.",
+                "request_id": request_id,
+            },
+        }, ensure_ascii=False)
 
 
 @server.tool(
@@ -180,7 +221,22 @@ async def top_skill_gaps_tool(limit: int = 10) -> str:
     ),
 )
 async def search_tool(query: str) -> str:
-    return search_elasticsearch(query)
+    request_id = uuid.uuid4().hex
+    try:
+        return await asyncio.to_thread(search_elasticsearch, query)
+    except Exception:
+        logger.exception(
+            "MCP tool failed",
+            extra={"request_id": request_id, "tool_name": "search_elasticsearch"},
+        )
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "code": "TOOL_EXECUTION_ERROR",
+                "message": "The Elasticsearch search could not be completed.",
+                "request_id": request_id,
+            },
+        }, ensure_ascii=False)
 
 
 
@@ -563,6 +619,120 @@ user's request.
 """
 )
 )
+def build_analytics_error_response(
+    *,
+    dataset_id: str,
+    operation: str,
+    code: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+    request_id: str,
+    execution_time_ms: float,
+) -> dict[str, Any]:
+    """Build the canonical analytics response envelope for every failure."""
+    return {
+        "status": "error",
+        "dataset_id": dataset_id,
+        "operation": operation,
+        "result": None,
+        "metadata": {
+            "execution_time_ms": round(execution_time_ms, 3),
+            "request_id": request_id,
+        },
+        "warnings": [],
+        "error": {
+            "code": code,
+            "message": message,
+            "details": details or {},
+        },
+    }
+
+
+@server.tool(
+    name="analytics_query",
+    description=(
+    """
+GENERIC ANALYTICS TOOL FOR UNIVERSITY AND LABOR MARKET DATA.
+
+PRIMARY PURPOSE:
+This is the PRIMARY analytical tool for answering user questions that
+require structured analysis of registered datasets.
+
+The tool supports three operations:
+
+1. select
+   Use when the user wants to find, show, list, or retrieve records
+   that satisfy one or more conditions.
+
+2. count
+   Use when the user wants only the total number of records that
+   satisfy one or more conditions.
+
+3. aggregate
+   Use when the user requests grouped analysis, calculated metrics,
+   comparisons, rankings, or other aggregation-based results.
+
+MANDATORY TOOL SELECTION:
+When a user asks a question that can be answered by analyzing data
+in a registered dataset, use analytics_query.
+
+This includes questions involving:
+- finding records
+- filtering records
+- counting records
+- calculating totals
+- calculating averages
+- calculating minimum or maximum values
+- comparing values
+- grouping records
+- ranking results
+- sorting results
+- selecting records according to conditions
+- combining filters with calculations or grouping
+
+Do not answer data questions from memory.
+Do not fabricate records or analytical results.
+
+OPERATION SELECTION:
+SELECT retrieves matching records; COUNT returns only their number;
+AGGREGATE computes grouped metrics and comparisons. Filtering alone
+does not imply aggregation.
+
+DATASET RESOLUTION:
+Use only registered datasets and their registered fields:
+- university_courses: course_id, course_name, course_category, credits, skills
+- labor_market: market_record_id, job_title, job_field, skill, demand_score, frequency, experience_level, source_type
+- university_graduates: graduate_id, major, graduation_year, study_level, job_title, job_field, employment_months, career_relevance, additional_training, additional_skills
+- course_graduate_records: course_id, course_name, graduate_id, job_field, related_skills
+- skill_mapping: skill, course_id, course_name, course_coverage, market_demand, market_gap
+
+Each call operates on exactly one dataset. Registration does not create joins.
+
+FILTERS:
+Use flat filter_conditions for simple conditions and recursive filters for
+nested Boolean expressions. Never send both interfaces at once.
+Supported operators: eq, neq, in, not_in, gt, gte, lt, lte, between,
+exists, not_exists. Use AND unless the user explicitly requests OR.
+
+GROUPING AND METRICS:
+Use group_by only when grouping is requested. Supported metrics:
+count_documents, value_count, sum, avg, min, max, cardinality.
+Use meaningful unique aliases. Multiple metrics belong in one request.
+
+SORT AND LIMIT:
+For aggregate sorting, use metric aliases. Preserve requested direction.
+Use the user's explicit result limit; otherwise use the default.
+
+ERROR SEMANTICS:
+An execution error is not an empty result. Never report zero matches
+unless execution completed successfully and returned an empty result.
+
+LANGUAGE:
+Understand natural-language requests in the user's language. Use
+registered English field names in tool arguments and answer naturally.
+"""
+    )
+)
 async def analytics_query_tool(
     dataset_id: str,
     operation: Literal["select", "count", "aggregate"],
@@ -575,75 +745,112 @@ async def analytics_query_tool(
     limit: int = 10,
     options: dict[str, Any] | None = None,
 ) -> str:
-
-    normalized_filters = build_internal_filters(
-        filter_conditions=filter_conditions,
-        filter_logic=filter_logic,
-        filters=filters,
-    )
-
-    arguments = {
-        "dataset_id": dataset_id,
-        "operation": operation,
-        "group_by": group_by or [],
-        "metrics": [
-            metric.model_dump(exclude_none=True)
-            for metric in (metrics or [])
-        ],
-        "filters": normalized_filters,
-        "sort": [
-            item.model_dump(exclude_none=True)
-            for item in (sort or [])
-        ],
-        "limit": limit,
-        "options": options or {},
-    }
+    request_id = uuid.uuid4().hex
+    started_at = time.perf_counter()
 
     try:
-        result = run_analytics_query(arguments)
-
-        return json.dumps(
-            result,
-            ensure_ascii=False,
-            indent=2,
+        normalized_filters = build_internal_filters(
+            filter_conditions=filter_conditions,
+            filter_logic=filter_logic,
+            filters=filters,
         )
+
+        arguments = {
+            "dataset_id": dataset_id,
+            "operation": operation,
+            "group_by": group_by or [],
+            "metrics": [
+                metric.model_dump(exclude_none=True)
+                for metric in (metrics or [])
+            ],
+            "filters": normalized_filters,
+            "sort": [
+                item.model_dump(exclude_none=True)
+                for item in (sort or [])
+            ],
+            "limit": limit,
+            "options": options or {},
+        }
+
+        logger.info(
+            "Analytics request accepted",
+            extra={
+                "request_id": request_id,
+                "dataset_id": dataset_id,
+                "operation": operation,
+            },
+        )
+        result = await asyncio.to_thread(run_analytics_query, arguments)
+        if isinstance(result, dict):
+            metadata = result.setdefault("metadata", {})
+            if isinstance(metadata, dict):
+                metadata["request_id"] = request_id
+
+        logger.info(
+            "Analytics request completed",
+            extra={
+                "request_id": request_id,
+                "dataset_id": dataset_id,
+                "operation": operation,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
+        )
+        return json.dumps(result, ensure_ascii=False, indent=2)
 
     except AnalyticsServiceError as exc:
-        message = str(exc)
-
-        if "Unknown dataset" in message:
-            error_result = {
-                "status": "error",
-                "error": {
-                    "code": "UNKNOWN_DATASET",
-                    "message": message,
-                },
-            }
-
-        elif "Field" in message and "is not registered" in message:
-            error_result = {
-                "status": "error",
-                "error": {
-                    "code": "INVALID_FIELD",
-                    "message": message,
-                    "dataset_id": dataset_id,
-                },
-            }
-
-        else:
-            error_result = {
-                "status": "error",
-                "error": {
-                    "code": "ANALYTICS_SERVICE_ERROR",
-                    "message": message,
-                },
-            }
-
-        return json.dumps(
-            error_result,
-            ensure_ascii=False,
-            indent=2,
+        logger.warning(
+            "Analytics request rejected",
+            extra={
+                "request_id": request_id,
+                "dataset_id": dataset_id,
+                "operation": operation,
+                "error_code": exc.code,
+            },
         )
+        error = build_analytics_error_response(
+            dataset_id=dataset_id,
+            operation=operation,
+            code=exc.code,
+            message=str(exc),
+            details=exc.details,
+            request_id=request_id,
+            execution_time_ms=(time.perf_counter() - started_at) * 1000,
+        )
+        return json.dumps(error, ensure_ascii=False, indent=2)
+
+    except ValueError as exc:
+        logger.info(
+            "Analytics request validation failed",
+            extra={"request_id": request_id, "dataset_id": dataset_id},
+        )
+        error = build_analytics_error_response(
+            dataset_id=dataset_id,
+            operation=operation,
+            code="INVALID_REQUEST",
+            message=str(exc),
+            request_id=request_id,
+            execution_time_ms=(time.perf_counter() - started_at) * 1000,
+        )
+        return json.dumps(error, ensure_ascii=False, indent=2)
+
+    except Exception:
+        logger.exception(
+            "Analytics request failed unexpectedly",
+            extra={
+                "request_id": request_id,
+                "dataset_id": dataset_id,
+                "operation": operation,
+            },
+        )
+        error = build_analytics_error_response(
+            dataset_id=dataset_id,
+            operation=operation,
+            code="INTERNAL_ERROR",
+            message="The analytics operation could not be completed.",
+            request_id=request_id,
+            execution_time_ms=(time.perf_counter() - started_at) * 1000,
+        )
+        return json.dumps(error, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
