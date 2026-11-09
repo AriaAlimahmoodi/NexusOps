@@ -162,7 +162,7 @@ def run_analytics_query(arguments: dict[str, Any]) -> dict[str, Any]:
     """
     try:
         request = build_analytics_request(arguments)
-    except (KeyError, TypeError, ValueError) as exc:
+    except Exception as exc:
         return _analytics_error(
             "INVALID_ANALYTICS_REQUEST",
             str(exc),
