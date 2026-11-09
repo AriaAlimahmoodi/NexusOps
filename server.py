@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import sys
 import time
 import uuid
@@ -91,6 +92,19 @@ class AnalyticsSortInput(BaseModel):
     field: str
     order: Literal["asc", "desc"] = "desc"
 logger = logging.getLogger("nexusops.mcp")
+MCP_MAX_CONCURRENT_SYNC_TOOLS = int(
+    os.getenv("NEXUSOPS_MCP_MAX_CONCURRENT_SYNC_TOOLS", "8")
+)
+if MCP_MAX_CONCURRENT_SYNC_TOOLS < 1:
+    raise ValueError("NEXUSOPS_MCP_MAX_CONCURRENT_SYNC_TOOLS must be positive.")
+_SYNC_TOOL_SEMAPHORE = asyncio.Semaphore(MCP_MAX_CONCURRENT_SYNC_TOOLS)
+
+
+async def run_sync_function(tool_name: str, function, *args):
+    """Bound blocking data work and move it off the MCP event loop."""
+    async with _SYNC_TOOL_SEMAPHORE:
+        return await asyncio.to_thread(function, *args)
+
 
 async def run_sync_tool(tool_name: str, function, *args) -> str:
     """Run a blocking data tool without blocking the MCP event loop."""
@@ -101,7 +115,7 @@ async def run_sync_tool(tool_name: str, function, *args) -> str:
         extra={"request_id": request_id, "tool_name": tool_name},
     )
     try:
-        result = await asyncio.to_thread(function, *args)
+        result = await run_sync_function(tool_name, function, *args)
         logger.info(
             "MCP tool completed",
             extra={
@@ -410,7 +424,7 @@ async def analytics_query_tool(
                 "operation": operation,
             },
         )
-        result = await asyncio.to_thread(run_analytics_query, arguments)
+        result = await run_sync_function("analytics_query", run_analytics_query, arguments)
         if isinstance(result, dict):
             metadata = result.setdefault("metadata", {})
             if isinstance(metadata, dict):
@@ -484,6 +498,10 @@ async def analytics_query_tool(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=os.getenv("NEXUSOPS_LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     server.run(
         transport="streamable-http",
         host="127.0.0.1",
