@@ -214,3 +214,62 @@ def test_local_planner_uses_deterministic_fallback_when_model_fails():
         assert plan.arguments["operation"] == "count"
         assert plan.arguments["filters"]["conditions"][0]["value"] == 1402
     asyncio.run(run())
+
+
+def test_course_list_without_filters_uses_select_all_with_explicit_full_limit():
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    plan = build_deterministic_analytics_query_plan("تمامی درس‌های دانشگاه را نمایش بده.")
+    assert plan is not None
+    assert plan.arguments["dataset_id"] == "university_courses"
+    assert plan.arguments["operation"] == "select"
+    assert plan.arguments["filters"] is None
+    assert plan.arguments["limit"] == 1000
+
+
+def test_course_count_uses_count_operation():
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    plan = build_deterministic_analytics_query_plan("تعداد درس‌های دانشگاه چقدر است؟")
+    assert plan is not None
+    assert plan.arguments["operation"] == "count"
+    assert plan.arguments["dataset_id"] == "university_courses"
+
+
+def test_query_plan_resolution_prefers_deterministic_analytics_before_ollama():
+    from llm_mcp_client import resolve_query_plan
+    class NeverCalledClient:
+        @property
+        def chat(self):
+            raise AssertionError("Ollama should not be called for a deterministic intent")
+    async def run():
+        plan = await resolve_query_plan(
+            NeverCalledClient(),
+            "تمام درس‌هایی که حداقل ۳ واحد دارند را نشان بده.",
+        )
+        assert plan.tool_name == "analytics_query"
+        assert plan.arguments["dataset_id"] == "university_courses"
+        assert plan.arguments["filters"]["conditions"][0]["value"] == 3
+    asyncio.run(run())
+
+
+def test_query_plan_resolution_preserves_exact_graduate_id_lookup():
+    from llm_mcp_client import resolve_query_plan
+    class NeverCalledClient:
+        @property
+        def chat(self):
+            raise AssertionError("Ollama must not replace exact-ID lookup")
+    async def run():
+        plan = await resolve_query_plan(
+            NeverCalledClient(),
+            "اطلاعات فارغ‌التحصیل G0002 را نشان بده.",
+        )
+        assert plan.tool_name == "search_elasticsearch"
+        assert plan.arguments["query"] == "اطلاعات فارغ‌التحصیل G0002 را نشان بده."
+    asyncio.run(run())
+
+
+def test_analytics_intent_guard_detects_dataset_analysis_requests_only():
+    from llm_mcp_client import is_analytics_data_request
+    assert is_analytics_data_request("میانگین ارتباط شغلی فارغ‌التحصیلان چیست؟")
+    assert is_analytics_data_request("تعداد درس‌های دانشگاه چقدر است؟")
+    assert not is_analytics_data_request("سلام، حالت چطور است؟")
+    assert not is_analytics_data_request("اطلاعات فارغ‌التحصیل G0002 را نشان بده.")
