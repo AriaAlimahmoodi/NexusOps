@@ -368,9 +368,9 @@ def test_real_elasticsearch_adapter_translates_nested_aggregate_plan_and_normali
     }
     assert call["aggs"]["group_0"]["terms"]["field"] == "major"
     assert call["aggs"]["group_0"]["terms"]["size"] == 25
-    assert call["aggs"]["group_0"]["terms"]["order"] == {
-        "avg_relevance": "desc",
-    }
+    assert call["aggs"]["group_0"]["terms"]["order"] == [
+        {"avg_relevance": "desc"},
+    ]
     assert call["aggs"]["group_0"]["aggs"]["avg_relevance"] == {
         "avg": {"field": "career_relevance"},
     }
