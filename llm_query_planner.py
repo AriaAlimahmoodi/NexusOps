@@ -456,6 +456,16 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 and "metric" in profile["fields"][field].get("roles", [])
                 and any(alias in query for alias in aliases)
             ]
+            def _field_position(field_name: str) -> int:
+                positions = [
+                    query.find(alias)
+                    for alias in field_aliases.get(field_name, ())
+                    if query.find(alias) >= 0
+                ]
+                return min(positions) if positions else len(query)
+
+            metric_fields.sort(key=_field_position)
+
             if not metric_fields and has_any("میانگین", "متوسط", "average", "mean", "مجموع", "جمع", "sum"):
                 defaults = profile.get("default_metrics", {})
                 metric_fields = [
@@ -502,6 +512,8 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                             break
                     if any(item["field"] == field for item in conditions):
                         break
+
+            conditions.sort(key=lambda condition: _field_position(condition["field"]))
 
             if aggregate_requested and group_by:
                 metrics = []
