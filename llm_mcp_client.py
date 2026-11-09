@@ -3105,16 +3105,21 @@ async def ask_nexusops(
 # MEMORY RESET
 # ============================================================
 
-def reset_memory():
-
-    global conversation_history
+def reset_memory(conversation_id: str = "default"):
+    """Clear history, summary, and verified evidence for one conversation."""
     global conversation_summary
 
-    conversation_history = []
-    conversation_summary = ""
+    state = get_conversation_state(conversation_id)
+    state.history.clear()
+    state.summary = ""
+    state.memory_manager.clear()
 
-    print(
-        "[Memory] Conversation history cleared."
+    if conversation_id == "default":
+        conversation_summary = ""
+
+    logger.info(
+        "Conversation memory reset",
+        extra={"conversation_id": conversation_id},
     )
 
 
