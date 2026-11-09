@@ -182,7 +182,7 @@ def test_deterministic_course_fallback_preserves_credit_and_category_filters():
     plan = build_deterministic_analytics_query_plan("درس‌های Core یا Specialized با حداقل ۳ واحد را نمایش بده.")
     conditions = plan.arguments["filters"]["conditions"]
     assert conditions[0] == {"field": "credits", "operator": "gte", "value": 3}
-    assert conditions[1] == {"field": "course_category", "operator": "in", "value": ["core", "specialized"]}
+    assert conditions[1] == {"field": "course_category", "operator": "in", "value": ["Core", "Specialized"]}
 
 
 def test_deterministic_graduate_count_fallback_extracts_persian_year():
