@@ -273,3 +273,35 @@ def test_analytics_intent_guard_detects_dataset_analysis_requests_only():
     assert is_analytics_data_request("تعداد درس‌های دانشگاه چقدر است؟")
     assert not is_analytics_data_request("سلام، حالت چطور است؟")
     assert not is_analytics_data_request("اطلاعات فارغ‌التحصیل G0002 را نشان بده.")
+
+
+@pytest.mark.parametrize("question,expected_tool", [
+    ("بیشترین شکاف مهارتی را نشان بده.", "get_top_skill_gaps"),
+    ("Top 10 skills by market demand", "get_top_market_skills"),
+])
+def test_query_plan_resolution_preserves_specialized_market_tools(question, expected_tool):
+    from llm_mcp_client import resolve_query_plan
+    class NeverCalledClient:
+        @property
+        def chat(self):
+            raise AssertionError("Specialized market tools must retain routing priority")
+    async def run():
+        plan = await resolve_query_plan(NeverCalledClient(), question)
+        assert plan.tool_name == expected_tool
+    asyncio.run(run())
+
+
+def test_query_plan_resolution_preserves_exact_course_id_lookup():
+    from llm_mcp_client import resolve_query_plan
+    class NeverCalledClient:
+        @property
+        def chat(self):
+            raise AssertionError("Ollama must not replace exact course-ID lookup")
+    async def run():
+        plan = await resolve_query_plan(
+            NeverCalledClient(),
+            "اطلاعات درس C001 را نشان بده.",
+        )
+        assert plan.tool_name == "search_elasticsearch"
+        assert plan.requested_entities[0]["value"] == "C001"
+    asyncio.run(run())
