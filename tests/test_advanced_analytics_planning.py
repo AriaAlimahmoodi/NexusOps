@@ -190,3 +190,16 @@ def test_query_resolution_does_not_invoke_local_planner_for_exact_ids_or_special
     assert course.tool_name == "search_elasticsearch"
     assert gap.tool_name == "get_top_skill_gaps"
     assert demand.tool_name == "get_top_market_skills"
+
+
+def test_multi_metric_comparison_sorts_by_explicitly_ranked_metric():
+    plan = build_deterministic_analytics_query_plan(
+        "Compare average market demand and market gap by skill, rank by highest market gap"
+    )
+    assert plan is not None
+    assert [metric["field"] for metric in plan.arguments["metrics"]] == [
+        "market_demand", "market_gap",
+    ]
+    assert plan.arguments["sort"] == [
+        {"field": "average_market_gap", "order": "desc"}
+    ]
