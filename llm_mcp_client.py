@@ -3064,6 +3064,10 @@ async def ask_nexusops(
     Requests sharing a conversation_id are serialized to preserve turn order;
     different conversation IDs can execute concurrently.
     """
+    if not isinstance(conversation_id, str) or not conversation_id.strip():
+        raise ValueError("conversation_id must be a non-empty string.")
+    conversation_id = conversation_id.strip()
+
     with _CONVERSATION_STATES_GUARD:
         state = get_conversation_state(conversation_id)
         state.active_requests += 1
