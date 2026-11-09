@@ -276,3 +276,176 @@ def test_analytics_pipeline_rejects_profile_schema_drift_before_adapter_executio
         AnalyticsService(adapter=adapter).analyze(request)
 
     assert adapter.plans == []
+
+
+class FakeElasticsearchClient:
+    def __init__(self, *, search_response=None, count_response=None):
+        self.search_response = deepcopy(search_response or {})
+        self.count_response = deepcopy(count_response or {"count": 0})
+        self.search_calls = []
+        self.count_calls = []
+
+    def search(self, **kwargs):
+        self.search_calls.append(deepcopy(kwargs))
+        return deepcopy(self.search_response)
+
+    def count(self, **kwargs):
+        self.count_calls.append(deepcopy(kwargs))
+        return deepcopy(self.count_response)
+
+
+def test_real_elasticsearch_adapter_translates_nested_aggregate_plan_and_normalizes_response(
+    pipeline_environment,
+):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    client = FakeElasticsearchClient(search_response={
+        "aggregations": {
+            "group_0": {
+                "buckets": [{
+                    "key": "Computer Engineering",
+                    "doc_count": 7,
+                    "avg_relevance": {"value": 4.4},
+                }],
+                "sum_other_doc_count": 0,
+            },
+        },
+        "_shards": {"failed": 0},
+    })
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=("major",),
+        metrics=(MetricSpec(MetricFunction.AVG, "career_relevance", "avg_relevance"),),
+        filters=FilterGroup(
+            logic=FilterLogic.AND,
+            conditions=(
+                FilterCondition("career_relevance", FilterOperator.GTE, 4),
+                FilterGroup(
+                    logic=FilterLogic.OR,
+                    conditions=(
+                        FilterCondition("employment_months", FilterOperator.GT, 6),
+                        FilterCondition("major", FilterOperator.EQ, "Computer Engineering"),
+                    ),
+                ),
+            ),
+        ),
+        sort=(SortSpec("avg_relevance", SortOrder.DESC),),
+        limit=25,
+    )
+
+    response = AnalyticsService(
+        adapter=ElasticsearchAdapter(client=client),
+    ).analyze(request)
+
+    assert response["status"] == "success"
+    assert response["result"]["buckets"][0]["group"] == {
+        "major": "Computer Engineering",
+    }
+    assert response["result"]["buckets"][0]["metrics"] == {
+        "avg_relevance": 4.4,
+    }
+    assert response["result"]["buckets"][0]["document_count"] == 7
+
+    call = client.search_calls[0]
+    assert call["index"] == "pipeline-fixture-index"
+    assert call["size"] == 0
+    assert call["query"] == {
+        "bool": {
+            "filter": [
+                {"range": {"career_relevance": {"gte": 4}}},
+                {
+                    "bool": {
+                        "should": [
+                            {"range": {"employment_months": {"gt": 6}}},
+                            {"term": {"major": "Computer Engineering"}},
+                        ],
+                        "minimum_should_match": 1,
+                    },
+                },
+            ],
+        },
+    }
+    assert call["aggs"]["group_0"]["terms"]["field"] == "major"
+    assert call["aggs"]["group_0"]["terms"]["size"] == 25
+    assert call["aggs"]["group_0"]["terms"]["order"] == {
+        "avg_relevance": "desc",
+    }
+    assert call["aggs"]["group_0"]["aggs"]["avg_relevance"] == {
+        "avg": {"field": "career_relevance"},
+    }
+
+
+def test_real_elasticsearch_adapter_count_uses_filtered_count_api(pipeline_environment):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    client = FakeElasticsearchClient(count_response={"count": 12})
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.COUNT,
+        filters=FilterGroup(
+            logic=FilterLogic.AND,
+            conditions=(
+                FilterCondition("career_relevance", FilterOperator.GTE, 4),
+            ),
+        ),
+    )
+
+    response = AnalyticsService(
+        adapter=ElasticsearchAdapter(client=client),
+    ).analyze(request)
+
+    assert response["result"] == {"count": 12}
+    assert response["metadata"]["total_records"] == 12
+    assert client.count_calls == [{
+        "index": "pipeline-fixture-index",
+        "query": {
+            "bool": {
+                "filter": [
+                    {"range": {"career_relevance": {"gte": 4}}},
+                ],
+            },
+        },
+    }]
+    assert client.search_calls == []
+
+
+def test_real_elasticsearch_adapter_select_preserves_hit_totals_and_sort(pipeline_environment):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    records = [
+        {"major": "Computer Engineering", "career_relevance": 4.7},
+        {"major": "Computer Engineering", "career_relevance": 4.2},
+    ]
+    client = FakeElasticsearchClient(search_response={
+        "hits": {
+            "total": {"value": 9, "relation": "eq"},
+            "hits": [{"_source": record} for record in records],
+        },
+        "_shards": {"failed": 0},
+        "timed_out": False,
+    })
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.SELECT,
+        filters=FilterGroup(
+            logic=FilterLogic.AND,
+            conditions=(
+                FilterCondition("career_relevance", FilterOperator.GTE, 4),
+            ),
+        ),
+        sort=(SortSpec("career_relevance", SortOrder.DESC),),
+        limit=2,
+    )
+
+    response = AnalyticsService(
+        adapter=ElasticsearchAdapter(client=client),
+    ).analyze(request)
+
+    assert response["result"] == records
+    assert response["metadata"]["returned_records"] == 2
+    assert response["metadata"]["total_records"] == 9
+    assert client.search_calls[0]["sort"] == [{
+        "career_relevance": {"order": "desc"},
+    }]
+    assert client.search_calls[0]["size"] == 2
