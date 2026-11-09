@@ -1,8 +1,17 @@
 import asyncio
 import json
+import logging
+import os
 import re
+import threading
+import time
 import traceback
+import uuid
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from typing import Any
+
+import httpx
 
 from memory import MemoryManager
 from openai import AsyncOpenAI
@@ -21,12 +30,75 @@ from llm_query_planner import (
 )
 
 
-MCP_URL = "http://127.0.0.1:8000/mcp"
-OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1"
-MODEL_NAME = "qwen3:4b"
+MCP_URL = os.getenv("NEXUSOPS_MCP_URL", "http://127.0.0.1:8000/mcp")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen3:4b")
 
+MCP_REQUEST_TIMEOUT_SECONDS = float(
+    os.getenv("NEXUSOPS_MCP_TIMEOUT_SECONDS", "45")
+)
+MCP_MAX_ATTEMPTS = int(os.getenv("NEXUSOPS_MCP_MAX_ATTEMPTS", "2"))
+MCP_RETRY_BASE_DELAY_SECONDS = float(
+    os.getenv("NEXUSOPS_MCP_RETRY_BASE_DELAY_SECONDS", "0.35")
+)
+OLLAMA_TIMEOUT_SECONDS = float(
+    os.getenv("NEXUSOPS_OLLAMA_TIMEOUT_SECONDS", "60")
+)
 MAX_HISTORY_TURNS = 6
 KEEP_RECENT_TURNS = 4
+MAX_CONVERSATION_STATES = 128
+
+if MCP_REQUEST_TIMEOUT_SECONDS <= 0 or OLLAMA_TIMEOUT_SECONDS <= 0:
+    raise ValueError("Runtime request timeouts must be positive.")
+if MCP_MAX_ATTEMPTS < 1:
+    raise ValueError("NEXUSOPS_MCP_MAX_ATTEMPTS must be at least 1.")
+if MCP_RETRY_BASE_DELAY_SECONDS < 0:
+    raise ValueError("MCP retry delay cannot be negative.")
+
+logger = logging.getLogger("nexusops.client")
+
+
+@dataclass
+class ConversationState:
+    """Isolated mutable state for one logical conversation."""
+
+    history: list[list[dict[str, str]]] = field(default_factory=list)
+    summary: str = ""
+    memory_manager: MemoryManager = field(default_factory=MemoryManager)
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+_CONVERSATION_STATES: OrderedDict[str, ConversationState] = OrderedDict()
+_CONVERSATION_STATES_GUARD = threading.RLock()
+
+
+def get_conversation_state(conversation_id: str = "default") -> ConversationState:
+    """Return an isolated state object, creating it on first access."""
+    if not isinstance(conversation_id, str) or not conversation_id.strip():
+        raise ValueError("conversation_id must be a non-empty string.")
+    key = conversation_id.strip()
+    if len(key) > 128:
+        raise ValueError("conversation_id must not exceed 128 characters.")
+
+    with _CONVERSATION_STATES_GUARD:
+        state = _CONVERSATION_STATES.get(key)
+        if state is not None:
+            _CONVERSATION_STATES.move_to_end(key)
+            return state
+
+        while len(_CONVERSATION_STATES) >= MAX_CONVERSATION_STATES:
+            evicted = False
+            for candidate_key, candidate in list(_CONVERSATION_STATES.items()):
+                if candidate_key != "default" and not candidate.lock.locked():
+                    del _CONVERSATION_STATES[candidate_key]
+                    evicted = True
+                    break
+            if not evicted:
+                break
+
+        state = ConversationState()
+        _CONVERSATION_STATES[key] = state
+        return state
 
 
 # ============================================================
@@ -184,10 +256,11 @@ Return only the memory summary.
 # GLOBAL STATE
 # ============================================================
 
-conversation_history = []
+_DEFAULT_CONVERSATION_STATE = get_conversation_state("default")
+# Compatibility aliases for existing CLI helpers and tests.
+conversation_history = _DEFAULT_CONVERSATION_STATE.history
 conversation_summary = ""
-
-structured_memory_manager = MemoryManager()
+structured_memory_manager = _DEFAULT_CONVERSATION_STATE.memory_manager
 
 
 # ============================================================
