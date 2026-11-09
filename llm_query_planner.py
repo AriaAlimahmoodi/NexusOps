@@ -231,8 +231,7 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         "group_by": group_by, "metrics": normalized_metrics,
         "sort": normalized_sort, "limit": limit, "options": options,
     }
-    if filters is not None:
-        result["filters"] = filters
+    result["filters"] = filters
     return result
 
 def _planner_prompt(question: str, conversation_context: str) -> str:
