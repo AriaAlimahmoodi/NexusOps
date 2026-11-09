@@ -65,7 +65,7 @@ Environment variables:
 | Variable | Default | Purpose |
 |---|---:|---|
 | NEXUSOPS_MCP_URL | http://127.0.0.1:8000/mcp | MCP endpoint |
-| NEXUSOPS_MCP_TIMEOUT_SECONDS | 45 | Timeout for one complete MCP attempt |
+| NEXUSOPS_MCP_TIMEOUT_SECONDS | 60 | Timeout for one complete MCP attempt |
 | NEXUSOPS_MCP_MAX_ATTEMPTS | 2 | Total attempts, including the first |
 | NEXUSOPS_MCP_RETRY_BASE_DELAY_SECONDS | 0.35 | Exponential retry base delay |
 | NEXUSOPS_OLLAMA_TIMEOUT_SECONDS | 60 | Ollama API request timeout |
@@ -88,7 +88,7 @@ tool. They are not shared between concurrent requests.
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| ELASTICSEARCH_REQUEST_TIMEOUT | 20 seconds | Per-request timeout |
+| ELASTICSEARCH_REQUEST_TIMEOUT | 15 seconds | Per-request timeout |
 | ELASTICSEARCH_MAX_RETRIES | 2 | Retry budget |
 | ELASTICSEARCH_RETRY_ON_TIMEOUT | true | Retry timed-out read requests |
 | ELASTICSEARCH_VERIFY_CERTS | false | TLS certificate verification |
