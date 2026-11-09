@@ -427,7 +427,30 @@ async def analytics_query_tool(
             },
         )
         result = await run_sync_function("analytics_query", run_analytics_query, arguments)
-        if isinstance(result, dict):
+        if isinstance(result, dict) and result.get("status") == "error":
+            raw_error = result.get("error") or {}
+            if not isinstance(raw_error, dict):
+                raw_error = {"message": str(raw_error)}
+            error_code = raw_error.get("code", "ANALYTICS_ERROR")
+            error_message = raw_error.get(
+                "message",
+                "The analytics operation could not be completed.",
+            )
+            error_details = {
+                key: value
+                for key, value in raw_error.items()
+                if key not in {"code", "message"}
+            }
+            result = build_analytics_error_response(
+                dataset_id=dataset_id,
+                operation=operation,
+                code=error_code,
+                message=error_message,
+                details=error_details,
+                request_id=request_id,
+                execution_time_ms=(time.perf_counter() - started_at) * 1000,
+            )
+        elif isinstance(result, dict):
             metadata = result.setdefault("metadata", {})
             if isinstance(metadata, dict):
                 metadata["request_id"] = request_id
