@@ -133,23 +133,69 @@ def build_analytics_request(arguments: dict[str, Any]) -> AnalyticsRequest:
     )
 
 
-def run_analytics_query(arguments: dict[str, Any]) -> dict[str, Any]:
-    client = get_elasticsearch_client()
-    adapter = ElasticsearchAdapter(client=client)
-    service = AnalyticsService(adapter=adapter)
+def _analytics_error(
+    code: str,
+    message: str,
+    *,
+    stage: str,
+    exception_type: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    error = {
+        "code": code,
+        "message": message,
+        "stage": stage,
+    }
+    if exception_type:
+        error["exception_type"] = exception_type
+    if details:
+        error.update(details)
+    return {"status": "error", "error": error}
 
-    request = build_analytics_request(arguments)
+
+def run_analytics_query(arguments: dict[str, Any]) -> dict[str, Any]:
+    """
+    Execute an analytics request and keep every failure inside the
+    standard response envelope. Invalid input, client initialization,
+    service failures, and unexpected adapter errors must never escape
+    as uncaught exceptions from the MCP tool.
+    """
+    try:
+        request = build_analytics_request(arguments)
+    except (KeyError, TypeError, ValueError) as exc:
+        return _analytics_error(
+            "INVALID_ANALYTICS_REQUEST",
+            str(exc),
+            stage="request_validation",
+            exception_type=type(exc).__name__,
+        )
+
+    try:
+        client = get_elasticsearch_client()
+        adapter = ElasticsearchAdapter(client=client)
+        service = AnalyticsService(adapter=adapter)
+    except Exception as exc:
+        return _analytics_error(
+            "ANALYTICS_CLIENT_INITIALIZATION_FAILED",
+            "Unable to initialize the Elasticsearch analytics client.",
+            stage="client_initialization",
+            exception_type=type(exc).__name__,
+        )
 
     try:
         return service.analyze(request)
-
     except AnalyticsServiceError as exc:
-        return {
-            "status": "error",
-            "error": {
-                "code": exc.code,
-                "message": str(exc),
-                **exc.details,
-            },
-        }
-    
+        return _analytics_error(
+            exc.code,
+            str(exc),
+            stage="analytics_service",
+            details=exc.details,
+        )
+    except Exception as exc:
+        return _analytics_error(
+            "ANALYTICS_EXECUTION_FAILED",
+            "The analytics operation could not be completed.",
+            stage="execution",
+            exception_type=type(exc).__name__,
+        )
+

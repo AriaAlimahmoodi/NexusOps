@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 import json
@@ -184,9 +186,25 @@ async def search_tool(query: str) -> str:
 
 
 def build_internal_filters(
-    filter_conditions: list[AnalyticsFilterConditionInput] | None,
+    filter_conditions: list[AnalyticsFilterConditionInput] | None = None,
     filter_logic: Literal["and", "or"] = "and",
+    filters: AnalyticsFilterGroupInput | None = None,
 ) -> dict[str, Any] | None:
+    """
+    Normalize the MCP filter boundary into the recursive filter tree
+    consumed by AnalyticsRequest. The legacy flat arguments remain
+    supported for existing n8n clients.
+    """
+    if filters is not None and filter_conditions:
+        raise ValueError(
+            "Provide either 'filters' or 'filter_conditions', not both."
+        )
+
+    if filters is not None:
+        normalized = filters.model_dump(exclude_none=True)
+        if not normalized.get("conditions") and not normalized.get("groups"):
+            raise ValueError("A nested filter group must not be empty.")
+        return normalized
 
     if not filter_conditions:
         return None
@@ -532,14 +550,16 @@ async def analytics_query_tool(
     metrics: list[AnalyticsMetricInput] | None = None,
     filter_conditions: list[AnalyticsFilterConditionInput] | None = None,
     filter_logic: Literal["and", "or"] = "and",
+    filters: AnalyticsFilterGroupInput | None = None,
     sort: list[AnalyticsSortInput] | None = None,
     limit: int = 10,
     options: dict[str, Any] | None = None,
 ) -> str:
 
-    filters = build_internal_filters(
+    normalized_filters = build_internal_filters(
         filter_conditions=filter_conditions,
         filter_logic=filter_logic,
+        filters=filters,
     )
 
     arguments = {
@@ -550,7 +570,7 @@ async def analytics_query_tool(
             metric.model_dump(exclude_none=True)
             for metric in (metrics or [])
         ],
-        "filters": filters,
+        "filters": normalized_filters,
         "sort": [
             item.model_dump(exclude_none=True)
             for item in (sort or [])
