@@ -161,3 +161,31 @@ preflight اکنون علاوه بر اتصال به Elasticsearch، رجیست�
 بخش عمدهٔ زیرساخت نرم‌افزاری ریفکتوری شده است: موتور تحلیل، رجیستری داده، برنامه‌ریز محلی، مرز MCP، مدیریت مکالمه، کنترل هم‌زمانی، مدیریت خطا، Logging و preflight.
 
 **گلوگاه اصلی فعلی، اثبات عملکرد سرتاسری با داده‌های Elasticsearch و اجرای واقعی Workflow در n8n است.** تا پیش از تأیید سناریوهای عددی، فیلترهای ترکیبی و هم‌زمانی، نباید پذیرش عملیاتی پروژه را نهایی‌شده دانست.
+
+
+## Addendum — 2026-11-09: MCP tool-routing precedence
+
+A code review of the live MCP tool descriptions found overlapping instructions:
+the specialized market-demand and skill-gap tools were described as mandatory
+for broad categories of questions, while `analytics_query` was also described
+as the primary tool for custom analytical operations. That ambiguity could
+route custom compound filters or multi-metric aggregations to a fixed top-N
+tool and silently lose the user's requested operation.
+
+The tool descriptions have now been narrowed:
+
+- `analytics_query`: custom filters, compound conditions, grouping, multiple
+  metrics, comparisons, and user-defined sorting.
+- `get_top_market_skills`: only its predefined top-N demand ranking.
+- `get_top_skill_gaps`: only its predefined top-N skill-gap ranking.
+- `get_market_skill_details`: explicitly named skill demand/frequency details.
+- `search_elasticsearch`: document retrieval, not analytical computation.
+
+A regression test, `tests/test_mcp_tool_routing_contract.py`, protects this
+precedence from broad mandatory instructions being reintroduced.
+
+**Verification boundary:** the previously reported 102 passing tests and live
+preflight predate this routing-description change and its new regression test.
+The current branch is expected to contain 103 tests, but a fresh local run is
+required before reporting the updated suite as passing. Actual tool selection
+must still be confirmed through the n8n workflow.
