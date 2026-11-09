@@ -172,3 +172,53 @@ def test_analytics_success_runs_off_loop_and_attaches_trace_id(monkeypatch):
     assert response["result"]["count"] == 12
     assert response["metadata"]["request_id"]
     assert worker_threads[0] != event_loop_thread
+
+
+def test_mcp_retry_budget_is_bounded(monkeypatch):
+    attempts = []
+
+    async def always_fails(plan, *, request_id, attempt):
+        attempts.append(attempt)
+        raise httpx.ConnectError("service unavailable")
+
+    monkeypatch.setattr(client_runtime, "_run_mcp_attempt", always_fails)
+    monkeypatch.setattr(client_runtime, "MCP_MAX_ATTEMPTS", 2)
+    monkeypatch.setattr(client_runtime, "MCP_RETRY_BASE_DELAY_SECONDS", 0)
+
+    result = asyncio.run(
+        client_runtime.execute_mcp_query_with_resilience(
+            SimpleNamespace(tool_name="analytics_query"),
+            request_id="trace-exhausted",
+        )
+    )
+
+    assert result[0] is False
+    assert result[1] is None
+    assert "could not be reached" in result[2]
+    assert attempts == [1, 2]
+
+
+def test_json_runtime_logs_include_correlation_fields_without_payload():
+    import logging
+
+    from runtime_logging import JsonLogFormatter
+
+    record = logging.makeLogRecord({
+        "name": "nexusops.test",
+        "levelno": logging.INFO,
+        "levelname": "INFO",
+        "msg": "MCP tool completed",
+        "args": (),
+        "request_id": "trace-json",
+        "tool_name": "analytics_query",
+        "duration_ms": 12.5,
+    })
+
+    payload = json.loads(JsonLogFormatter().format(record))
+
+    assert payload["request_id"] == "trace-json"
+    assert payload["tool_name"] == "analytics_query"
+    assert payload["duration_ms"] == 12.5
+    assert payload["event"] == "MCP tool completed"
+    assert "arguments" not in payload
+    assert "result" not in payload
