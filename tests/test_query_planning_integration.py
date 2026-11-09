@@ -42,12 +42,67 @@ def test_local_plan_rejects_aggregate_without_grouping():
 def test_local_plan_accepts_engine_supported_cardinality_metric():
     payload = valid_aggregate_payload()
     payload['metrics'] = [{'function': 'cardinality', 'field': 'credits', 'alias': 'distinct_credit_values'}]
+    payload['sort'] = [{'field': 'distinct_credit_values', 'order': 'desc'}]
     plan = _validate_plan(payload)
     assert plan['metrics'][0]['function'] == 'cardinality'
+    assert plan['sort'] == [{'field': 'distinct_credit_values', 'order': 'desc'}]
 
 def test_local_plan_rejects_invalid_operator():
     payload = valid_aggregate_payload(); payload['filters']['conditions'][0]['operator'] = 'contains'
     with pytest.raises(AnalyticsPlanningError, match='Unsupported filter operator'): _validate_plan(payload)
+
+
+
+def test_local_plan_normalizes_null_optional_arrays_and_options():
+    payload = {
+        'dataset_id': 'university_courses',
+        'operation': 'select',
+        'group_by': None,
+        'metrics': None,
+        'filters': {
+            'logic': None,
+            'conditions': [
+                {'field': 'credits', 'operator': 'gte', 'value': 3}
+            ],
+            'groups': None,
+        },
+        'sort': None,
+        'limit': None,
+        'options': None,
+    }
+
+    plan = _validate_plan(payload)
+
+    assert plan['group_by'] == []
+    assert plan['metrics'] == []
+    assert plan['sort'] == []
+    assert plan['limit'] == 10
+    assert plan['options'] == {}
+    assert plan['filters']['logic'] == 'and'
+    assert plan['filters']['groups'] == []
+
+
+@pytest.mark.parametrize('field,value,error', [
+    ('group_by', 'course_category', 'group_by and metrics must be lists'),
+    ('metrics', {}, 'group_by and metrics must be lists'),
+    ('sort', 'credits', 'sort must be a list'),
+    ('options', [], 'options must be an object'),
+])
+def test_local_plan_still_rejects_non_null_malformed_optional_fields(field, value, error):
+    payload = {
+        'dataset_id': 'university_courses',
+        'operation': 'select',
+        'group_by': [],
+        'metrics': [],
+        'filters': None,
+        'sort': [],
+        'limit': 10,
+        'options': {},
+    }
+    payload[field] = value
+
+    with pytest.raises(AnalyticsPlanningError, match=error):
+        _validate_plan(payload)
 
 def test_json_extractor_accepts_fenced_response():
     assert _extract_json_object('```json\n{"operation":"count"}\n```') == {'operation': 'count'}
