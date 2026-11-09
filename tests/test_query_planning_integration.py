@@ -160,3 +160,57 @@ def test_analytics_count_plan_accepts_success_envelope_with_null_error():
     data = {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'count', 'result': {'count': 20}, 'metadata': {'returned_records': 1, 'total_records': 20}, 'error': None}
     valid, message = validate_mcp_result(plan, data)
     assert valid, message
+
+@pytest.mark.parametrize("question,expected_dataset,expected_operation", [
+    ("تمام درس‌هایی که حداقل ۳ واحد دارند را نشان بده.", "university_courses", "select"),
+    ("درس‌های Core یا Specialized با حداقل ۳ واحد را نمایش بده.", "university_courses", "select"),
+    ("تعداد فارغ‌التحصیلانی که در سال ۱۴۰۲ فارغ‌التحصیل شده‌اند چقدر است؟", "university_graduates", "count"),
+    ("برای هر رشته، میانگین ارتباط شغلی و مدت اشتغال را محاسبه کن.", "university_graduates", "aggregate"),
+])
+def test_deterministic_analytics_fallback_builds_supported_plans(question, expected_dataset, expected_operation):
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    plan = build_deterministic_analytics_query_plan(question)
+    assert plan is not None
+    assert plan.tool_name == "analytics_query"
+    assert plan.arguments["dataset_id"] == expected_dataset
+    assert plan.arguments["operation"] == expected_operation
+    assert plan.fresh_mcp_required is True
+
+
+def test_deterministic_course_fallback_preserves_credit_and_category_filters():
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    plan = build_deterministic_analytics_query_plan("درس‌های Core یا Specialized با حداقل ۳ واحد را نمایش بده.")
+    conditions = plan.arguments["filters"]["conditions"]
+    assert conditions[0] == {"field": "credits", "operator": "gte", "value": 3}
+    assert conditions[1] == {"field": "course_category", "operator": "in", "value": ["core", "specialized"]}
+
+
+def test_deterministic_graduate_count_fallback_extracts_persian_year():
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    plan = build_deterministic_analytics_query_plan("تعداد فارغ‌التحصیلان در سال ۱۴۰۲ چقدر است؟")
+    assert plan.arguments["filters"]["conditions"][0] == {
+        "field": "graduation_year", "operator": "eq", "value": 1402,
+    }
+
+
+def test_deterministic_fallback_refuses_ambiguous_or_unsupported_requests():
+    from llm_query_planner import build_deterministic_analytics_query_plan
+    assert build_deterministic_analytics_query_plan("وضعیت بازار کار فناوری چگونه است؟") is None
+    assert build_deterministic_analytics_query_plan("اطلاعات فارغ‌التحصیل G0002 را نشان بده.") is None
+
+
+def test_local_planner_uses_deterministic_fallback_when_model_fails():
+    class FailingCompletions:
+        async def create(self, **kwargs):
+            raise RuntimeError("Ollama unavailable")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=FailingCompletions()))
+    async def run():
+        plan = await build_analytics_query_plan(
+            client,
+            "تعداد فارغ‌التحصیلانی که در سال ۱۴۰۲ فارغ‌التحصیل شده‌اند چقدر است؟",
+        )
+        assert plan is not None
+        assert plan.tool_name == "analytics_query"
+        assert plan.arguments["operation"] == "count"
+        assert plan.arguments["filters"]["conditions"][0]["value"] == 1402
+    asyncio.run(run())
