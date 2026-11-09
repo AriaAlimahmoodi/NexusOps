@@ -18,7 +18,7 @@ python -m py_compile query_planner.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size after this change: **83 tests**. The exact result must be taken from the local run; the expected count is not a test result.
+Expected suite size after this change: **85 tests**. The exact result must be taken from the local run; the expected count is not a test result.
 
 ## 2. Verify live services before opening n8n
 
