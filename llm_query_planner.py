@@ -472,10 +472,10 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
 
             conditions = []
             comparison_ops = (
-                (r"(?:حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:\.\d+)?)", "gte"),
-                (r"(?:بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(-?\d+(?:\.\d+)?)", "gt"),
-                (r"(?:حداکثر|حداکثرِ|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than)\s*(-?\d+(?:\.\d+)?)", "lte"),
-                (r"(?:کمتر\s+از|پایین.?تر\s+از|less\s+than|below)\s*(-?\d+(?:\.\d+)?)", "lt"),
+                (r"(?:>=|=>|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:\.\d+)?)", "gte"),
+                (r"(?:>|بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(-?\d+(?:\.\d+)?)", "gt"),
+                (r"(?:<=|=<|حداکثر|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than)\s*(-?\d+(?:\.\d+)?)", "lte"),
+                (r"(?:<|کمتر\s+از|پایین.?تر\s+از|less\s+than|below)\s*(-?\d+(?:\.\d+)?)", "lt"),
             )
             for field, aliases in field_aliases.items():
                 definition = profile.get("fields", {}).get(field)
@@ -485,9 +485,14 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     escaped = re.escape(alias)
                     for pattern, operator in comparison_ops:
                         match = re.search(
-                            rf"(?:{escaped})\s*(?:با|حداقل|حداکثر|greater than|less than|at least|at most)?\s*{pattern}",
+                            rf"(?:{escaped})\s*(?:با\s*)?{pattern}",
                             query,
                         )
+                        if not match:
+                            match = re.search(
+                                rf"{pattern}\s*(?:برای\s*)?(?:{escaped})",
+                                query,
+                            )
                         if match:
                             raw = match.group(1)
                             value = float(raw) if "." in raw else int(raw)
