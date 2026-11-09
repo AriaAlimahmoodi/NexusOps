@@ -389,12 +389,20 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
         "compare", "comparison", "average", "mean", "sum",
         "group by", "per ", "rank", "highest", "lowest",
         "most", "greater than", "less than", "at least",
+        "count", "how many", "تعداد", "چه تعداد", "چند",
         "حداقل", "حداکثر", "بیشتر از", "کمتر از",
     )
     if analytical_intent:
-        if has_any("شکاف بازار", "market gap", "market_gap", "پوشش درس", "course coverage"):
+        if has_any(
+            "شکاف بازار", "market gap", "market_gap", "پوشش درس",
+            "course coverage", "تقاضای بازار", "market demand", "market_demand",
+        ):
             dataset_id = "skill_mapping"
-        elif has_any("فارغ التحصیل", "فارغ‌التحصیل", "فارغ", "graduate"):
+        elif has_any(
+            "فارغ التحصیل", "فارغ‌التحصیل", "فارغ", "graduate",
+            "ارتباط شغلی", "career relevance", "مدت اشتغال",
+            "employment months",
+        ):
             dataset_id = "university_graduates"
         elif has_any("درس", "دروس", "course", "courses"):
             dataset_id = "university_courses"
