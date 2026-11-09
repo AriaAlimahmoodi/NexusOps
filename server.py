@@ -177,8 +177,12 @@ AnalyticsFilterGroupInput.model_rebuild()
         "or asks for the demand score and frequency of named skills. "
         "Return average demand_score, total frequency, and record count "
         "for each requested skill. "
-        "Do not use get_top_market_skills for specific named-skill "
-        "comparisons when this tool can answer the question directly."
+        "Use this tool for explicitly named skills when the user asks for their "
+        "demand score, frequency, or a direct comparison of those named "
+        "skills. Do not use it for top-N discovery or arbitrary dataset "
+        "filters; use get_top_market_skills only for its predefined top-N "
+        "ranking and analytics_query for custom filters, grouping, multiple "
+        "metrics, or custom sorting."
     ),
 )
 async def market_skill_details_tool(skills: list[str]) -> str:
@@ -187,18 +191,18 @@ async def market_skill_details_tool(skills: list[str]) -> str:
 @server.tool(
     name="get_top_market_skills",
     description=(
-         "LABOR MARKET ANALYTICS TOOL. "
-    "MANDATORY for questions involving market demand, "
-    "average demand score, total frequency, demand ranking, "
-    "or comparison of market demand between two or more skills. "
-    "Use this tool to compare skills such as DevOps, "
-    "Cloud Computing, Kubernetes, Docker, and SQL. "
-    "Returns skill, average_demand_score, total_frequency, "
-    "and record_count. "
-    "Skills are ranked by average_demand_score descending. "
-    "For market demand statistics, ALWAYS use this tool "
-    "instead of search_elasticsearch. "
-    "LIMITATION: Returns only the top N skills."
+         "SPECIALIZED TOP-N MARKET-DEMAND RANKING TOOL. "
+    "Use this tool when the user explicitly asks for the top N skills, "
+    "highest-demand skills, or a market-demand ranking using this tool's "
+    "predefined ranking by average_demand_score descending. "
+    "Returns skill, average_demand_score, total_frequency, and record_count. "
+    "LIMITATION: This tool returns only the top N skills and does not support "
+    "arbitrary filters, custom grouping, custom metrics, or custom sorting. "
+    "For named-skill comparisons use get_market_skill_details. "
+    "For custom filters, compound conditions, multiple metrics, grouping, "
+    "or user-defined sorting use analytics_query, even when the fields "
+    "include market_demand or market_gap. Do not use this tool merely "
+    "because a question mentions market demand."
     ),
 )
 async def top_market_skills_tool(limit: int = 10) -> str:
@@ -208,19 +212,18 @@ async def top_market_skills_tool(limit: int = 10) -> str:
 @server.tool(
     name="get_top_skill_gaps",
     description=(
-        "UNIVERSITY-MARKET SKILL GAP ANALYTICS TOOL. "
-    "MANDATORY for questions involving university coverage, "
-    "market demand versus university coverage, market_gap, "
-    "educational skill shortages, or curriculum improvement priorities. "
-    "Use this tool to compare the educational gaps of skills "
-    "such as DevOps, Cloud Computing, Kubernetes, and Docker. "
-    "Returns ranked_skill, associated_course_id, "
-    "associated_course_name, course_coverage, market_demand, "
-    "and market_gap. "
-    "Results represent SKILLS, not courses. "
-    "For university-market gap statistics, ALWAYS use this tool "
-    "instead of search_elasticsearch. "
-    "LIMITATION: Returns only the top N skill-gap records."
+        "SPECIALIZED TOP-N UNIVERSITY-MARKET SKILL-GAP TOOL. "
+    "Use this tool when the user explicitly asks for the top N skill gaps, "
+    "highest-gap skills, or the predefined skill-gap priority ranking. "
+    "Returns ranked skill, associated course ID and name, course_coverage, "
+    "market_demand, and market_gap. Results represent SKILLS, not courses. "
+    "LIMITATION: This tool returns only the top N skill-gap records and does "
+    "not support arbitrary filters, custom grouping, multiple custom metrics, "
+    "or custom sorting. For custom filters, compound conditions, grouped "
+    "comparisons, multiple metrics, or user-defined sorting use "
+    "analytics_query, even when the request mentions market_gap or "
+    "course_coverage. Do not use this tool merely because a question "
+    "mentions a skill gap."
     ),
 )
 async def top_skill_gaps_tool(limit: int = 10) -> str:
@@ -234,11 +237,11 @@ async def top_skill_gaps_tool(limit: int = 10) -> str:
     "Use ONLY for searching individual Elasticsearch documents, "
     "graduate records, graduate IDs, course IDs, course details, "
     "and general indexed records. "
-    "DO NOT use this tool for market-demand rankings, "
-    "average demand scores, total market frequency, "
-    "university-market skill gaps, or analytical comparisons. "
-    "For market statistics use get_top_market_skills. "
-    "For university-market gap analysis use get_top_skill_gaps."
+    "DO NOT use this tool for calculations, filtering, aggregations, "
+    "rankings, or analytical comparisons. Use analytics_query for custom "
+    "analysis. Use get_top_market_skills or get_top_skill_gaps only for "
+    "their predefined top-N rankings, and get_market_skill_details for "
+    "explicitly named skills."
     ),
 )
 async def search_tool(query: str) -> str:
@@ -332,23 +335,19 @@ The tool supports three operations:
    Use when the user requests grouped analysis, calculated metrics,
    comparisons, rankings, or other aggregation-based results.
 
-MANDATORY TOOL SELECTION:
-When a user asks a question that can be answered by analyzing data
-in a registered dataset, use analytics_query.
+TOOL SELECTION PRECEDENCE:
+Use analytics_query for general-purpose data analysis, including custom
+filters, compound AND/OR conditions, record selection, counts, grouped
+aggregations, multiple metrics, comparisons, and user-defined sorting.
+This rule takes precedence over specialized tools whenever the user
+specifies custom conditions, grouping, metrics, or sorting.
 
-This includes questions involving:
-- finding records
-- filtering records
-- counting records
-- calculating totals
-- calculating averages
-- calculating minimum or maximum values
-- comparing values
-- grouping records
-- ranking results
-- sorting results
-- selecting records according to conditions
-- combining filters with calculations or grouping
+Use get_top_market_skills only for its predefined top-N demand ranking.
+Use get_top_skill_gaps only for its predefined top-N skill-gap ranking.
+Use get_market_skill_details for explicitly named skills and their
+demand/frequency details.
+Use search_elasticsearch only for individual document retrieval by ID
+or general record lookup, not for calculations or analytical filtering.
 
 Do not answer data questions from memory.
 Do not fabricate records or analytical results.
