@@ -1464,13 +1464,20 @@ def render_market_skill_answer(
             )
 
             demand = item.get(
-                "market_demand",
-                item.get("demand"),
+                "average_demand_score",
+                item.get("market_demand", item.get("demand")),
             )
+            frequency = item.get("total_frequency")
+            record_count = item.get("record_count")
+
+            detail_parts = [f"تقاضای بازار: {demand}"]
+            if frequency is not None:
+                detail_parts.append(f"فراوانی کل: {frequency}")
+            if record_count is not None:
+                detail_parts.append(f"تعداد رکوردها: {record_count}")
 
             lines.append(
-                f"{index}. {skill} — "
-                f"تقاضای بازار: {demand}"
+                f"{index}. {skill} — " + " | ".join(detail_parts)
             )
 
         return "\n".join(
@@ -1493,13 +1500,20 @@ def render_market_skill_answer(
         )
 
         demand = item.get(
-            "market_demand",
-            item.get("demand"),
+            "average_demand_score",
+            item.get("market_demand", item.get("demand")),
         )
+        frequency = item.get("total_frequency")
+        record_count = item.get("record_count")
+
+        detail_parts = [f"Market demand: {demand}"]
+        if frequency is not None:
+            detail_parts.append(f"Total frequency: {frequency}")
+        if record_count is not None:
+            detail_parts.append(f"Records: {record_count}")
 
         lines.append(
-            f"{index}. {skill} — "
-            f"Market demand: {demand}"
+            f"{index}. {skill} — " + " | ".join(detail_parts)
         )
 
     return "\n".join(
