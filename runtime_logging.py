@@ -12,6 +12,7 @@ class JsonLogFormatter(logging.Formatter):
     _CONTEXT_FIELDS = (
         "request_id",
         "conversation_id",
+        "conversation_ref",
         "tool_name",
         "dataset_id",
         "operation",
