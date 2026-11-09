@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from tools.market_skills import get_market_skill_details
+from runtime_logging import configure_logging
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 from tools.analytics_engine.analytics_service import AnalyticsServiceError
@@ -498,10 +499,7 @@ async def analytics_query_tool(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=os.getenv("NEXUSOPS_LOG_LEVEL", "INFO").upper(),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    configure_logging()
     server.run(
         transport="streamable-http",
         host="127.0.0.1",
