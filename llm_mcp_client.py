@@ -2815,20 +2815,19 @@ async def _ask_nexusops_for_state(
                 data=structured_output,
             )
 
-                    current_turn_evidence.append(
-                        {
-                            "tool_name": plan.tool_name,
-                            "arguments": plan.arguments,
-                            "data": structured_output,
-                            "evidence_status": "tool_verified",
-                            "source": "MCP / Elasticsearch",
-                        }
-                    )
-
-                    print(
-                        "[Memory] Fresh MCP result stored "
-                        "as tool_verified."
-                    )
+            current_turn_evidence.append(
+                {
+                    "tool_name": plan.tool_name,
+                    "arguments": plan.arguments,
+                    "data": structured_output,
+                    "evidence_status": "tool_verified",
+                    "source": "MCP / Elasticsearch",
+                }
+            )
+            logger.info(
+                "Fresh MCP evidence stored",
+                extra={"request_id": request_id, "tool_name": plan.tool_name},
+            )
 
         # =====================================================
         # STEP 4 — DETERMINISTIC ANSWER LAYER
@@ -2963,7 +2962,7 @@ async def _ask_nexusops_for_state(
                         question=question,
                         evidence=final_evidence,
                         conversation_context=(
-                            conversation_summary
+                            state.summary
                         ),
                     )
                 )
