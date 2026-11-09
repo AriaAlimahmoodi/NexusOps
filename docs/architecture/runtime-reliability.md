@@ -162,6 +162,7 @@ tests/test_runtime_reliability.py covers:
 - no retry for application-level failures
 - bounded retry exhaustion
 - offloading synchronous MCP tools from the event loop
+- retaining worker capacity until cancelled blocking calls actually finish
 - canonical analytics error envelopes, including normalization of adapter errors
 - analytics execution off the event loop
 - JSON log correlation fields without request payloads
