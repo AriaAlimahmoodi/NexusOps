@@ -15,12 +15,24 @@ git pull --ff-only origin refactor/integration-foundation
 python -m py_compile llm_query_planner.py
 python -m py_compile llm_mcp_client.py
 python -m py_compile query_planner.py
+python -m py_compile server.py
+python -m py_compile config.py
+python -m py_compile runtime_logging.py
+python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
 Expected suite size after this change: **98 tests**. The exact result must be taken from the local run; the expected count is not a test result.
 
 ## 2. Verify live services before opening n8n
+
+Run the consolidated preflight first:
+
+~~~powershell
+python scripts/runtime_preflight.py
+~~~
+
+All four checks must report ok=true before continuing.
 
 - Elasticsearch responds at http://127.0.0.1:9200 and the required indexes are available.
 - Ollama is running and ollama list shows qwen3:4b.
