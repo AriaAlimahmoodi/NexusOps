@@ -22,7 +22,7 @@ python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size at the 2026-11-09 checkpoint: **102 tests**. Update this number when the suite changes; the exact result must always come from the local run. The exact result must be taken from the local run; the expected count is not a test result.
+Expected suite size after the MCP tool-routing contract test was added: **103 tests**. The previously reported 102-pass result predates that test and predates the latest tool-description change; rerun the suite to establish the new result. The exact result must be taken from the local run; the expected count is not a test result.
 
 ## 2. Verify live services before opening n8n
 
@@ -41,7 +41,7 @@ All four checks must report ok=true before continuing.
 
 ## 3. End-to-end acceptance scenarios
 
-**Current gate status (2026-11-09):** local code gate passed with `102 passed in 1.52s`; the dataset-aware preflight returned `ok: true`, and all five registered Elasticsearch indexes existed. These results establish code-suite and service-readiness status only. The n8n execution scenarios below remain pending until they are run through the actual workflow.
+**Previously completed gates (2026-11-09):** local code gate passed with `102 passed in 1.52s`; the dataset-aware preflight returned `ok: true`, and all five registered Elasticsearch indexes existed. A subsequent MCP tool-routing contract change and its regression test have since been committed; rerun syntax checks and pytest before treating the current branch head as green. These results establish code-suite and service-readiness status only. The n8n execution scenarios below remain pending until they are run through the actual workflow.
 
 Run each prompt through the actual n8n workflow, not only through a direct Python function call.
 
@@ -230,3 +230,16 @@ Do not mark these scenarios passed based on preflight or pytest:
 ### TLS warning
 
 The local Elasticsearch connection currently uses `verify_certs=false`. The resulting urllib3 / Elasticsearch security warnings are expected under that development configuration and do not mean the connection failed. Production or network-exposed deployments must validate the certificate chain; do not suppress the warning as a substitute for fixing TLS configuration.
+
+
+## 8. MCP tool-routing contract
+
+The MCP tool descriptions now define explicit precedence:
+
+- `analytics_query` owns custom filters, nested AND/OR conditions, grouped analysis, multiple metrics, and user-defined sorting.
+- `get_top_market_skills` is reserved for its predefined top-N market-demand ranking.
+- `get_top_skill_gaps` is reserved for its predefined top-N skill-gap ranking.
+- `get_market_skill_details` handles explicitly named skills and their demand/frequency details.
+- `search_elasticsearch` handles document retrieval, not analytics.
+
+This prevents a field-name mention such as `market_gap` or `market_demand` from overriding the shape of the requested operation. The regression test `tests/test_mcp_tool_routing_contract.py` protects the precedence language from reverting to broad, overlapping mandatory instructions.
