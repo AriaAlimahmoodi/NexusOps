@@ -393,10 +393,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
         "حداقل", "حداکثر", "بیشتر از", "کمتر از",
     )
     if analytical_intent:
-        if has_any(
-            "شکاف بازار", "market gap", "market_gap", "پوشش درس",
-            "course coverage", "تقاضای بازار", "market demand", "market_demand",
-        ):
+        if has_any("شکاف بازار", "market gap", "market_gap", "پوشش درس", "course coverage"):
             dataset_id = "skill_mapping"
         elif has_any(
             "فارغ التحصیل", "فارغ‌التحصیل", "فارغ", "graduate",
@@ -406,8 +403,15 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             dataset_id = "university_graduates"
         elif has_any("درس", "دروس", "course", "courses"):
             dataset_id = "university_courses"
-        elif has_any("بازار کار", "آگهی شغلی", "job market", "demand_score", "demand score", "frequency"):
+        elif has_any(
+            "بازار کار", "آگهی شغلی", "job market", "demand_score",
+            "demand score", "frequency", "حوزه شغلی", "زمینه شغلی",
+            "job field", "عنوان شغلی", "job title", "سطح تجربه",
+            "experience level",
+        ):
             dataset_id = "labor_market"
+        elif has_any("تقاضای بازار", "market demand", "market_demand"):
+            dataset_id = "skill_mapping"
         else:
             dataset_id = None
 
@@ -418,7 +422,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "market_gap": ("شکاف بازار", "market gap", "market_gap", "شکاف"),
                 "market_demand": ("تقاضای بازار", "market demand", "market_demand"),
                 "course_coverage": ("پوشش درس", "course coverage", "course_coverage"),
-                "demand_score": ("امتیاز تقاضا", "demand score", "demand_score"),
+                "demand_score": ("امتیاز تقاضا", "تقاضای بازار", "market demand", "market_demand", "demand score", "demand_score"),
                 "frequency": ("فراوانی", "تعداد تکرار", "frequency"),
                 "major": ("رشته", "گرایش", "major"),
                 "graduation_year": ("سال فارغ التحصیلی", "سال فارغ‌التحصیلی", "graduation year"),
@@ -437,12 +441,30 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "گروه‌بندی", "group by", "per ", "مقایسه", "compare",
                 "comparison", "رتبه بندی", "رتبه‌بندی", "rank", "ranking",
             )
-            requested_dimensions = [
+            dimension_candidates = {
+                "skill", "major", "graduation_year", "study_level",
+                "job_title", "job_field", "course_category", "course_name",
+                "experience_level", "additional_training", "additional_skills",
+                "course_id", "graduate_id",
+            }
+            explicit_dimensions = [
                 field for field, aliases in field_aliases.items()
+                if field in dimension_candidates
+                and any(alias in query for alias in aliases)
+            ]
+            if grouping_intent and any(
+                field not in profile.get("fields", {})
+                or "group_by" not in profile["fields"][field].get("roles", [])
+                for field in explicit_dimensions
+            ):
+                # Never silently substitute a default dimension for an
+                # explicitly requested dimension unsupported by this dataset.
+                return None
+            requested_dimensions = [
+                field for field in explicit_dimensions
                 if grouping_intent
                 and field in profile.get("fields", {})
                 and "group_by" in profile["fields"][field].get("roles", [])
-                and any(alias in query for alias in aliases)
             ]
             group_by = requested_dimensions[:2]
             if not group_by and has_any(
