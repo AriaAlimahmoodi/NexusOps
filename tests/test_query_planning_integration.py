@@ -66,9 +66,9 @@ def test_skill_gap_tool_is_reserved_for_ranked_gap_requests():
     assert build_query_plan('شکاف مهارتی برای DevOps').tool_name != 'get_top_skill_gaps'
 
 @pytest.mark.parametrize('operation,data', [
-    ('count', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'count', 'result': {'count': 20}, 'metadata': {'returned_records': 1, 'total_records': 20}}),
-    ('select', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'select', 'result': [{'course_id': 'C001'}], 'metadata': {'returned_records': 1, 'total_records': 1}}),
-    ('aggregate', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'aggregate', 'result': {'buckets': [{'group': {'course_category': 'Core'}, 'metrics': {'average_credits': 3.0}, 'document_count': 4}]}, 'metadata': {'returned_records': 1, 'total_records': 20}}),
+    ('count', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'count', 'result': {'count': 20}, 'metadata': {'returned_records': 1, 'total_records': 20}, 'error': None}),
+    ('select', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'select', 'result': [{'course_id': 'C001'}], 'metadata': {'returned_records': 1, 'total_records': 1}, 'error': None}),
+    ('aggregate', {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'aggregate', 'result': {'buckets': [{'group': {'course_category': 'Core'}, 'metrics': {'average_credits': 3.0}, 'document_count': 4}]}, 'metadata': {'returned_records': 1, 'total_records': 20}, 'error': None}),
 ]) 
 def test_analytics_mcp_response_contract(operation, data):
     plan = QueryPlan(tool_name='analytics_query', arguments={'dataset_id': 'university_courses', 'operation': operation})
