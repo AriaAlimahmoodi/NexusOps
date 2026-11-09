@@ -180,3 +180,16 @@ Both executions must complete with their own dataset, operation, filters, and re
 ## Acceptance record
 
 Record the local pytest summary, the selected MCP tool for each scenario, the numerical comparison outcome for A/B/C/E, and the concurrency outcome. A green unit suite is necessary but does not replace these live acceptance checks.
+
+
+## 6. Dataset-aware preflight interpretation
+
+The Elasticsearch preflight now checks every index declared by the five registered
+dataset profiles, not merely the cluster's `info` endpoint. Review the
+`required_indices` object in its JSON output and confirm every entry has
+`exists: true`; `missing_indices` must be empty.
+
+The n8n preflight result proves only that the configured base URL is reachable.
+It does not inspect workflow activation, credentials, MCP node configuration,
+or execution history. These must be verified by running the actual workflow in
+the scenarios above.
