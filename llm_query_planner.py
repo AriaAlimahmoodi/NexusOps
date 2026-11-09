@@ -374,6 +374,167 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "sort": [], "limit": 1000 if has_any("تمامی", "همه", "تمام", "all") else 100,
                 "options": {},
             }, "Deterministic fallback: university course selection.")
+
+    # ---------------------------------------------------------
+    # Profile-driven analytical planning
+    #
+    # This deterministic layer deliberately covers comparisons,
+    # grouped summaries, rankings, and compound numeric filters
+    # across the registered datasets. It never creates joins.
+    # ---------------------------------------------------------
+    analytical_intent = has_any(
+        "مقایسه", "مقایسه کن", "به تفکیک", "برای هر", "بر اساس",
+        "گروه بندی", "گروه‌بندی", "میانگین", "متوسط", "جمع",
+        "مجموع", "بیشترین", "کمترین", "رتبه بندی", "رتبه‌بندی",
+        "compare", "comparison", "average", "mean", "sum",
+        "group by", "per ", "rank", "highest", "lowest",
+        "most", "greater than", "less than", "at least",
+        "حداقل", "حداکثر", "بیشتر از", "کمتر از",
+    )
+    if analytical_intent:
+        if has_any("شکاف بازار", "market gap", "market_gap", "پوشش درس", "course coverage"):
+            dataset_id = "skill_mapping"
+        elif has_any("فارغ التحصیل", "فارغ‌التحصیل", "فارغ", "graduate"):
+            dataset_id = "university_graduates"
+        elif has_any("درس", "دروس", "course", "courses"):
+            dataset_id = "university_courses"
+        elif has_any("بازار کار", "آگهی شغلی", "job market", "demand_score", "frequency"):
+            dataset_id = "labor_market"
+        else:
+            dataset_id = None
+
+        if dataset_id is not None:
+            profile = get_dataset_profile(dataset_id)
+            field_aliases = {
+                "skill": ("مهارت", "مهارت‌ها", "مهارت ها", "skill", "skills"),
+                "market_gap": ("شکاف بازار", "market gap", "market_gap", "شکاف"),
+                "market_demand": ("تقاضای بازار", "market demand", "market_demand"),
+                "course_coverage": ("پوشش درس", "course coverage", "course_coverage"),
+                "demand_score": ("امتیاز تقاضا", "demand score", "demand_score"),
+                "frequency": ("فراوانی", "تعداد تکرار", "frequency"),
+                "major": ("رشته", "گرایش", "major"),
+                "graduation_year": ("سال فارغ التحصیلی", "سال فارغ‌التحصیلی", "graduation year"),
+                "study_level": ("مقطع تحصیلی", "مقطع", "study level"),
+                "job_title": ("عنوان شغلی", "job title"),
+                "job_field": ("حوزه شغلی", "زمینه شغلی", "job field"),
+                "employment_months": ("مدت اشتغال", "ماه اشتغال", "employment months"),
+                "career_relevance": ("ارتباط شغلی", "ارتباط با شغل", "career relevance"),
+                "course_category": ("دسته درس", "دسته‌بندی درس", "course category"),
+                "course_name": ("نام درس", "course name"),
+                "credits": ("واحد", "اعتبار", "credit", "credits"),
+                "experience_level": ("سطح تجربه", "experience level"),
+            }
+            requested_dimensions = [
+                field for field, aliases in field_aliases.items()
+                if field in profile.get("fields", {})
+                and "group_by" in profile["fields"][field].get("roles", [])
+                and any(alias in query for alias in aliases)
+            ]
+            group_by = requested_dimensions[:2]
+            if not group_by and has_any(
+                "به تفکیک", "برای هر", "بر اساس", "گروه بندی",
+                "گروه‌بندی", "group by", "per ", "مقایسه", "compare",
+                "comparison", "رتبه بندی", "رتبه‌بندی",
+            ):
+                default_group = profile.get("default_group_by")
+                if default_group and "group_by" in profile["fields"].get(default_group, {}).get("roles", []):
+                    group_by = [default_group]
+
+            metric_aliases = {
+                "market_gap": "average_market_gap",
+                "market_demand": "average_market_demand",
+                "course_coverage": "average_course_coverage",
+                "demand_score": "average_demand_score",
+                "frequency": "total_frequency",
+                "career_relevance": "average_career_relevance",
+                "employment_months": "average_employment_months",
+                "credits": "average_credits",
+            }
+            metric_fields = [
+                field for field, aliases in field_aliases.items()
+                if field in profile.get("fields", {})
+                and "metric" in profile["fields"][field].get("roles", [])
+                and any(alias in query for alias in aliases)
+            ]
+            if not metric_fields and has_any("میانگین", "متوسط", "average", "mean", "مجموع", "جمع", "sum"):
+                defaults = profile.get("default_metrics", {})
+                metric_fields = [
+                    definition.get("field")
+                    for definition in defaults.values()
+                    if definition.get("field") in profile.get("fields", {})
+                    and "metric" in profile["fields"][definition["field"]].get("roles", [])
+                ]
+            aggregate_requested = bool(group_by) or has_any(
+                "میانگین", "متوسط", "average", "mean", "مجموع", "جمع", "sum",
+                "بیشترین", "کمترین", "رتبه بندی", "رتبه‌بندی",
+                "ranking", "rank", "highest", "lowest",
+            )
+
+            conditions = []
+            comparison_ops = (
+                (r"(?:حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:\.\d+)?)", "gte"),
+                (r"(?:بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(-?\d+(?:\.\d+)?)", "gt"),
+                (r"(?:حداکثر|حداکثرِ|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than)\s*(-?\d+(?:\.\d+)?)", "lte"),
+                (r"(?:کمتر\s+از|پایین.?تر\s+از|less\s+than|below)\s*(-?\d+(?:\.\d+)?)", "lt"),
+            )
+            for field, aliases in field_aliases.items():
+                definition = profile.get("fields", {}).get(field)
+                if not definition or "filter" not in definition.get("roles", []):
+                    continue
+                for alias in aliases:
+                    escaped = re.escape(alias)
+                    for pattern, operator in comparison_ops:
+                        match = re.search(
+                            rf"(?:{escaped})\s*(?:با|حداقل|حداکثر|greater than|less than|at least|at most)?\s*{pattern}",
+                            query,
+                        )
+                        if match:
+                            raw = match.group(1)
+                            value = float(raw) if "." in raw else int(raw)
+                            conditions.append({
+                                "field": field, "operator": operator, "value": value,
+                            })
+                            break
+                    if any(item["field"] == field for item in conditions):
+                        break
+
+            if aggregate_requested and group_by:
+                metrics = []
+                for field in metric_fields:
+                    function = "sum" if field == "frequency" or (
+                        field == "credits" and has_any("مجموع", "جمع", "sum", "total")
+                    ) else "avg"
+                    metrics.append({
+                        "function": function,
+                        "field": field,
+                        "alias": metric_aliases.get(field, f"{function}_{field}"),
+                    })
+                if not metrics:
+                    metrics = [{"function": "count_documents", "alias": "document_count"}]
+                sort = []
+                if has_any("بیشترین", "بالاترین", "highest", "most", "رتبه بندی", "رتبه‌بندی", "ranking", "rank"):
+                    target = metrics[0]["alias"]
+                    sort = [{"field": target, "order": "desc"}]
+                elif has_any("کمترین", "پایین‌ترین", "lowest"):
+                    target = metrics[0]["alias"]
+                    sort = [{"field": target, "order": "asc"}]
+                return make_plan({
+                    "dataset_id": dataset_id, "operation": "aggregate",
+                    "group_by": group_by, "metrics": metrics,
+                    "filters": {"logic": "and", "conditions": conditions, "groups": []} if conditions else None,
+                    "sort": sort, "limit": 100, "options": {},
+                }, "Profile-driven deterministic grouped analytics plan.")
+
+            if conditions and not aggregate_requested:
+                count_requested = has_any("تعداد", "چه تعداد", "چند", "count", "how many")
+                if count_requested:
+                    return make_plan({
+                        "dataset_id": dataset_id, "operation": "count",
+                        "group_by": [], "metrics": [],
+                        "filters": {"logic": "and", "conditions": conditions, "groups": []},
+                        "sort": [], "limit": 10, "options": {},
+                    }, "Profile-driven deterministic filtered count plan.")
+
     return None
 
 
