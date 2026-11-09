@@ -18,6 +18,7 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 from config import get_elasticsearch_client
+from tools.dataset_registry import list_registered_datasets
 
 
 REQUIRED_MCP_TOOLS = {
@@ -30,14 +31,34 @@ REQUIRED_MCP_TOOLS = {
 
 
 def check_elasticsearch() -> dict[str, Any]:
+    """
+    Verify cluster connectivity and the physical indices required by the
+    analytics dataset registry. A reachable cluster with missing indices
+    is not considered ready for NexusOps analytics.
+    """
     client = None
     try:
         client = get_elasticsearch_client()
         info = client.info()
+        datasets = list_registered_datasets()
+        index_status = {
+            item["dataset_id"]: {
+                "index": item["index"],
+                "exists": bool(client.indices.exists(index=item["index"])),
+            }
+            for item in datasets
+        }
+        missing_indices = sorted(
+            item["index"]
+            for item in index_status.values()
+            if not item["exists"]
+        )
         return {
-            "ok": bool(info),
+            "ok": bool(info) and not missing_indices,
             "cluster_name": info.get("cluster_name"),
             "version": info.get("version", {}).get("number"),
+            "required_indices": index_status,
+            "missing_indices": missing_indices,
         }
     except Exception as exc:
         return {"ok": False, "error_type": type(exc).__name__, "message": str(exc)}
@@ -123,6 +144,7 @@ async def check_n8n() -> dict[str, Any]:
             "ok": reachable,
             "url": url,
             "http_status": response.status_code,
+            "check_scope": "http_reachability_only",
         }
     except Exception as exc:
         return {
