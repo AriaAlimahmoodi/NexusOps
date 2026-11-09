@@ -544,7 +544,12 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     target = target_metric["alias"]
                     sort = [{"field": target, "order": "desc"}]
                 elif has_any("کمترین", "پایین‌ترین", "lowest"):
-                    target = metrics[0]["alias"]
+                    target_metric = metrics[0]
+                    if has_any("شکاف بازار", "market gap", "market_gap"):
+                        target_metric = next((metric for metric in metrics if metric.get("field") == "market_gap"), target_metric)
+                    elif has_any("تقاضای بازار", "market demand", "market_demand", "demand score"):
+                        target_metric = next((metric for metric in metrics if metric.get("field") in {"market_demand", "demand_score"}), target_metric)
+                    target = target_metric["alias"]
                     sort = [{"field": target, "order": "asc"}]
                 return make_plan({
                     "dataset_id": dataset_id, "operation": "aggregate",
