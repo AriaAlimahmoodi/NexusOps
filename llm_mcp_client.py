@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -3068,6 +3069,9 @@ async def ask_nexusops(
         state.active_requests += 1
 
     request_id = uuid.uuid4().hex
+    conversation_ref = hashlib.sha256(
+        conversation_id.strip().encode("utf-8")
+    ).hexdigest()[:16]
 
     try:
         async with state.lock:
@@ -3076,7 +3080,7 @@ async def ask_nexusops(
                 "NexusOps request started",
                 extra={
                     "request_id": request_id,
-                    "conversation_id": conversation_id,
+                    "conversation_ref": conversation_ref,
                 },
             )
             answer = await _ask_nexusops_for_state(
