@@ -103,9 +103,23 @@ _SYNC_TOOL_SEMAPHORE = asyncio.Semaphore(MCP_MAX_CONCURRENT_SYNC_TOOLS)
 
 
 async def run_sync_function(tool_name: str, function, *args):
-    """Bound blocking data work and move it off the MCP event loop."""
+    """
+    Bound blocking data work and keep its semaphore slot until the worker
+    thread actually finishes, even if the calling MCP task is cancelled.
+    """
     async with _SYNC_TOOL_SEMAPHORE:
-        return await asyncio.to_thread(function, *args)
+        worker = asyncio.create_task(asyncio.to_thread(function, *args))
+        try:
+            return await asyncio.shield(worker)
+        except asyncio.CancelledError:
+            try:
+                await worker
+            except Exception:
+                logger.exception(
+                    "Blocking MCP worker failed after caller cancellation",
+                    extra={"tool_name": tool_name},
+                )
+            raise
 
 
 async def run_sync_tool(tool_name: str, function, *args) -> str:
