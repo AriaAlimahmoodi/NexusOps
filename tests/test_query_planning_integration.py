@@ -83,6 +83,16 @@ def test_analytics_mcp_response_rejects_dataset_mismatch():
 
 def test_analytics_mcp_select_accepts_empty_valid_result():
     plan = QueryPlan(tool_name='analytics_query', arguments={'dataset_id': 'university_courses', 'operation': 'select'})
-    data = {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'select', 'result': [], 'metadata': {'returned_records': 0, 'total_records': 0}}
+    data = {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'select', 'result': [], 'metadata': {'returned_records': 0, 'total_records': 0}, 'error': None}
+    valid, message = validate_mcp_result(plan, data)
+    assert valid, message
+def test_document_search_uses_the_actual_mcp_query_argument():
+    plan = build_query_plan('اطلاعات فارغ التحصیل G0001 را نشان بده')
+    assert plan.tool_name == 'search_elasticsearch'
+    assert plan.arguments == {'query': 'اطلاعات فارغ التحصیل G0001 را نشان بده'}
+
+def test_analytics_count_plan_accepts_success_envelope_with_null_error():
+    plan = QueryPlan(tool_name='analytics_query', arguments={'dataset_id': 'university_courses', 'operation': 'count'})
+    data = {'status': 'success', 'dataset_id': 'university_courses', 'operation': 'count', 'result': {'count': 20}, 'metadata': {'returned_records': 1, 'total_records': 20}, 'error': None}
     valid, message = validate_mcp_result(plan, data)
     assert valid, message
