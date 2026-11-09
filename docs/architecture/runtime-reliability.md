@@ -42,10 +42,11 @@ existing CLI behavior. Integrations serving multiple users must supply a
 stable, non-empty conversation ID per logical conversation and must not use a
 shared constant for every user.
 
-The in-process state store is bounded to 128 retained conversations. Inactive
+The in-process state store targets 128 retained conversations. Inactive
 least-recently-used entries may be evicted when capacity is reached; active
-requests are protected from eviction. This state is process-local and is not
-a distributed session store.
+requests are protected from eviction, so the count may temporarily exceed the
+target while all retained conversations are active. This state is process-local
+and is not a distributed session store.
 
 ## MCP session and retry policy
 
@@ -138,7 +139,7 @@ as processes. Events include timestamp, severity, logger, event name, and
 available correlation fields such as:
 
 - request_id
-- conversation_id
+- conversation_ref (a short hash; raw IDs are not logged)
 - tool_name
 - dataset_id
 - operation
@@ -161,9 +162,11 @@ tests/test_runtime_reliability.py covers:
 - no retry for application-level failures
 - bounded retry exhaustion
 - offloading synchronous MCP tools from the event loop
-- canonical analytics error envelopes
+- canonical analytics error envelopes, including normalization of adapter errors
 - analytics execution off the event loop
-- JSON log correlation fields
+- JSON log correlation fields without request payloads
+- Elasticsearch client cleanup after analytics failures
+- Elasticsearch client cleanup after market-skill failures
 
 These tests use mocked transport or data functions where appropriate. They do
 not prove connectivity to the developer's live Ollama, MCP, Elasticsearch, or
