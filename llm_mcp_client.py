@@ -5,7 +5,6 @@ import os
 import re
 import threading
 import time
-import traceback
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -2724,9 +2723,9 @@ async def _ask_nexusops_for_state(
         if plan.tool_name is not None:
             plan.fresh_mcp_required = True
 
-        print("\n[Planner]")
-        print(
-            f"Tool: {plan.tool_name}"
+        logger.debug(
+            "Query plan selected",
+            extra={"request_id": request_id, "tool_name": plan.tool_name},
         )
         logger.debug(
             "Query plan resolved",
@@ -2737,17 +2736,13 @@ async def _ask_nexusops_for_state(
                 "operation": plan.arguments.get("operation"),
             },
         )
-        print(
-            f"Entities: "
-            f"{plan.requested_entities}"
-        )
-        print(
-            f"Count: "
-            f"{plan.requested_count}"
-        )
-        print(
-            f"Reason: "
-            f"{plan.reason}"
+        logger.debug(
+            "Planner metadata",
+            extra={
+                "request_id": request_id,
+                "requested_entity_count": len(plan.requested_entities),
+                "requested_count": plan.requested_count,
+            },
         )
 
         # =====================================================
@@ -2785,13 +2780,9 @@ async def _ask_nexusops_for_state(
 
         if plan.tool_name is not None:
 
-            print(
-                "[Pipeline] Structured query detected."
-            )
-
-            print(
-                "[Pipeline] Fresh MCP verification "
-                "is mandatory."
+            logger.debug(
+                "Structured request requires fresh MCP evidence",
+                extra={"request_id": request_id},
             )
 
             (
@@ -2840,9 +2831,9 @@ async def _ask_nexusops_for_state(
 
         if current_turn_evidence:
 
-            print(
-                "[Answer Layer] "
-                "Attempting deterministic rendering."
+            logger.debug(
+                "Attempting deterministic answer rendering",
+                extra={"request_id": request_id},
             )
 
             deterministic_answer = (
@@ -2856,9 +2847,9 @@ async def _ask_nexusops_for_state(
 
             if deterministic_answer:
 
-                print(
-                    "[Answer Layer] "
-                    "Deterministic answer generated."
+                logger.debug(
+                    "Deterministic answer rendered",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2867,9 +2858,9 @@ async def _ask_nexusops_for_state(
 
             else:
 
-                print(
-                    "[Answer Layer] "
-                    "No deterministic renderer matched."
+                logger.debug(
+                    "Deterministic renderer did not match",
+                    extra={"request_id": request_id},
                 )
 
                 # -------------------------------------------------
@@ -2886,10 +2877,9 @@ async def _ask_nexusops_for_state(
                     )
                 )
 
-                print(
-                    "[Grounding] "
-                    "Generating final answer from "
-                    "fresh verified evidence."
+                logger.debug(
+                    "Generating answer from fresh verified evidence",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2912,13 +2902,9 @@ async def _ask_nexusops_for_state(
 
         elif memory_is_sufficient:
 
-            print(
-                "[Pipeline] No fresh MCP plan."
-            )
-
-            print(
-                "[Pipeline] Verified structured memory "
-                "is sufficient."
+            logger.debug(
+                "Using verified conversation memory",
+                extra={"request_id": request_id},
             )
 
             # Try deterministic answer using memory.
@@ -2935,9 +2921,9 @@ async def _ask_nexusops_for_state(
 
             if deterministic_answer:
 
-                print(
-                    "[Answer Layer] "
-                    "Memory-based deterministic answer generated."
+                logger.debug(
+                    "Memory-based deterministic answer rendered",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2956,9 +2942,9 @@ async def _ask_nexusops_for_state(
                     )
                 )
 
-                print(
-                    "[Grounding] "
-                    "Generating answer from verified memory."
+                logger.debug(
+                    "Generating answer from verified memory",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2978,9 +2964,9 @@ async def _ask_nexusops_for_state(
 
         else:
 
-            print(
-                "[Pipeline] No deterministic MCP plan "
-                "and no sufficient verified memory."
+            logger.debug(
+                "No structured evidence matched; using conversational response",
+                extra={"request_id": request_id},
             )
 
             # -------------------------------------------------
