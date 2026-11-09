@@ -127,3 +127,66 @@ def test_generated_comparison_plan_is_fully_validated_against_profile():
     assert plan.arguments["filters"] is None
     assert plan.arguments["options"] == {}
     assert all(metric.get("alias") for metric in plan.arguments["metrics"])
+
+
+def test_graduate_identifier_keeps_exact_entity_lookup_route():
+    from query_planner import build_query_plan
+
+    plan = build_query_plan("Show the profile for graduate G0001")
+    assert plan.tool_name == "search_elasticsearch"
+    assert {"type": "graduate_id", "value": "G0001"} in plan.requested_entities
+
+
+def test_course_identifier_keeps_exact_entity_lookup_route():
+    from query_planner import build_query_plan
+
+    plan = build_query_plan("Show details for course C002")
+    assert plan.tool_name == "search_elasticsearch"
+    assert {"type": "course_id", "value": "C002"} in plan.requested_entities
+
+
+def test_specialized_skill_gap_tool_has_priority_over_generic_analytics():
+    from query_planner import build_query_plan
+
+    plan = build_query_plan("Show the top 5 skill gaps")
+    assert plan.tool_name == "get_top_skill_gaps"
+    assert plan.arguments == {"limit": 5}
+
+
+def test_specialized_market_skill_tool_has_priority_over_generic_analytics():
+    from query_planner import build_query_plan
+
+    plan = build_query_plan("Show the top 5 most demanded skills")
+    assert plan.tool_name == "get_top_market_skills"
+    assert plan.arguments == {"limit": 5}
+
+
+def test_query_resolution_does_not_invoke_local_planner_for_exact_ids_or_specialized_tools():
+    import asyncio
+    from llm_mcp_client import resolve_query_plan
+
+    class NoLLMClient:
+        @property
+        def chat(self):
+            raise AssertionError("Local LLM planner must not run for authoritative routes.")
+
+    async def run():
+        graduate = await resolve_query_plan(
+            NoLLMClient(), "Show the profile for graduate G0001"
+        )
+        course = await resolve_query_plan(
+            NoLLMClient(), "Show details for course C002"
+        )
+        gap = await resolve_query_plan(
+            NoLLMClient(), "Show the top 5 skill gaps"
+        )
+        demand = await resolve_query_plan(
+            NoLLMClient(), "Show the top 5 most demanded skills"
+        )
+        return graduate, course, gap, demand
+
+    graduate, course, gap, demand = asyncio.run(run())
+    assert graduate.tool_name == "search_elasticsearch"
+    assert course.tool_name == "search_elasticsearch"
+    assert gap.tool_name == "get_top_skill_gaps"
+    assert demand.tool_name == "get_top_market_skills"
