@@ -222,3 +222,95 @@ def test_json_runtime_logs_include_correlation_fields_without_payload():
     assert payload["event"] == "MCP tool completed"
     assert "arguments" not in payload
     assert "result" not in payload
+
+
+def test_analytics_tool_error_payload_is_normalized_to_full_contract(monkeypatch):
+    server = _load_server(monkeypatch)
+    monkeypatch.setattr(
+        server,
+        "run_analytics_query",
+        lambda _arguments: {
+            "status": "error",
+            "error": {
+                "code": "INVALID_ANALYTICS_REQUEST",
+                "message": "The request is invalid.",
+                "stage": "request_validation",
+                "exception_type": "ValueError",
+            },
+        },
+    )
+
+    response = json.loads(asyncio.run(
+        server.analytics_query_tool(
+            dataset_id="university_courses",
+            operation="count",
+        )
+    ))
+
+    assert response["status"] == "error"
+    assert response["dataset_id"] == "university_courses"
+    assert response["operation"] == "count"
+    assert response["result"] is None
+    assert response["metadata"]["request_id"]
+    assert response["error"]["code"] == "INVALID_ANALYTICS_REQUEST"
+    assert response["error"]["details"] == {
+        "stage": "request_validation",
+        "exception_type": "ValueError",
+    }
+
+
+def test_analytics_tool_closes_client_when_service_fails(monkeypatch):
+    import tools.analytics_tool as analytics_tool
+
+    class FakeClient:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    fake_client = FakeClient()
+
+    class FakeAdapter:
+        def __init__(self, client):
+            assert client is fake_client
+
+    class FailingService:
+        def __init__(self, adapter):
+            self.adapter = adapter
+
+        def analyze(self, request):
+            raise RuntimeError("simulated adapter failure")
+
+    monkeypatch.setattr(analytics_tool, "get_elasticsearch_client", lambda: fake_client)
+    monkeypatch.setattr(analytics_tool, "ElasticsearchAdapter", FakeAdapter)
+    monkeypatch.setattr(analytics_tool, "AnalyticsService", FailingService)
+
+    result = analytics_tool.run_analytics_query({
+        "dataset_id": "university_graduates",
+        "operation": "count",
+    })
+
+    assert result["status"] == "error"
+    assert result["error"]["code"] == "ANALYTICS_EXECUTION_FAILED"
+    assert fake_client.closed is True
+
+
+def test_market_skill_tool_closes_client_when_search_fails(monkeypatch):
+    import tools.market_skills as market_skills
+
+    class FakeClient:
+        closed = False
+
+        def search(self, **_kwargs):
+            raise RuntimeError("simulated Elasticsearch failure")
+
+        def close(self):
+            self.closed = True
+
+    fake_client = FakeClient()
+    monkeypatch.setattr(market_skills, "get_elasticsearch_client", lambda: fake_client)
+
+    with pytest.raises(RuntimeError, match="simulated Elasticsearch failure"):
+        market_skills.get_market_skill_details(["DevOps"])
+
+    assert fake_client.closed is True
