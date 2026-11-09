@@ -644,12 +644,10 @@ def _requested_fields(
 
 def retrieve_structured_evidence(
     query: str,
+    memory_manager: MemoryManager | None = None,
 ) -> list[dict]:
-
-    records = (
-        structured_memory_manager
-        .get_verified_tool_results()
-    )
+    manager = memory_manager or structured_memory_manager
+    records = manager.get_verified_tool_results()
 
     if not records:
         return []
