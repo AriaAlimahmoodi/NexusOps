@@ -202,3 +202,17 @@ Then repeat the live n8n acceptance scenarios in
 analytics-runtime-acceptance.md, including concurrent requests from different
 conversations. Verify that same-conversation turns remain ordered and that
 separate conversation IDs do not share evidence or history.
+
+
+## Dataset-aware readiness preflight
+
+The Elasticsearch readiness check now goes beyond cluster connectivity. It reads
+the registered dataset catalog and verifies that every physical index referenced
+by a registered dataset exists. Its JSON output includes a dataset-to-index
+readiness map and a list of missing indices. The preflight fails when the cluster
+is reachable but one or more registered indices are absent.
+
+The n8n check is intentionally scoped to HTTP reachability. A successful response
+from the n8n base URL does not prove that a particular workflow is active, correctly
+configured, or able to complete an execution. Those conditions remain part of
+the live end-to-end acceptance runbook.
