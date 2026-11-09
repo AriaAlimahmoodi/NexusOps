@@ -15,7 +15,10 @@ from query_planner import (
     validate_mcp_result,
     validate_tool_arguments,
 )
-from llm_query_planner import build_analytics_query_plan
+from llm_query_planner import (
+    build_analytics_query_plan,
+    build_deterministic_analytics_query_plan,
+)
 
 
 MCP_URL = "http://127.0.0.1:8000/mcp"
@@ -2541,6 +2544,65 @@ async def execute_planned_mcp_query(
 
 
 # ============================================================
+# ============================================================
+# QUERY PLAN RESOLUTION
+# ============================================================
+
+def is_analytics_data_request(question: str) -> bool:
+    """Identify explicit dataset-analysis requests that must not degrade to generic search."""
+    query = question.casefold()
+    analytic_markers = (
+        "میانگین", "مجموع", "جمع", "تعداد", "چه تعداد", "چند نفر",
+        "حداقل", "حداکثر", "بیشتر از", "کمتر از", "به تفکیک",
+        "برای هر", "گروه بندی", "گروه‌بندی", "فیلتر",
+        "average", "mean", "sum", "count", "how many", "at least",
+        "greater than", "less than", "group by", "per ",
+    )
+    dataset_markers = (
+        "درس", "دروس", "فارغ", "دانشگاه", "مهارت", "بازار",
+        "course", "graduate", "university", "skill", "market",
+    )
+    return (
+        any(marker in query for marker in analytic_markers)
+        and any(marker in query for marker in dataset_markers)
+    )
+
+
+async def resolve_query_plan(
+    client,
+    question: str,
+    conversation_context: str = "",
+) -> QueryPlan:
+    """Resolve plans using explicit authority and fallback order."""
+    plan = build_query_plan(
+        question,
+        conversation_context=conversation_context,
+    )
+    if plan.tool_name in {"get_top_skill_gaps", "get_top_market_skills"}:
+        return plan
+
+    has_structured_id = any(
+        entity.get("type") in {"graduate_id", "course_id"}
+        for entity in plan.requested_entities
+    )
+    if has_structured_id:
+        return plan
+
+    if plan.tool_name == "search_elasticsearch":
+        deterministic_plan = build_deterministic_analytics_query_plan(question)
+        if deterministic_plan is not None:
+            return deterministic_plan
+
+        analytics_plan = await build_analytics_query_plan(
+            client=client,
+            question=question,
+            conversation_context=conversation_context,
+        )
+        if analytics_plan is not None:
+            return analytics_plan
+    return plan
+
+
 # MAIN QUERY PIPELINE
 # ============================================================
 
@@ -2565,25 +2627,17 @@ async def ask_nexusops(
         # STEP 1 — QUERY PLANNER
         # =====================================================
 
-        plan = build_query_plan(
-            question,
+        plan = await resolve_query_plan(
+            client=client,
+            question=question,
             conversation_context=conversation_summary,
         )
 
-        # Exact graduate/course IDs remain on the document lookup path.
-        # Other data questions use the local model's validated analytics plan.
-        has_structured_id = any(
-            entity.get("type") in {"graduate_id", "course_id"}
-            for entity in plan.requested_entities
-        )
-        if plan.tool_name == "search_elasticsearch" and not has_structured_id:
-            analytics_plan = await build_analytics_query_plan(
-                client=client,
-                question=question,
-                conversation_context=conversation_summary,
-            )
-            if analytics_plan is not None:
-                plan = analytics_plan
+        if (
+            plan.tool_name == "search_elasticsearch"
+            and is_analytics_data_request(question)
+        ):
+            return unavailable_evidence_message(question)
 
         # Any deterministic MCP plan requires fresh source data.
         if plan.tool_name is not None:
