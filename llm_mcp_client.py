@@ -2578,6 +2578,16 @@ async def resolve_query_plan(
         conversation_context=conversation_context,
     )
     if plan.tool_name in {"get_top_skill_gaps", "get_top_market_skills"}:
+        # Keep the specialized fast path for ordinary rankings, but allow
+        # an explicit multi-metric comparison to use the generic analytics
+        # engine so no requested metric is silently discarded.
+        comparative_plan = build_deterministic_analytics_query_plan(question)
+        if (
+            comparative_plan is not None
+            and comparative_plan.tool_name == "analytics_query"
+            and len(comparative_plan.arguments.get("metrics", [])) >= 2
+        ):
+            return comparative_plan
         return plan
 
     has_structured_id = any(
