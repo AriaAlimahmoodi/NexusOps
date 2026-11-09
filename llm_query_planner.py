@@ -390,6 +390,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
         "group by", "per ", "rank", "highest", "lowest",
         "most", "greater than", "less than", "at least",
         "count", "how many", "تعداد", "چه تعداد", "چند",
+        ">=", "<=", ">", "<",
         "حداقل", "حداکثر", "بیشتر از", "کمتر از",
     )
     if analytical_intent:
