@@ -4,7 +4,14 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
+
+# Running this file directly sets sys.path[0] to the scripts directory.
+# Add the repository root so project modules (for example config.py) resolve.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import httpx
 from mcp import ClientSession
