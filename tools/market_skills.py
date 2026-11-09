@@ -33,55 +33,58 @@ def get_market_skill_details(skills: list[str]) -> dict:
         }
 
     es = get_elasticsearch_client()
+try:
 
-    response = es.search(
-        index="labor_market",
-        size=0,
-        query={
-            "terms": {
-                "skill": skills
-            }
-        },
-        aggs={
-            "skills": {
+        response = es.search(
+            index="labor_market",
+            size=0,
+            query={
                 "terms": {
-                    "field": "skill",
-                    "size": len(skills),
-                },
-                "aggs": {
-                    "average_demand_score": {
-                        "avg": {
-                            "field": "demand_score"
-                        }
+                    "skill": skills
+                }
+            },
+            aggs={
+                "skills": {
+                    "terms": {
+                        "field": "skill",
+                        "size": len(skills),
                     },
-                    "total_frequency": {
-                        "sum": {
-                            "field": "frequency"
-                        }
+                    "aggs": {
+                        "average_demand_score": {
+                            "avg": {
+                                "field": "demand_score"
+                            }
+                        },
+                        "total_frequency": {
+                            "sum": {
+                                "field": "frequency"
+                            }
+                        },
                     },
-                },
-            }
-        },
-    )
+                }
+            },
+        )
 
-    results = []
+        results = []
 
-    for bucket in response["aggregations"]["skills"]["buckets"]:
-        results.append({
-            "skill": bucket["key"],
-            "average_demand_score": bucket["average_demand_score"]["value"],
-            "total_frequency": bucket["total_frequency"]["value"],
-            "record_count": bucket["doc_count"],
-        })
+        for bucket in response["aggregations"]["skills"]["buckets"]:
+            results.append({
+                "skill": bucket["key"],
+                "average_demand_score": bucket["average_demand_score"]["value"],
+                "total_frequency": bucket["total_frequency"]["value"],
+                "record_count": bucket["doc_count"],
+            })
 
-    requested_skills = set(skills)
-    returned_skills = {item["skill"] for item in results}
+        requested_skills = set(skills)
+        returned_skills = {item["skill"] for item in results}
 
-    missing_skills = sorted(requested_skills - returned_skills)
+        missing_skills = sorted(requested_skills - returned_skills)
 
-    return {
-        "analysis": "market_skill_details",
-        "requested_skills": skills,
-        "results": results,
-        "missing_skills": missing_skills,
-    }
+        return {
+            "analysis": "market_skill_details",
+            "requested_skills": skills,
+            "results": results,
+            "missing_skills": missing_skills,
+        }
+finally:
+    es.close()
