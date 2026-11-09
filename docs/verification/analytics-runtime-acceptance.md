@@ -22,7 +22,7 @@ python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size after this change: **99 tests**. The exact result must be taken from the local run; the expected count is not a test result.
+Expected suite size at the 2026-11-09 checkpoint: **102 tests**. Update this number when the suite changes; the exact result must always come from the local run. The exact result must be taken from the local run; the expected count is not a test result.
 
 ## 2. Verify live services before opening n8n
 
@@ -40,6 +40,8 @@ All four checks must report ok=true before continuing.
 - n8n is running at http://localhost:5678; the active workflow's MCP client points to the local MCP endpoint.
 
 ## 3. End-to-end acceptance scenarios
+
+**Current gate status (2026-11-09):** local code gate passed with `102 passed in 1.52s`; the dataset-aware preflight returned `ok: true`, and all five registered Elasticsearch indexes existed. These results establish code-suite and service-readiness status only. The n8n execution scenarios below remain pending until they are run through the actual workflow.
 
 Run each prompt through the actual n8n workflow, not only through a direct Python function call.
 
@@ -193,3 +195,38 @@ The n8n preflight result proves only that the configured base URL is reachable.
 It does not inspect workflow activation, credentials, MCP node configuration,
 or execution history. These must be verified by running the actual workflow in
 the scenarios above.
+
+
+## 7. Acceptance record — 2026-11-09
+
+### Completed gates
+
+| Gate | Evidence | Status |
+|---|---|---|
+| Python syntax compilation | `runtime_preflight.py`, `server.py`, `llm_mcp_client.py` compiled successfully | PASS |
+| Automated tests | `102 passed in 1.52s` | PASS |
+| Elasticsearch connectivity | Cluster `my-elk-cluster`, version `9.5.5` | PASS |
+| Registered index readiness | `labor_market`, `university_courses`, `university_graduates`, `course_graduate_records`, `skill_mapping` all exist | PASS |
+| Ollama | `qwen3:4b` available | PASS |
+| MCP | All five required tools listed | PASS |
+| n8n HTTP reachability | Base URL returned HTTP 200 | PASS |
+
+### Still pending — actual n8n workflow executions
+
+Do not mark these scenarios passed based on preflight or pytest:
+
+| Scenario | Actual tool selected | Result / reference comparison | Status |
+|---|---|---|---|
+| A — graduate count, year 1402 | Pending | Pending | NOT RUN |
+| B — graduate averages by major | Pending | Pending | NOT RUN |
+| C — combined market demand and gap filters | Pending | Pending | NOT RUN |
+| D1 — graduate G0001 | Pending | Pending | NOT RUN |
+| D2 — course C002 | Pending | Pending | NOT RUN |
+| D3 — top five skill gaps | Pending | Pending | NOT RUN |
+| D4 — top five market-demand skills | Pending | Pending | NOT RUN |
+| E — demand and gap averages by skill | Pending | Pending | NOT RUN |
+| Concurrency and conversation isolation | Pending | Pending | NOT RUN |
+
+### TLS warning
+
+The local Elasticsearch connection currently uses `verify_certs=false`. The resulting urllib3 / Elasticsearch security warnings are expected under that development configuration and do not mean the connection failed. Production or network-exposed deployments must validate the certificate chain; do not suppress the warning as a substitute for fixing TLS configuration.
