@@ -174,15 +174,28 @@ n8n processes.
 
 ## Local acceptance
 
-After pulling the branch, run:
+After pulling the branch, run the static and automated code gates:
 
 ~~~powershell
 python -m py_compile llm_mcp_client.py
 python -m py_compile server.py
 python -m py_compile config.py
 python -m py_compile runtime_logging.py
+python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
+
+Then verify local service readiness with:
+
+~~~powershell
+python scripts/runtime_preflight.py
+~~~
+
+The preflight checks Elasticsearch, the configured Ollama model, the MCP
+endpoint and required tool registry, and the n8n HTTP endpoint. It does not
+execute analytical queries or replace the numerical and concurrency acceptance
+scenarios below.
+
 
 Then repeat the live n8n acceptance scenarios in
 analytics-runtime-acceptance.md, including concurrent requests from different
