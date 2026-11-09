@@ -532,13 +532,14 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
 
             if conditions and not aggregate_requested:
                 count_requested = has_any("تعداد", "چه تعداد", "چند", "count", "how many")
-                if count_requested:
-                    return make_plan({
-                        "dataset_id": dataset_id, "operation": "count",
-                        "group_by": [], "metrics": [],
-                        "filters": {"logic": "and", "conditions": conditions, "groups": []},
-                        "sort": [], "limit": 10, "options": {},
-                    }, "Profile-driven deterministic filtered count plan.")
+                return make_plan({
+                    "dataset_id": dataset_id,
+                    "operation": "count" if count_requested else "select",
+                    "group_by": [], "metrics": [],
+                    "filters": {"logic": "and", "conditions": conditions, "groups": []},
+                    "sort": [], "limit": 10 if count_requested else 100,
+                    "options": {},
+                }, "Profile-driven deterministic filtered count/select plan.")
 
     return None
 
