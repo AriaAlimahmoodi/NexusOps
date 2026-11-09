@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import logging
 
 from tools.analytics_engine.aggregation_builder import AggregationPlanError
 from tools.analytics_engine.analytics_service import (
@@ -21,6 +22,8 @@ from tools.analytics_engine.models import (
 )
 from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
 from config import get_elasticsearch_client
+
+logger = logging.getLogger("nexusops.analytics")
 
 
 def _build_metrics(metrics: list[dict[str, Any]]) -> tuple[MetricSpec, ...]:
@@ -170,32 +173,40 @@ def run_analytics_query(arguments: dict[str, Any]) -> dict[str, Any]:
             exception_type=type(exc).__name__,
         )
 
+    client = None
     try:
-        client = get_elasticsearch_client()
-        adapter = ElasticsearchAdapter(client=client)
-        service = AnalyticsService(adapter=adapter)
-    except Exception as exc:
-        return _analytics_error(
-            "ANALYTICS_CLIENT_INITIALIZATION_FAILED",
-            "Unable to initialize the Elasticsearch analytics client.",
-            stage="client_initialization",
-            exception_type=type(exc).__name__,
-        )
+        try:
+            client = get_elasticsearch_client()
+            adapter = ElasticsearchAdapter(client=client)
+            service = AnalyticsService(adapter=adapter)
+        except Exception as exc:
+            return _analytics_error(
+                "ANALYTICS_CLIENT_INITIALIZATION_FAILED",
+                "Unable to initialize the Elasticsearch analytics client.",
+                stage="client_initialization",
+                exception_type=type(exc).__name__,
+            )
 
-    try:
-        return service.analyze(request)
-    except AnalyticsServiceError as exc:
-        return _analytics_error(
-            exc.code,
-            str(exc),
-            stage="analytics_service",
-            details=exc.details,
-        )
-    except Exception as exc:
-        return _analytics_error(
-            "ANALYTICS_EXECUTION_FAILED",
-            "The analytics operation could not be completed.",
-            stage="execution",
-            exception_type=type(exc).__name__,
-        )
+        try:
+            return service.analyze(request)
+        except AnalyticsServiceError as exc:
+            return _analytics_error(
+                exc.code,
+                str(exc),
+                stage="analytics_service",
+                details=exc.details,
+            )
+        except Exception as exc:
+            return _analytics_error(
+                "ANALYTICS_EXECUTION_FAILED",
+                "The analytics operation could not be completed.",
+                stage="execution",
+                exception_type=type(exc).__name__,
+            )
+    finally:
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                logger.exception("Failed to close Elasticsearch analytics client")
 
