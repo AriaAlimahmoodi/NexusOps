@@ -445,7 +445,6 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "skill", "major", "graduation_year", "study_level",
                 "job_title", "job_field", "course_category", "course_name",
                 "experience_level", "additional_training", "additional_skills",
-                "course_id", "graduate_id",
             }
             explicit_dimensions = [
                 field for field, aliases in field_aliases.items()
