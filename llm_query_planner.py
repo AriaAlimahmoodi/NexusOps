@@ -247,7 +247,7 @@ Return exactly one JSON object, no prose or Markdown. Required keys:
 dataset_id, operation, group_by, metrics, filters, sort, limit, options.
 IMPORTANT JSON SHAPE RULES:
 - group_by, metrics, and sort MUST always be JSON arrays. Use [] when empty; NEVER use null.
-- options MUST always be a JSON object. Use {} when empty; NEVER use null.
+- options MUST always be a JSON object. Use {{}} when empty; NEVER use null.
 - filters MUST be null when no filtering is needed, otherwise a non-empty filter-group object.
 - Never omit a required key and never replace an array/object with a scalar.
 Use only registered dataset IDs and fields above.
