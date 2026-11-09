@@ -156,7 +156,7 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         else:
             require_role(field_name, "metric")
             allowed = fields[field_name].get("aggregations", [])
-            if allowed and function not in allowed and function != "value_count":
+            if allowed and function not in allowed and function not in {"value_count", "cardinality"}:
                 raise AnalyticsPlanningError(f"Metric '{function}' is not declared for field '{field_name}'.")
         if alias is not None:
             if not isinstance(alias, str) or not alias.strip() or alias in aliases:
