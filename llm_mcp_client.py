@@ -2681,15 +2681,16 @@ async def resolve_query_plan(
 # MAIN QUERY PIPELINE
 # ============================================================
 
-async def ask_nexusops(
+async def _ask_nexusops_for_state(
     question: str,
+    state: ConversationState,
+    request_id: str,
 ):
-
-    global conversation_history
-
     client = AsyncOpenAI(
         base_url=OLLAMA_BASE_URL,
         api_key="ollama",
+        timeout=OLLAMA_TIMEOUT_SECONDS,
+        max_retries=1,
     )
 
     language = detect_language(
@@ -2705,7 +2706,7 @@ async def ask_nexusops(
         plan = await resolve_query_plan(
             client=client,
             question=question,
-            conversation_context=conversation_summary,
+            conversation_context=state.summary,
         )
 
         if (
@@ -2722,8 +2723,14 @@ async def ask_nexusops(
         print(
             f"Tool: {plan.tool_name}"
         )
-        print(
-            f"Arguments: {plan.arguments}"
+        logger.debug(
+            "Query plan resolved",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "dataset_id": plan.arguments.get("dataset_id"),
+                "operation": plan.arguments.get("operation"),
+            },
         )
         print(
             f"Entities: "
@@ -2744,7 +2751,8 @@ async def ask_nexusops(
 
         structured_evidence = (
             retrieve_structured_evidence(
-                question
+                question,
+                memory_manager=state.memory_manager,
             )
         )
 
@@ -2781,49 +2789,31 @@ async def ask_nexusops(
                 "is mandatory."
             )
 
-            async with streamable_http_client(
-                MCP_URL
-            ) as (
-                read_stream,
-                write_stream,
-            ):
+            (
+                mcp_success,
+                structured_output,
+                mcp_message,
+            ) = await execute_mcp_query_with_resilience(
+                plan,
+                request_id=request_id,
+            )
 
-                async with ClientSession(
-                    read_stream,
-                    write_stream,
-                ) as session:
+            if not mcp_success:
+                logger.warning(
+                    "Fresh MCP evidence unavailable",
+                    extra={
+                        "request_id": request_id,
+                        "tool_name": plan.tool_name,
+                        "failure": str(mcp_message)[:500],
+                    },
+                )
+                return unavailable_evidence_message(question)
 
-                    await session.initialize()
-
-                    (
-                        mcp_success,
-                        structured_output,
-                        mcp_message,
-                    ) = await execute_planned_mcp_query(
-                        session,
-                        plan,
-                    )
-
-                    if not mcp_success:
-
-                        print(
-                            "[Validator] MCP result rejected: "
-                            + str(mcp_message)
-                        )
-
-                        return unavailable_evidence_message(
-                            question
-                        )
-
-                    # -----------------------------------------
-                    # Store exact verified result
-                    # -----------------------------------------
-
-                    structured_memory_manager.store_tool_result(
-                        tool_name=plan.tool_name,
-                        arguments=plan.arguments,
-                        data=structured_output,
-                    )
+            state.memory_manager.store_tool_result(
+                tool_name=plan.tool_name,
+                arguments=plan.arguments,
+                data=structured_output,
+            )
 
                     current_turn_evidence.append(
                         {
@@ -2904,7 +2894,7 @@ async def ask_nexusops(
                         question=question,
                         evidence=final_evidence,
                         conversation_context=(
-                            conversation_summary
+                            state.summary
                         ),
                     )
                 )
@@ -2996,7 +2986,7 @@ async def ask_nexusops(
             # -------------------------------------------------
 
             base_messages = (
-                make_base_messages()
+                make_base_messages(history=state.history, summary=state.summary)
             )
 
             base_messages.append(
@@ -3043,27 +3033,20 @@ async def ask_nexusops(
             },
         ]
 
-        conversation_history.append(
-            turn_messages
-        )
-
-        await manage_history(
-            client
+        state.history.append(turn_messages)
+        state.summary = await manage_history(
+            client,
+            history=state.history,
+            summary=state.summary,
         )
 
         return answer
 
-    except Exception as exc:
-
-        print(
-            "\n[Error] Could not complete the request."
+    except Exception:
+        logger.exception(
+            "NexusOps request failed",
+            extra={"request_id": request_id},
         )
-
-        print(
-            f"Details: {exc}"
-        )
-
-        traceback.print_exc()
 
         return (
             "نتوانستم درخواست را کامل کنم. "
@@ -3077,6 +3060,49 @@ async def ask_nexusops(
 
 
 # ============================================================
+
+
+async def ask_nexusops(
+    question: str,
+    conversation_id: str = "default",
+):
+    """
+    Process one request in an isolated conversation.
+
+    Requests sharing a conversation_id are serialized to preserve turn order;
+    different conversation IDs can execute concurrently.
+    """
+    state = get_conversation_state(conversation_id)
+    request_id = uuid.uuid4().hex
+
+    async with state.lock:
+        started_at = time.perf_counter()
+        logger.info(
+            "NexusOps request started",
+            extra={
+                "request_id": request_id,
+                "conversation_id": conversation_id,
+            },
+        )
+        answer = await _ask_nexusops_for_state(
+            question,
+            state,
+            request_id,
+        )
+        logger.info(
+            "NexusOps request finished",
+            extra={
+                "request_id": request_id,
+                "conversation_id": conversation_id,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
+        )
+        if conversation_id == "default":
+            global conversation_summary
+            conversation_summary = state.summary
+        return answer
+
+
 # MEMORY RESET
 # ============================================================
 
