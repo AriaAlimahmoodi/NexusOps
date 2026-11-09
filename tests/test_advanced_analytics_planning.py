@@ -203,3 +203,22 @@ def test_multi_metric_comparison_sorts_by_explicitly_ranked_metric():
     assert plan.arguments["sort"] == [
         {"field": "average_market_gap", "order": "desc"}
     ]
+
+
+def test_market_demand_by_job_field_uses_labor_market_demand_score():
+    plan = build_deterministic_analytics_query_plan(
+        "Compare average market demand by job field"
+    )
+    assert plan is not None
+    assert plan.arguments["dataset_id"] == "labor_market"
+    assert plan.arguments["group_by"] == ["job_field"]
+    assert plan.arguments["metrics"] == [
+        {"function": "avg", "field": "demand_score", "alias": "average_demand_score"}
+    ]
+
+
+def test_unsupported_explicit_dimension_is_not_silently_replaced():
+    plan = build_deterministic_analytics_query_plan(
+        "Compare average market gap by job field"
+    )
+    assert plan is None
