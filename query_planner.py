@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 import re
+import math
 
 
 # ============================================================
@@ -1235,25 +1236,99 @@ def validate_mcp_result(
             return False, "Analytics response is not successful."
         if data.get("dataset_id") != expected_dataset or data.get("operation") != expected_operation:
             return False, "Analytics response does not match the planned dataset and operation."
-        result, metadata = data.get("result"), data.get("metadata")
-        if not isinstance(result, (dict, list)) or not isinstance(metadata, dict):
-            return False, "Analytics response is missing result or metadata."
+
+        result = data.get("result")
+        metadata = data.get("metadata")
+        if not isinstance(metadata, dict):
+            return False, "Analytics response is missing metadata."
+
+        warnings = data.get("warnings", [])
+        if not isinstance(warnings, list) or not all(
+            isinstance(item, str) and item.strip() for item in warnings
+        ):
+            return False, "Analytics response warnings must be a list of non-empty strings."
+
+        returned = metadata.get("returned_records")
+        if isinstance(returned, bool) or not isinstance(returned, int) or returned < 0:
+            return False, "Analytics metadata returned_records must be a non-negative integer."
+
+        execution_time = metadata.get("execution_time_ms")
+        if execution_time is not None and (
+            isinstance(execution_time, bool)
+            or not isinstance(execution_time, (int, float))
+            or not math.isfinite(execution_time)
+            or execution_time < 0
+        ):
+            return False, "Analytics metadata execution_time_ms is invalid."
+
+        total = metadata.get("total_records")
+        if total is not None and (
+            isinstance(total, bool) or not isinstance(total, int) or total < 0
+        ):
+            return False, "Analytics metadata total_records is invalid."
+
         if expected_operation == "count":
             count_value = result.get("count") if isinstance(result, dict) else None
             if isinstance(count_value, bool) or not isinstance(count_value, int) or count_value < 0:
                 return False, "Analytics COUNT response contains an invalid count."
+            if returned != 1 or total != count_value:
+                return False, "Analytics COUNT metadata is inconsistent with its count."
+
         elif expected_operation == "select":
             if not isinstance(result, list) or not all(isinstance(row, dict) for row in result):
                 return False, "Analytics SELECT response must contain record objects."
-            returned, total = metadata.get("returned_records"), metadata.get("total_records")
-            if returned != len(result) or isinstance(total, bool) or not isinstance(total, int) or total < returned:
+            if returned != len(result) or total is None or total < returned:
                 return False, "Analytics SELECT metadata is inconsistent."
+
         elif expected_operation == "aggregate":
             buckets = result.get("buckets") if isinstance(result, dict) else None
-            if not isinstance(buckets, list) or metadata.get("returned_records") != len(buckets):
+            if not isinstance(buckets, list) or returned != len(buckets):
                 return False, "Analytics AGGREGATE response or metadata is malformed."
-            if not all(isinstance(item, dict) and isinstance(item.get("group"), dict) and isinstance(item.get("metrics"), dict) for item in buckets):
-                return False, "Analytics AGGREGATE contains malformed buckets."
+
+            expected_groups = plan.arguments.get("group_by", [])
+            expected_metrics = plan.arguments.get("metrics", [])
+            if not isinstance(expected_groups, list) or not isinstance(expected_metrics, list):
+                return False, "Analytics plan contains malformed grouping or metric definitions."
+
+            expected_aliases = set()
+            for metric in expected_metrics:
+                if not isinstance(metric, dict):
+                    return False, "Analytics plan contains a malformed metric."
+                function = metric.get("function")
+                field_name = metric.get("field")
+                alias = metric.get("alias")
+                if alias is None:
+                    alias = "document_count" if function == "count_documents" else f"{function}_{field_name}"
+                if not isinstance(alias, str) or not alias.strip():
+                    return False, "Analytics plan contains an invalid metric alias."
+                expected_aliases.add(alias)
+
+            for index, bucket in enumerate(buckets):
+                if not isinstance(bucket, dict):
+                    return False, f"Analytics AGGREGATE bucket {index} is malformed."
+                group = bucket.get("group")
+                metrics = bucket.get("metrics")
+                document_count = bucket.get("document_count")
+                if not isinstance(group, dict) or not isinstance(metrics, dict):
+                    return False, f"Analytics AGGREGATE bucket {index} is missing group or metrics."
+                if not set(expected_groups).issubset(group):
+                    return False, f"Analytics AGGREGATE bucket {index} is missing planned group fields."
+                if not expected_aliases.issubset(metrics):
+                    return False, f"Analytics AGGREGATE bucket {index} is missing planned metric aliases."
+                if isinstance(document_count, bool) or not isinstance(document_count, int) or document_count < 0:
+                    return False, f"Analytics AGGREGATE bucket {index} has an invalid document_count."
+                for alias in expected_aliases:
+                    value = metrics[alias]
+                    if value is not None and (
+                        isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or (isinstance(value, float) and not math.isfinite(value))
+                    ):
+                        return False, f"Analytics AGGREGATE bucket {index} has an invalid value for metric '{alias}'."
+
+        else:
+            return False, "Analytics response uses an unsupported operation."
+
         return True, "Analytics response matches the validated query plan."
 
     items = _flatten_result_items(
