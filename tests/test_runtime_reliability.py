@@ -314,3 +314,30 @@ def test_market_skill_tool_closes_client_when_search_fails(monkeypatch):
         market_skills.get_market_skill_details(["DevOps"])
 
     assert fake_client.closed is True
+
+
+def test_cancelled_mcp_call_keeps_worker_slot_until_thread_finishes(monkeypatch):
+    import time
+
+    server = _load_server(monkeypatch)
+    started = threading.Event()
+    finished = threading.Event()
+
+    def blocking_operation():
+        started.set()
+        time.sleep(0.05)
+        finished.set()
+        return "done"
+
+    async def run():
+        task = asyncio.create_task(
+            server.run_sync_function("blocking-test", blocking_operation)
+        )
+        while not started.is_set():
+            await asyncio.sleep(0.001)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(run())
+    assert finished.is_set()
