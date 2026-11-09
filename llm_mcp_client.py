@@ -2446,126 +2446,170 @@ def unavailable_evidence_message(
 async def execute_planned_mcp_query(
     session,
     plan: QueryPlan,
+    *,
+    request_id: str | None = None,
 ):
-    """
-    Execute exactly the tool and arguments selected by Query Planner.
-
-    IMPORTANT:
-    The LLM is NOT allowed to choose the MCP tool.
-
-    Flow:
-
-        Planner
-            ↓
-        validate_tool_arguments
-            ↓
-        MCP
-            ↓
-        validate_mcp_result
-    """
+    """Execute and validate exactly one planner-authorized MCP tool call."""
+    request_id = request_id or uuid.uuid4().hex
 
     if not plan.tool_name:
+        return False, None, "No MCP tool was selected by the query planner."
 
-        return (
-            False,
-            None,
-            "No MCP tool was selected by the query planner.",
-        )
-
-    is_valid, arguments, validation_message = (
-        validate_tool_arguments(
-            plan=plan,
-            tool_name=plan.tool_name,
-            arguments=plan.arguments,
-        )
+    is_valid, arguments, validation_message = validate_tool_arguments(
+        plan=plan,
+        tool_name=plan.tool_name,
+        arguments=plan.arguments,
     )
-
     if not is_valid:
-
-        return (
-            False,
-            None,
-            validation_message,
+        logger.warning(
+            "MCP tool arguments rejected",
+            extra={"request_id": request_id, "tool_name": plan.tool_name},
         )
+        return False, None, validation_message
 
-    print(
-        f"[MCP] Direct execution: "
-        f"{plan.tool_name}"
+    started_at = time.perf_counter()
+    logger.info(
+        "MCP tool call started",
+        extra={"request_id": request_id, "tool_name": plan.tool_name},
     )
+    result = await session.call_tool(plan.tool_name, arguments=arguments)
 
-    print(
-        "[MCP] Arguments: "
-        + json.dumps(
-            arguments,
-            ensure_ascii=False,
+    if getattr(result, "isError", False):
+        error_text = extract_tool_result(result)
+        logger.warning(
+            "MCP tool returned protocol error",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
-    )
+        return False, None, "MCP tool execution failed: " + str(error_text)[:1000]
 
-    result = await session.call_tool(
-        plan.tool_name,
-        arguments=arguments,
-    )
-
-    if getattr(
-        result,
-        "isError",
-        False,
-    ):
-
-        return (
-            False,
-            None,
-            "MCP tool returned an error: "
-            + extract_tool_result(result),
+    structured_output = extract_structured_tool_result(result)
+    if isinstance(structured_output, dict) and structured_output.get("status") == "error":
+        error = structured_output.get("error") or {}
+        code = error.get("code", "MCP_TOOL_ERROR") if isinstance(error, dict) else "MCP_TOOL_ERROR"
+        message = error.get("message", "The MCP tool reported an error.") if isinstance(error, dict) else "The MCP tool reported an error."
+        logger.warning(
+            "MCP tool returned application error",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "error_code": code,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
+        return False, None, f"{code}: {message}"
 
-    structured_output = (
-        extract_structured_tool_result(
-            result
-        )
+    result_is_valid, result_validation_message = validate_mcp_result(
+        plan=plan,
+        data=structured_output,
     )
-
-    print(
-        "\n[DEBUG] Raw structured MCP output:"
-    )
-
-    print(
-        json.dumps(
-            structured_output,
-            ensure_ascii=False,
-            indent=2,
-            default=str,
-        )
-    )
-
-    result_is_valid, result_validation_message = (
-        validate_mcp_result(
-            plan=plan,
-            data=structured_output,
-        )
-    )
-
     if not result_is_valid:
-
-        return (
-            False,
-            None,
-            result_validation_message,
+        logger.error(
+            "MCP result failed contract validation",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
+        return False, None, result_validation_message
 
-    print(
-        "[Validator] MCP result accepted: "
-        + result_validation_message
+    logger.info(
+        "MCP tool call completed",
+        extra={
+            "request_id": request_id,
+            "tool_name": plan.tool_name,
+            "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+        },
+    )
+    return True, structured_output, result_validation_message
+
+
+async def _run_mcp_attempt(
+    plan: QueryPlan,
+    *,
+    request_id: str,
+    attempt: int,
+):
+    async with asyncio.timeout(MCP_REQUEST_TIMEOUT_SECONDS):
+        async with streamable_http_client(MCP_URL) as (
+            read_stream,
+            write_stream,
+        ):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                logger.info(
+                    "MCP session initialized",
+                    extra={"request_id": request_id, "attempt": attempt},
+                )
+                return await execute_planned_mcp_query(
+                    session,
+                    plan,
+                    request_id=request_id,
+                )
+
+
+async def execute_mcp_query_with_resilience(
+    plan: QueryPlan,
+    *,
+    request_id: str,
+):
+    """
+    Open a fresh Streamable HTTP session per attempt.
+
+    Only transport failures and timeouts are retried. Planner, validation,
+    and application-level tool errors are returned immediately.
+    """
+    retryable_errors = (
+        httpx.TransportError,
+        asyncio.TimeoutError,
+        TimeoutError,
+        ConnectionError,
+        OSError,
     )
 
-    return (
-        True,
-        structured_output,
-        result_validation_message,
-    )
+    for attempt in range(1, MCP_MAX_ATTEMPTS + 1):
+        try:
+            return await _run_mcp_attempt(
+                plan,
+                request_id=request_id,
+                attempt=attempt,
+            )
+        except retryable_errors as exc:
+            if attempt >= MCP_MAX_ATTEMPTS:
+                logger.error(
+                    "MCP request exhausted retry budget",
+                    extra={
+                        "request_id": request_id,
+                        "attempt": attempt,
+                        "error_type": type(exc).__name__,
+                    },
+                )
+                return (
+                    False,
+                    None,
+                    "MCP service did not respond within the configured "
+                    "time limit or could not be reached.",
+                )
+
+            logger.warning(
+                "Transient MCP transport failure; retrying",
+                extra={
+                    "request_id": request_id,
+                    "attempt": attempt,
+                    "error_type": type(exc).__name__,
+                },
+            )
+            await asyncio.sleep(
+                MCP_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+            )
+
+    return False, None, "MCP request failed without a completed attempt."
 
 
-# ============================================================
 # QUERY PLAN RESOLUTION
 # ============================================================
 
