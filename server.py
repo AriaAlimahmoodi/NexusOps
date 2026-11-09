@@ -92,6 +92,45 @@ class AnalyticsSortInput(BaseModel):
     order: Literal["asc", "desc"] = "desc"
 logger = logging.getLogger("nexusops.mcp")
 
+async def run_sync_tool(tool_name: str, function, *args) -> str:
+    """Run a blocking data tool without blocking the MCP event loop."""
+    request_id = uuid.uuid4().hex
+    started_at = time.perf_counter()
+    logger.info(
+        "MCP tool started",
+        extra={"request_id": request_id, "tool_name": tool_name},
+    )
+    try:
+        result = await asyncio.to_thread(function, *args)
+        logger.info(
+            "MCP tool completed",
+            extra={
+                "request_id": request_id,
+                "tool_name": tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
+        )
+        return result if isinstance(result, str) else json.dumps(
+            result, ensure_ascii=False, indent=2
+        )
+    except Exception:
+        logger.exception(
+            "MCP tool failed",
+            extra={
+                "request_id": request_id,
+                "tool_name": tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
+        )
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "code": "TOOL_EXECUTION_ERROR",
+                "message": f"The {tool_name} operation could not be completed.",
+                "request_id": request_id,
+            },
+        }, ensure_ascii=False)
+
 server = MCPServer(
     name="NexusOps MCP Server",
     instructions="MCP Server for NexusOps University Analytics",
@@ -113,23 +152,7 @@ AnalyticsFilterGroupInput.model_rebuild()
     ),
 )
 async def market_skill_details_tool(skills: list[str]) -> str:
-    request_id = uuid.uuid4().hex
-    try:
-        result = await asyncio.to_thread(get_market_skill_details, skills)
-        return json.dumps(result, ensure_ascii=False, indent=2)
-    except Exception:
-        logger.exception(
-            "MCP tool failed",
-            extra={"request_id": request_id, "tool_name": "get_market_skill_details"},
-        )
-        return json.dumps({
-            "status": "error",
-            "error": {
-                "code": "TOOL_EXECUTION_ERROR",
-                "message": "The requested market-skill analysis could not be completed.",
-                "request_id": request_id,
-            },
-        }, ensure_ascii=False)
+    return await run_sync_tool("get_market_skill_details", get_market_skill_details, skills)
 
 @server.tool(
     name="get_top_market_skills",
@@ -149,23 +172,7 @@ async def market_skill_details_tool(skills: list[str]) -> str:
     ),
 )
 async def top_market_skills_tool(limit: int = 10) -> str:
-    request_id = uuid.uuid4().hex
-    try:
-        result = await asyncio.to_thread(get_top_market_skills, limit)
-        return json.dumps(result, ensure_ascii=False, indent=2)
-    except Exception:
-        logger.exception(
-            "MCP tool failed",
-            extra={"request_id": request_id, "tool_name": "get_top_market_skills"},
-        )
-        return json.dumps({
-            "status": "error",
-            "error": {
-                "code": "TOOL_EXECUTION_ERROR",
-                "message": "The market-skill ranking could not be completed.",
-                "request_id": request_id,
-            },
-        }, ensure_ascii=False)
+    return await run_sync_tool("get_top_market_skills", get_top_market_skills, limit)
 
 
 @server.tool(
@@ -187,23 +194,7 @@ async def top_market_skills_tool(limit: int = 10) -> str:
     ),
 )
 async def top_skill_gaps_tool(limit: int = 10) -> str:
-    request_id = uuid.uuid4().hex
-    try:
-        result = await asyncio.to_thread(get_top_skill_gaps, limit)
-        return json.dumps(result, ensure_ascii=False, indent=2)
-    except Exception:
-        logger.exception(
-            "MCP tool failed",
-            extra={"request_id": request_id, "tool_name": "get_top_skill_gaps"},
-        )
-        return json.dumps({
-            "status": "error",
-            "error": {
-                "code": "TOOL_EXECUTION_ERROR",
-                "message": "The skill-gap analysis could not be completed.",
-                "request_id": request_id,
-            },
-        }, ensure_ascii=False)
+    return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit)
 
 
 @server.tool(
@@ -221,22 +212,7 @@ async def top_skill_gaps_tool(limit: int = 10) -> str:
     ),
 )
 async def search_tool(query: str) -> str:
-    request_id = uuid.uuid4().hex
-    try:
-        return await asyncio.to_thread(search_elasticsearch, query)
-    except Exception:
-        logger.exception(
-            "MCP tool failed",
-            extra={"request_id": request_id, "tool_name": "search_elasticsearch"},
-        )
-        return json.dumps({
-            "status": "error",
-            "error": {
-                "code": "TOOL_EXECUTION_ERROR",
-                "message": "The Elasticsearch search could not be completed.",
-                "request_id": request_id,
-            },
-        }, ensure_ascii=False)
+    return await run_sync_tool("search_elasticsearch", search_elasticsearch, query)
 
 
 
