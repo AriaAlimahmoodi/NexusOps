@@ -834,7 +834,7 @@ def build_query_plan(
     # 1. Skill-gap ranking
     # --------------------------------------------------------
 
-    if looks_like_skill_gap(query):
+    if looks_like_skill_gap(query) and looks_like_ranking(query):
 
         limit = (
             count
@@ -921,7 +921,6 @@ def build_query_plan(
 
             arguments={
                 "query": query,
-                "entities": entities,
             },
 
             requested_entities=entities,
@@ -981,7 +980,6 @@ def build_query_plan(
 
         arguments={
             "query": query,
-            "entities": [],
         },
 
         requested_entities=[],
@@ -1228,12 +1226,36 @@ def validate_mcp_result(
             "MCP returned a non-structured result.",
         )
 
-    if "error" in data:
+    if "error" in data or data.get("status") == "error":
+        return (False, f"MCP returned an error: {data.get('error', data)}")
 
-        return (
-            False,
-            f"MCP returned an error: {data['error']}",
-        )
+    if plan.tool_name == "analytics_query":
+        expected_dataset = plan.arguments.get("dataset_id")
+        expected_operation = plan.arguments.get("operation")
+        if data.get("status") != "success":
+            return False, "Analytics response is not successful."
+        if data.get("dataset_id") != expected_dataset or data.get("operation") != expected_operation:
+            return False, "Analytics response does not match the planned dataset and operation."
+        result, metadata = data.get("result"), data.get("metadata")
+        if not isinstance(result, (dict, list)) or not isinstance(metadata, dict):
+            return False, "Analytics response is missing result or metadata."
+        if expected_operation == "count":
+            count_value = result.get("count") if isinstance(result, dict) else None
+            if isinstance(count_value, bool) or not isinstance(count_value, int) or count_value < 0:
+                return False, "Analytics COUNT response contains an invalid count."
+        elif expected_operation == "select":
+            if not isinstance(result, list) or not all(isinstance(row, dict) for row in result):
+                return False, "Analytics SELECT response must contain record objects."
+            returned, total = metadata.get("returned_records"), metadata.get("total_records")
+            if returned != len(result) or isinstance(total, bool) or not isinstance(total, int) or total < returned:
+                return False, "Analytics SELECT metadata is inconsistent."
+        elif expected_operation == "aggregate":
+            buckets = result.get("buckets") if isinstance(result, dict) else None
+            if not isinstance(buckets, list) or metadata.get("returned_records") != len(buckets):
+                return False, "Analytics AGGREGATE response or metadata is malformed."
+            if not all(isinstance(item, dict) and isinstance(item.get("group"), dict) and isinstance(item.get("metrics"), dict) for item in buckets):
+                return False, "Analytics AGGREGATE contains malformed buckets."
+        return True, "Analytics response matches the validated query plan."
 
     items = _flatten_result_items(
         data
