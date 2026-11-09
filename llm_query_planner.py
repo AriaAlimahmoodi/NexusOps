@@ -270,6 +270,105 @@ LATEST USER REQUEST:
 {question}
 """
 
+def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
+    """Build conservative, profile-validated plans for common unambiguous intents."""
+    if not isinstance(question, str) or not question.strip():
+        return None
+    digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    query = question.translate(digits).casefold().replace("ي", "ی").replace("ك", "ک")
+
+    def has_any(*terms: str) -> bool:
+        return any(term in query for term in terms)
+
+    def make_plan(payload: dict[str, Any], reason: str) -> QueryPlan | None:
+        try:
+            arguments = _validate_plan(payload)
+        except (AnalyticsPlanningError, TypeError, ValueError):
+            return None
+        requested = set(arguments.get("group_by", []))
+        requested.update(metric["field"] for metric in arguments.get("metrics", []) if metric.get("field"))
+        requested.update(_walk_filter_fields(arguments.get("filters")))
+        return QueryPlan(
+            tool_name="analytics_query", arguments=arguments,
+            requested_entities=[], requested_fields=requested,
+            requested_count=arguments.get("limit"), comparison_requested=False,
+            memory_allowed=True, fresh_mcp_required=True, reason=reason,
+        )
+
+    graduate_terms = ("فارغ التحصیل", "فارغ‌التحصیل", "graduate")
+    if (has_any(*graduate_terms)
+            and has_any("برای هر رشته", "به تفکیک رشته", "بر اساس رشته",
+                        "گروه بندی بر اساس رشته", "group by major", "by major", "per major")
+            and has_any("میانگین", "average", "avg", "mean")):
+        metrics = []
+        if has_any("ارتباط شغلی", "ارتباط با شغل", "career relevance"):
+            metrics.append({"function": "avg", "field": "career_relevance", "alias": "average_career_relevance"})
+        if has_any("مدت اشتغال", "مدت استخدام", "ماه اشتغال", "employment duration", "employment months"):
+            metrics.append({"function": "avg", "field": "employment_months", "alias": "average_employment_months"})
+        if metrics:
+            return make_plan({
+                "dataset_id": "university_graduates", "operation": "aggregate",
+                "group_by": ["major"], "metrics": metrics, "filters": None,
+                "sort": [], "limit": 100, "options": {},
+            }, "Deterministic fallback: grouped graduate averages by major.")
+
+    if has_any(*graduate_terms) and has_any(
+        "تعداد", "چند نفر", "چندتا", "چه تعداد", "count", "how many", "number of"
+    ):
+        filters = None
+        year_match = re.search(r"(?:در\s*)?سال\s*(?:فارغ.?التحصیلی\s*)?(14\d{2}|20\d{2})", query)
+        if year_match:
+            filters = {
+                "logic": "and",
+                "conditions": [{"field": "graduation_year", "operator": "eq", "value": int(year_match.group(1))}],
+                "groups": [],
+            }
+        return make_plan({
+            "dataset_id": "university_graduates", "operation": "count",
+            "group_by": [], "metrics": [], "filters": filters,
+            "sort": [], "limit": 10, "options": {},
+        }, "Deterministic fallback: graduate count.")
+
+    if has_any("درس", "دروس", "course", "courses"):
+        conditions = []
+        credit_match = re.search(
+            r"(حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(\d+(?:\.\d+)?)",
+            query,
+        )
+        if credit_match:
+            raw_value = credit_match.group(2)
+            conditions.append({
+                "field": "credits", "operator": "gte",
+                "value": float(raw_value) if "." in raw_value else int(raw_value),
+            })
+        else:
+            greater_match = re.search(
+                r"(?:بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(\d+(?:\.\d+)?)\s*(?:واحد|credit|credits)?",
+                query,
+            )
+            if greater_match:
+                raw_value = greater_match.group(1)
+                conditions.append({
+                    "field": "credits", "operator": "gt",
+                    "value": float(raw_value) if "." in raw_value else int(raw_value),
+                })
+        categories = [value for value in ("core", "specialized") if re.search(rf"\b{value}\b", query)]
+        if categories:
+            conditions.append({
+                "field": "course_category",
+                "operator": "in" if len(categories) > 1 else "eq",
+                "value": categories if len(categories) > 1 else categories[0].title(),
+            })
+        if conditions and has_any("نشان بده", "نمایش بده", "فهرست", "لیست", "تمامی", "همه", "تمام", "show", "list", "all"):
+            return make_plan({
+                "dataset_id": "university_courses", "operation": "select",
+                "group_by": [], "metrics": [],
+                "filters": {"logic": "and", "conditions": conditions, "groups": []},
+                "sort": [], "limit": 100, "options": {},
+            }, "Deterministic fallback: filtered university course selection.")
+    return None
+
+
 async def build_analytics_query_plan(client: Any, question: str, conversation_context: str = "") -> QueryPlan | None:
     """Generate a local-LLM plan and validate it before MCP execution."""
     try:
@@ -284,7 +383,7 @@ async def build_analytics_query_plan(client: Any, question: str, conversation_co
         )
         payload = _extract_json_object(response.choices[0].message.content)
         if payload.get("error"):
-            return None
+            return build_deterministic_analytics_query_plan(question)
         arguments = _validate_plan(payload)
         requested_fields = set(arguments.get("group_by", []))
         requested_fields.update(metric["field"] for metric in arguments.get("metrics", []) if metric.get("field"))
@@ -302,7 +401,7 @@ async def build_analytics_query_plan(client: Any, question: str, conversation_co
         )
     except Exception as exc:
         print(
-            "[Planner] Local analytics planning failed; falling back to deterministic planner: "
+            "[Planner] Local analytics planning failed; trying deterministic analytics fallback: "
             f"{type(exc).__name__}: {exc}"
         )
-        return None
+        return build_deterministic_analytics_query_plan(question)
