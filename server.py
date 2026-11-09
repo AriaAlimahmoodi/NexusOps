@@ -8,7 +8,6 @@ import sys
 import time
 import uuid
 from pathlib import Path
-from typing import Any
 from tools.market_skills import get_market_skill_details
 from runtime_logging import configure_logging
 from typing import Any, Literal
@@ -61,6 +60,11 @@ class AnalyticsFilterConditionInput(BaseModel):
     value: Any = None
 
 
+class AnalyticsSortInput(BaseModel):
+    field: str
+    order: Literal["asc", "desc"] = "desc"
+
+
 class AnalyticsQueryInput(BaseModel):
     dataset_id: str
     operation: Literal["select", "count", "aggregate"]
@@ -89,9 +93,6 @@ class AnalyticsFilterGroupInput(BaseModel):
     
 
 
-class AnalyticsSortInput(BaseModel):
-    field: str
-    order: Literal["asc", "desc"] = "desc"
 logger = logging.getLogger("nexusops.mcp")
 MCP_MAX_CONCURRENT_SYNC_TOOLS = int(
     os.getenv("NEXUSOPS_MCP_MAX_CONCURRENT_SYNC_TOOLS", "8")
