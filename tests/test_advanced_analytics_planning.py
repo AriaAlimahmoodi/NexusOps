@@ -222,3 +222,24 @@ def test_unsupported_explicit_dimension_is_not_silently_replaced():
         "Compare average market gap by job field"
     )
     assert plan is None
+
+
+def test_explicit_multi_metric_skill_comparison_overrides_single_metric_ranking_route():
+    import asyncio
+    from llm_mcp_client import resolve_query_plan
+
+    class NoLLMClient:
+        @property
+        def chat(self):
+            raise AssertionError("Deterministic comparison must not call the local planner.")
+
+    plan = asyncio.run(resolve_query_plan(
+        NoLLMClient(),
+        "Compare average market demand and market gap by skill, rank by highest market gap",
+    ))
+    assert plan.tool_name == "analytics_query"
+    assert plan.arguments["operation"] == "aggregate"
+    assert len(plan.arguments["metrics"]) == 2
+    assert plan.arguments["sort"] == [
+        {"field": "average_market_gap", "order": "desc"}
+    ]
