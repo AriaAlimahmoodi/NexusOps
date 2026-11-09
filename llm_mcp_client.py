@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 
 from memory import MemoryManager
+from runtime_logging import configure_logging
 from openai import AsyncOpenAI
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
