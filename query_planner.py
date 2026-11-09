@@ -1226,7 +1226,7 @@ def validate_mcp_result(
             "MCP returned a non-structured result.",
         )
 
-    if "error" in data or data.get("status") == "error":
+    if data.get("error") is not None or data.get("status") == "error":
         return (False, f"MCP returned an error: {data.get('error', data)}")
 
     if plan.tool_name == "analytics_query":
