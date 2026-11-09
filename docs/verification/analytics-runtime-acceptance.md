@@ -22,7 +22,7 @@ python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size after this change: **98 tests**. The exact result must be taken from the local run; the expected count is not a test result.
+Expected suite size after this change: **99 tests**. The exact result must be taken from the local run; the expected count is not a test result.
 
 ## 2. Verify live services before opening n8n
 
