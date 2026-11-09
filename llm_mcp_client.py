@@ -66,6 +66,7 @@ class ConversationState:
     summary: str = ""
     memory_manager: MemoryManager = field(default_factory=MemoryManager)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    active_requests: int = 0
 
 
 _CONVERSATION_STATES: OrderedDict[str, ConversationState] = OrderedDict()
@@ -89,7 +90,11 @@ def get_conversation_state(conversation_id: str = "default") -> ConversationStat
         while len(_CONVERSATION_STATES) >= MAX_CONVERSATION_STATES:
             evicted = False
             for candidate_key, candidate in list(_CONVERSATION_STATES.items()):
-                if candidate_key != "default" and not candidate.lock.locked():
+                if (
+                    candidate_key != "default"
+                    and candidate.active_requests == 0
+                    and not candidate.lock.locked()
+                ):
                     del _CONVERSATION_STATES[candidate_key]
                     evicted = True
                     break
@@ -3074,32 +3079,39 @@ async def ask_nexusops(
     state = get_conversation_state(conversation_id)
     request_id = uuid.uuid4().hex
 
-    async with state.lock:
-        started_at = time.perf_counter()
-        logger.info(
-            "NexusOps request started",
-            extra={
-                "request_id": request_id,
-                "conversation_id": conversation_id,
-            },
-        )
-        answer = await _ask_nexusops_for_state(
-            question,
-            state,
-            request_id,
-        )
-        logger.info(
-            "NexusOps request finished",
-            extra={
-                "request_id": request_id,
-                "conversation_id": conversation_id,
-                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
-            },
-        )
-        if conversation_id == "default":
-            global conversation_summary
-            conversation_summary = state.summary
-        return answer
+    with _CONVERSATION_STATES_GUARD:
+        state.active_requests += 1
+
+    try:
+        async with state.lock:
+            started_at = time.perf_counter()
+            logger.info(
+                "NexusOps request started",
+                extra={
+                    "request_id": request_id,
+                    "conversation_id": conversation_id,
+                },
+            )
+            answer = await _ask_nexusops_for_state(
+                question,
+                state,
+                request_id,
+            )
+            logger.info(
+                "NexusOps request finished",
+                extra={
+                    "request_id": request_id,
+                    "conversation_id": conversation_id,
+                    "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+                },
+            )
+            if conversation_id == "default":
+                global conversation_summary
+                conversation_summary = state.summary
+            return answer
+    finally:
+        with _CONVERSATION_STATES_GUARD:
+            state.active_requests = max(0, state.active_requests - 1)
 
 
 # MEMORY RESET
