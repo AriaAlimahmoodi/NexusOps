@@ -296,9 +296,8 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
         )
 
     graduate_terms = ("فارغ التحصیل", "فارغ‌التحصیل", "graduate")
-    if (has_any(*graduate_terms)
-            and has_any("برای هر رشته", "به تفکیک رشته", "بر اساس رشته",
-                        "گروه بندی بر اساس رشته", "group by major", "by major", "per major")
+    if (has_any("برای هر رشته", "به تفکیک رشته", "بر اساس رشته",
+                 "گروه بندی بر اساس رشته", "group by major", "by major", "per major")
             and has_any("میانگین", "average", "avg", "mean")):
         metrics = []
         if has_any("ارتباط شغلی", "ارتباط با شغل", "career relevance"):
@@ -357,7 +356,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             conditions.append({
                 "field": "course_category",
                 "operator": "in" if len(categories) > 1 else "eq",
-                "value": categories if len(categories) > 1 else categories[0].title(),
+                "value": [value.title() for value in categories] if len(categories) > 1 else categories[0].title(),
             })
         if conditions and has_any("نشان بده", "نمایش بده", "فهرست", "لیست", "تمامی", "همه", "تمام", "show", "list", "all"):
             return make_plan({
