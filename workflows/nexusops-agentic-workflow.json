@@ -541,6 +541,52 @@
       ],
       "id": "0fc3fa2d-217d-4f8c-8ac8-304ecfc845fd",
       "name": "Prepare MCP Session"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first()?.json ?? {};\nconst statusCode = Number(response.statusCode ?? 0);\nconst accepted = Number.isInteger(statusCode) && statusCode >= 200 && statusCode < 300;\nconst body = String(response.body ?? response.data ?? \"\").trim().slice(0, 1000);\nconst error = accepted ? null : `MCP initialized notification failed (HTTP ${statusCode || \"unknown\"}). ${body}`.trim();\nreturn [{ json: { ok: accepted, statusCode, error } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -240
+      ],
+      "id": "e5e8e3c2-9b63-4dd2-9b5f-3a5fded9a101",
+      "name": "Validate Initialized Notification"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "2c4e0c1b-0e50-4ad9-b0c0-9f9b1f6d2111",
+              "leftValue": "={{$json.ok}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        560,
+        -240
+      ],
+      "id": "f6f8e4d1-4f21-4f8c-b8c2-4f0f2d9e8102",
+      "name": "Initialized Notification OK?"
     }
   ],
   "pinData": {},
@@ -703,7 +749,7 @@
       "main": [
         [
           {
-            "node": "Build Tool Call",
+            "node": "Validate Initialized Notification",
             "type": "main",
             "index": 0
           }
@@ -830,6 +876,35 @@
         [
           {
             "node": "MCP Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Initialized Notification": {
+      "main": [
+        [
+          {
+            "node": "Initialized Notification OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialized Notification OK?": {
+      "main": [
+        [
+          {
+            "node": "Build Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Reply",
             "type": "main",
             "index": 0
           }
