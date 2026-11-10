@@ -97,3 +97,23 @@ def test_workflow_connections_reference_existing_nodes():
                     assert connection["node"] in names, (
                         f"Unknown connection target: {connection['node']}"
                     )
+
+
+def test_mcp_result_parser_enforces_one_outcome_per_requested_plan():
+    workflow = _workflow()
+    code = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
+
+    assert 'const requests = $("Build Tool Call").all()' in code
+    assert "return requests.map((request, index)" in code
+    assert "Multiple MCP responses matched the same JSON-RPC request ID." in code
+    assert "MCP response missing for this plan." in code
+
+
+def test_mcp_result_parser_never_guesses_multi_plan_correlation_without_rpc_ids():
+    workflow = _workflow()
+    code = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
+
+    assert "requests.length === 1" in code
+    assert "multi-plan correlation is ambiguous" in code
+    assert "unexpected JSON-RPC IDs were received" in code
+    assert 'responseBuckets.get(key) ?? []' in code
