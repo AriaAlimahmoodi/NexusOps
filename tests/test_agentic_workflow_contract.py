@@ -117,3 +117,19 @@ def test_mcp_result_parser_never_guesses_multi_plan_correlation_without_rpc_ids(
     assert "multi-plan correlation is ambiguous" in code
     assert "unexpected JSON-RPC IDs were received" in code
     assert 'responseBuckets.get(key) ?? []' in code
+
+
+def test_multi_plan_correlation_and_completeness_reach_answer_context():
+    workflow = _workflow()
+    format_code = _node(workflow, "Format Result")["parameters"]["jsCode"]
+    context_code = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
+    compose_code = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert 'correlationStatus: response.correlationStatus ?? "unknown"' in format_code
+    assert "expected_plans: expectedPlanCount" in context_code
+    assert "plan_set_complete: planSetComplete" in context_code
+    assert "correlation_failures: correlationFailures" in context_code
+    assert 'overall_execution_status: overallExecutionStatus' in context_code
+    assert '"partial_failure"' in context_code
+    assert "planSetComplete" in compose_code
+    assert "وضعیت اجرای چندبرنامه‌ای" in compose_code
