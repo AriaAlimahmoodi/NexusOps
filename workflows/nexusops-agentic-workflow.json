@@ -550,7 +550,7 @@
       "typeVersion": 2,
       "position": [
         400,
-        -240
+        -400
       ],
       "id": "e5e8e3c2-9b63-4dd2-9b5f-3a5fded9a101",
       "name": "Validate Initialized Notification"
@@ -583,7 +583,7 @@
       "typeVersion": 2.4,
       "position": [
         560,
-        -240
+        -400
       ],
       "id": "f6f8e4d1-4f21-4f8c-b8c2-4f0f2d9e8102",
       "name": "Initialized Notification OK?"
