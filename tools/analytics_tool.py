@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import logging
 
 from tools.analytics_engine.aggregation_builder import AggregationPlanError
 from tools.analytics_engine.analytics_service import (
@@ -21,6 +22,8 @@ from tools.analytics_engine.models import (
 )
 from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
 from config import get_elasticsearch_client
+
+logger = logging.getLogger("nexusops.analytics")
 
 
 def _build_metrics(metrics: list[dict[str, Any]]) -> tuple[MetricSpec, ...]:
@@ -133,23 +136,77 @@ def build_analytics_request(arguments: dict[str, Any]) -> AnalyticsRequest:
     )
 
 
+def _analytics_error(
+    code: str,
+    message: str,
+    *,
+    stage: str,
+    exception_type: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    error = {
+        "code": code,
+        "message": message,
+        "stage": stage,
+    }
+    if exception_type:
+        error["exception_type"] = exception_type
+    if details:
+        error.update(details)
+    return {"status": "error", "error": error}
+
+
 def run_analytics_query(arguments: dict[str, Any]) -> dict[str, Any]:
-    client = get_elasticsearch_client()
-    adapter = ElasticsearchAdapter(client=client)
-    service = AnalyticsService(adapter=adapter)
-
-    request = build_analytics_request(arguments)
-
+    """
+    Execute an analytics request and keep every failure inside the
+    standard response envelope. Invalid input, client initialization,
+    service failures, and unexpected adapter errors must never escape
+    as uncaught exceptions from the MCP tool.
+    """
     try:
-        return service.analyze(request)
+        request = build_analytics_request(arguments)
+    except Exception as exc:
+        return _analytics_error(
+            "INVALID_ANALYTICS_REQUEST",
+            str(exc),
+            stage="request_validation",
+            exception_type=type(exc).__name__,
+        )
 
-    except AnalyticsServiceError as exc:
-        return {
-            "status": "error",
-            "error": {
-                "code": exc.code,
-                "message": str(exc),
-                **exc.details,
-            },
-        }
-    
+    client = None
+    try:
+        try:
+            client = get_elasticsearch_client()
+            adapter = ElasticsearchAdapter(client=client)
+            service = AnalyticsService(adapter=adapter)
+        except Exception as exc:
+            return _analytics_error(
+                "ANALYTICS_CLIENT_INITIALIZATION_FAILED",
+                "Unable to initialize the Elasticsearch analytics client.",
+                stage="client_initialization",
+                exception_type=type(exc).__name__,
+            )
+
+        try:
+            return service.analyze(request)
+        except AnalyticsServiceError as exc:
+            return _analytics_error(
+                exc.code,
+                str(exc),
+                stage="analytics_service",
+                details=exc.details,
+            )
+        except Exception as exc:
+            return _analytics_error(
+                "ANALYTICS_EXECUTION_FAILED",
+                "The analytics operation could not be completed.",
+                stage="execution",
+                exception_type=type(exc).__name__,
+            )
+    finally:
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                logger.exception("Failed to close Elasticsearch analytics client")
+

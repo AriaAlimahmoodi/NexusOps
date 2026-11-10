@@ -1,10 +1,20 @@
 import asyncio
+import hashlib
 import json
+import logging
+import os
 import re
-import traceback
+import threading
+import time
+import uuid
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from typing import Any
 
+import httpx
+
 from memory import MemoryManager
+from runtime_logging import configure_logging
 from openai import AsyncOpenAI
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
@@ -15,14 +25,86 @@ from query_planner import (
     validate_mcp_result,
     validate_tool_arguments,
 )
+from llm_query_planner import (
+    build_analytics_query_plan,
+    build_deterministic_analytics_query_plan,
+)
 
 
-MCP_URL = "http://127.0.0.1:8000/mcp"
-OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1"
-MODEL_NAME = "qwen3:4b"
+MCP_URL = os.getenv("NEXUSOPS_MCP_URL", "http://127.0.0.1:8000/mcp")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen3:4b")
 
+MCP_REQUEST_TIMEOUT_SECONDS = float(
+    os.getenv("NEXUSOPS_MCP_TIMEOUT_SECONDS", "60")
+)
+MCP_MAX_ATTEMPTS = int(os.getenv("NEXUSOPS_MCP_MAX_ATTEMPTS", "2"))
+MCP_RETRY_BASE_DELAY_SECONDS = float(
+    os.getenv("NEXUSOPS_MCP_RETRY_BASE_DELAY_SECONDS", "0.35")
+)
+OLLAMA_TIMEOUT_SECONDS = float(
+    os.getenv("NEXUSOPS_OLLAMA_TIMEOUT_SECONDS", "60")
+)
 MAX_HISTORY_TURNS = 6
 KEEP_RECENT_TURNS = 4
+MAX_CONVERSATION_STATES = 128
+
+if MCP_REQUEST_TIMEOUT_SECONDS <= 0 or OLLAMA_TIMEOUT_SECONDS <= 0:
+    raise ValueError("Runtime request timeouts must be positive.")
+if MCP_MAX_ATTEMPTS < 1:
+    raise ValueError("NEXUSOPS_MCP_MAX_ATTEMPTS must be at least 1.")
+if MCP_RETRY_BASE_DELAY_SECONDS < 0:
+    raise ValueError("MCP retry delay cannot be negative.")
+
+logger = logging.getLogger("nexusops.client")
+
+
+@dataclass
+class ConversationState:
+    """Isolated mutable state for one logical conversation."""
+
+    history: list[list[dict[str, str]]] = field(default_factory=list)
+    summary: str = ""
+    memory_manager: MemoryManager = field(default_factory=MemoryManager)
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    active_requests: int = 0
+
+
+_CONVERSATION_STATES: OrderedDict[str, ConversationState] = OrderedDict()
+_CONVERSATION_STATES_GUARD = threading.RLock()
+
+
+def get_conversation_state(conversation_id: str = "default") -> ConversationState:
+    """Return an isolated state object, creating it on first access."""
+    if not isinstance(conversation_id, str) or not conversation_id.strip():
+        raise ValueError("conversation_id must be a non-empty string.")
+    key = conversation_id.strip()
+    if len(key) > 128:
+        raise ValueError("conversation_id must not exceed 128 characters.")
+
+    with _CONVERSATION_STATES_GUARD:
+        state = _CONVERSATION_STATES.get(key)
+        if state is not None:
+            _CONVERSATION_STATES.move_to_end(key)
+            return state
+
+        while len(_CONVERSATION_STATES) >= MAX_CONVERSATION_STATES:
+            evicted = False
+            for candidate_key, candidate in list(_CONVERSATION_STATES.items()):
+                if (
+                    candidate_key != "default"
+                    and candidate.active_requests == 0
+                    and not candidate.lock.locked()
+                ):
+                    del _CONVERSATION_STATES[candidate_key]
+                    evicted = True
+                    break
+            if not evicted:
+                break
+
+        state = ConversationState()
+        _CONVERSATION_STATES[key] = state
+        return state
 
 
 # ============================================================
@@ -180,10 +262,11 @@ Return only the memory summary.
 # GLOBAL STATE
 # ============================================================
 
-conversation_history = []
+_DEFAULT_CONVERSATION_STATE = get_conversation_state("default")
+# Compatibility aliases for existing CLI helpers and tests.
+conversation_history = _DEFAULT_CONVERSATION_STATE.history
 conversation_summary = ""
-
-structured_memory_manager = MemoryManager()
+structured_memory_manager = _DEFAULT_CONVERSATION_STATE.memory_manager
 
 
 # ============================================================
@@ -567,12 +650,10 @@ def _requested_fields(
 
 def retrieve_structured_evidence(
     query: str,
+    memory_manager: MemoryManager | None = None,
 ) -> list[dict]:
-
-    records = (
-        structured_memory_manager
-        .get_verified_tool_results()
-    )
+    manager = memory_manager or structured_memory_manager
+    records = manager.get_verified_tool_results()
 
     if not records:
         return []
@@ -1463,13 +1544,20 @@ def render_market_skill_answer(
             )
 
             demand = item.get(
-                "market_demand",
-                item.get("demand"),
+                "average_demand_score",
+                item.get("market_demand", item.get("demand")),
             )
+            frequency = item.get("total_frequency")
+            record_count = item.get("record_count")
+
+            detail_parts = [f"تقاضای بازار: {demand}"]
+            if frequency is not None:
+                detail_parts.append(f"فراوانی کل: {frequency}")
+            if record_count is not None:
+                detail_parts.append(f"تعداد رکوردها: {record_count}")
 
             lines.append(
-                f"{index}. {skill} — "
-                f"تقاضای بازار: {demand}"
+                f"{index}. {skill} — " + " | ".join(detail_parts)
             )
 
         return "\n".join(
@@ -1492,13 +1580,20 @@ def render_market_skill_answer(
         )
 
         demand = item.get(
-            "market_demand",
-            item.get("demand"),
+            "average_demand_score",
+            item.get("market_demand", item.get("demand")),
         )
+        frequency = item.get("total_frequency")
+        record_count = item.get("record_count")
+
+        detail_parts = [f"Market demand: {demand}"]
+        if frequency is not None:
+            detail_parts.append(f"Total frequency: {frequency}")
+        if record_count is not None:
+            detail_parts.append(f"Records: {record_count}")
 
         lines.append(
-            f"{index}. {skill} — "
-            f"Market demand: {demand}"
+            f"{index}. {skill} — " + " | ".join(detail_parts)
         )
 
     return "\n".join(
@@ -1804,6 +1899,60 @@ def render_most_relevant_course(
     )
 
 
+def render_analytics_query_answer(data: dict, language: str = "fa") -> str | None:
+    """Render generic analytics responses without changing source values."""
+    if data.get("status") != "success":
+        return None
+    dataset_id = data.get("dataset_id", "unknown")
+    operation = data.get("operation")
+    result = data.get("result")
+    metadata = data.get("metadata") or {}
+
+    if operation == "count" and isinstance(result, dict):
+        count_value = result.get("count")
+        if language == "fa":
+            return f"تعداد رکوردهای منطبق در {dataset_id}: {count_value}"
+        return f"Matching records in {dataset_id}: {count_value}"
+
+    if operation == "select" and isinstance(result, list):
+        if not result:
+            return "هیچ رکورد منطبقی پیدا نشد." if language == "fa" else "No matching records were found."
+        lines = [
+            f"رکوردهای بازیابی‌شده از {dataset_id}:" if language == "fa" else f"Records retrieved from {dataset_id}:",
+            "",
+        ]
+        for index, record in enumerate(result, start=1):
+            lines.append(f"{index}.")
+            for field_name, value in record.items():
+                lines.append(f"   {field_name}: {value}")
+            lines.append("")
+        total = metadata.get("total_records")
+        if isinstance(total, int) and total > len(result):
+            lines.append(f"نمایش {len(result)} رکورد از {total} رکورد منطبق." if language == "fa" else f"Showing {len(result)} of {total} matching records.")
+        return "\n".join(lines).strip()
+
+    if operation == "aggregate" and isinstance(result, dict):
+        buckets = result.get("buckets")
+        if not isinstance(buckets, list):
+            return None
+        if not buckets:
+            return "نتیجه‌ای برای گروه‌بندی پیدا نشد." if language == "fa" else "No aggregation groups were found."
+        lines = [
+            f"نتایج تحلیل گروه‌بندی‌شده از {dataset_id}:" if language == "fa" else f"Grouped analytics results from {dataset_id}:",
+            "",
+        ]
+        for index, bucket in enumerate(buckets, start=1):
+            for field_name, value in bucket.get("group", {}).items():
+                lines.append(f"{index}. {field_name}: {value}")
+            for metric_name, value in bucket.get("metrics", {}).items():
+                lines.append(f"   {metric_name}: {value}")
+            if "document_count" in bucket:
+                lines.append(f"   document_count: {bucket['document_count']}")
+            lines.append("")
+        return "\n".join(lines).strip()
+    return None
+
+
 # ============================================================
 # DETERMINISTIC ANSWER DISPATCHER
 # ============================================================
@@ -1841,7 +1990,18 @@ def render_verified_answer(
         return None
 
     # ---------------------------------------------------------
-    # 1. Top skill gaps
+    # 1. Generic analytics query
+    # ---------------------------------------------------------
+
+    if tool_name == "analytics_query":
+        for data in data_objects:
+            answer = render_analytics_query_answer(data, language=language)
+            if answer is not None:
+                return answer
+        return None
+
+    # ---------------------------------------------------------
+    # 2. Top skill gaps
     # ---------------------------------------------------------
 
     if tool_name == "get_top_skill_gaps":
@@ -2113,165 +2273,116 @@ def build_final_answer_evidence(
 # CONVERSATION HISTORY
 # ============================================================
 
-def make_base_messages():
+def make_base_messages(
+    history: list[list[dict[str, str]]] | None = None,
+    summary: str | None = None,
+):
+    active_history = conversation_history if history is None else history
+    active_summary = conversation_summary if summary is None else summary
 
-    messages = [
-        {
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if active_summary:
+        messages.append({
             "role": "system",
-            "content": SYSTEM_PROMPT,
-        }
-    ]
+            "content": (
+                "Memory summary from older conversation turns. "
+                "Use it only to resolve conversational references. "
+                "Do not treat it as a replacement for verified "
+                "dataset evidence:\n" + active_summary
+            ),
+        })
 
-    if conversation_summary:
-
-        messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Memory summary from older conversation turns. "
-                    "Use it only to resolve conversational references. "
-                    "Do not treat it as a replacement for verified "
-                    "dataset evidence:\n"
-                    + conversation_summary
-                ),
-            }
-        )
-
-    for turn in conversation_history:
+    for turn in active_history:
         messages.extend(turn)
-
     return messages
 
 
-async def summarize_old_turns(
+async def _generate_history_summary(
     client,
-    old_turns,
-):
-
-    global conversation_summary
-
-    old_messages = []
-
-    for turn in old_turns:
-        old_messages.extend(
-            turn
-        )
-
-    summary_input = [
-        {
-            "role": "system",
-            "content": SUMMARY_PROMPT,
-        }
+    old_turns: list[list[dict[str, str]]],
+    existing_summary: str,
+) -> str | None:
+    old_messages = [
+        message
+        for turn in old_turns
+        for message in turn
     ]
-
-    if conversation_summary:
-
-        summary_input.append(
-            {
-                "role": "system",
-                "content": (
-                    "Existing memory summary. Treat it as "
-                    "fallible memory, not authoritative evidence:\n"
-                    + conversation_summary
-                ),
-            }
-        )
-
-    summary_input.extend(
-        old_messages
-    )
+    summary_input = [{"role": "system", "content": SUMMARY_PROMPT}]
+    if existing_summary:
+        summary_input.append({
+            "role": "system",
+            "content": (
+                "Existing memory summary. Treat it as fallible memory, "
+                "not authoritative evidence:\n" + existing_summary
+            ),
+        })
+    summary_input.extend(old_messages)
 
     try:
-
-        response = (
-            await client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=summary_input,
-                temperature=0.0,
-            )
+        response = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=summary_input,
+            temperature=0.0,
         )
-
-        new_summary = (
-            response.choices[0]
-            .message
-            .content
-        )
-
+        new_summary = response.choices[0].message.content
         if not new_summary or not new_summary.strip():
+            logger.warning("Conversation summarization returned empty content")
+            return None
+        return new_summary.strip()
+    except Exception:
+        logger.exception("Conversation summarization failed")
+        return None
 
-            print(
-                "[Memory] Empty summary; "
-                "old turns will be preserved."
-            )
 
-            return False
-
-        conversation_summary = (
-            new_summary.strip()
-        )
-
-        print(
-            "[Memory] Older conversation summarized."
-        )
-
-        return True
-
-    except Exception as exc:
-
-        print(
-            "[Memory] Summarization failed; "
-            "old turns will be preserved. "
-            f"Details: {exc}"
-        )
-
+async def summarize_old_turns(client, old_turns):
+    """Backward-compatible wrapper for the default conversation."""
+    global conversation_summary
+    new_summary = await _generate_history_summary(
+        client,
+        old_turns,
+        conversation_summary,
+    )
+    if new_summary is None:
         return False
+    conversation_summary = new_summary
+    return True
 
 
 async def manage_history(
     client,
+    history: list[list[dict[str, str]]] | None = None,
+    summary: str | None = None,
 ):
+    """
+    Compact one conversation's history only after a successful summary.
+    With no explicit state, preserve the legacy default-conversation API.
+    """
+    global conversation_history, conversation_summary
 
-    global conversation_history
+    use_legacy_state = history is None
+    active_history = conversation_history if use_legacy_state else history
+    active_summary = conversation_summary if summary is None else summary
 
-    if (
-        len(conversation_history)
-        <= MAX_HISTORY_TURNS
-    ):
-        return
+    if len(active_history) <= MAX_HISTORY_TURNS:
+        return active_summary
 
-    number_to_summarize = (
-        len(conversation_history)
-        - KEEP_RECENT_TURNS
-    )
-
-    old_turns = (
-        conversation_history[
-            :number_to_summarize
-        ]
-    )
-
-    success = await summarize_old_turns(
+    number_to_summarize = len(active_history) - KEEP_RECENT_TURNS
+    old_turns = active_history[:number_to_summarize]
+    new_summary = await _generate_history_summary(
         client,
         old_turns,
+        active_summary,
     )
+    if new_summary is None:
+        logger.warning("Conversation history retained because summarization failed")
+        return active_summary
 
-    if not success:
-
-        print(
-            "[Memory] History was not trimmed "
-            "because summarization failed."
-        )
-
-        return
-
-    conversation_history = (
-        conversation_history[
-            number_to_summarize:
-        ]
-    )
+    del active_history[:number_to_summarize]
+    if use_legacy_state:
+        conversation_summary = new_summary
+    return new_summary
 
 
-# ============================================================
 # LANGUAGE
 # ============================================================
 
@@ -2341,138 +2452,251 @@ def unavailable_evidence_message(
 async def execute_planned_mcp_query(
     session,
     plan: QueryPlan,
+    *,
+    request_id: str | None = None,
 ):
-    """
-    Execute exactly the tool and arguments selected by Query Planner.
-
-    IMPORTANT:
-    The LLM is NOT allowed to choose the MCP tool.
-
-    Flow:
-
-        Planner
-            ↓
-        validate_tool_arguments
-            ↓
-        MCP
-            ↓
-        validate_mcp_result
-    """
+    """Execute and validate exactly one planner-authorized MCP tool call."""
+    request_id = request_id or uuid.uuid4().hex
 
     if not plan.tool_name:
+        return False, None, "No MCP tool was selected by the query planner."
 
-        return (
-            False,
-            None,
-            "No MCP tool was selected by the query planner.",
-        )
-
-    is_valid, arguments, validation_message = (
-        validate_tool_arguments(
-            plan=plan,
-            tool_name=plan.tool_name,
-            arguments=plan.arguments,
-        )
+    is_valid, arguments, validation_message = validate_tool_arguments(
+        plan=plan,
+        tool_name=plan.tool_name,
+        arguments=plan.arguments,
     )
-
     if not is_valid:
-
-        return (
-            False,
-            None,
-            validation_message,
+        logger.warning(
+            "MCP tool arguments rejected",
+            extra={"request_id": request_id, "tool_name": plan.tool_name},
         )
+        return False, None, validation_message
 
-    print(
-        f"[MCP] Direct execution: "
-        f"{plan.tool_name}"
+    started_at = time.perf_counter()
+    logger.info(
+        "MCP tool call started",
+        extra={"request_id": request_id, "tool_name": plan.tool_name},
     )
+    result = await session.call_tool(plan.tool_name, arguments=arguments)
 
-    print(
-        "[MCP] Arguments: "
-        + json.dumps(
-            arguments,
-            ensure_ascii=False,
+    if getattr(result, "isError", False):
+        error_text = extract_tool_result(result)
+        logger.warning(
+            "MCP tool returned protocol error",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
-    )
+        return False, None, "MCP tool execution failed: " + str(error_text)[:1000]
 
-    result = await session.call_tool(
-        plan.tool_name,
-        arguments=arguments,
-    )
-
-    if getattr(
-        result,
-        "isError",
-        False,
-    ):
-
-        return (
-            False,
-            None,
-            "MCP tool returned an error: "
-            + extract_tool_result(result),
+    structured_output = extract_structured_tool_result(result)
+    if isinstance(structured_output, dict) and structured_output.get("status") == "error":
+        error = structured_output.get("error") or {}
+        code = error.get("code", "MCP_TOOL_ERROR") if isinstance(error, dict) else "MCP_TOOL_ERROR"
+        message = error.get("message", "The MCP tool reported an error.") if isinstance(error, dict) else "The MCP tool reported an error."
+        logger.warning(
+            "MCP tool returned application error",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "error_code": code,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
+        return False, None, f"{code}: {message}"
 
-    structured_output = (
-        extract_structured_tool_result(
-            result
-        )
+    result_is_valid, result_validation_message = validate_mcp_result(
+        plan=plan,
+        data=structured_output,
     )
-
-    print(
-        "\n[DEBUG] Raw structured MCP output:"
-    )
-
-    print(
-        json.dumps(
-            structured_output,
-            ensure_ascii=False,
-            indent=2,
-            default=str,
-        )
-    )
-
-    result_is_valid, result_validation_message = (
-        validate_mcp_result(
-            plan=plan,
-            data=structured_output,
-        )
-    )
-
     if not result_is_valid:
-
-        return (
-            False,
-            None,
-            result_validation_message,
+        logger.error(
+            "MCP result failed contract validation",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+            },
         )
+        return False, None, result_validation_message
 
-    print(
-        "[Validator] MCP result accepted: "
-        + result_validation_message
+    logger.info(
+        "MCP tool call completed",
+        extra={
+            "request_id": request_id,
+            "tool_name": plan.tool_name,
+            "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+        },
+    )
+    return True, structured_output, result_validation_message
+
+
+async def _run_mcp_attempt(
+    plan: QueryPlan,
+    *,
+    request_id: str,
+    attempt: int,
+):
+    async with asyncio.timeout(MCP_REQUEST_TIMEOUT_SECONDS):
+        async with streamable_http_client(MCP_URL) as (
+            read_stream,
+            write_stream,
+        ):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                logger.info(
+                    "MCP session initialized",
+                    extra={"request_id": request_id, "attempt": attempt},
+                )
+                return await execute_planned_mcp_query(
+                    session,
+                    plan,
+                    request_id=request_id,
+                )
+
+
+async def execute_mcp_query_with_resilience(
+    plan: QueryPlan,
+    *,
+    request_id: str,
+):
+    """
+    Open a fresh Streamable HTTP session per attempt.
+
+    Only transport failures and timeouts are retried. Planner, validation,
+    and application-level tool errors are returned immediately.
+    """
+    retryable_errors = (
+        httpx.TransportError,
+        asyncio.TimeoutError,
+        TimeoutError,
+        ConnectionError,
+        OSError,
     )
 
-    return (
-        True,
-        structured_output,
-        result_validation_message,
-    )
+    for attempt in range(1, MCP_MAX_ATTEMPTS + 1):
+        try:
+            return await _run_mcp_attempt(
+                plan,
+                request_id=request_id,
+                attempt=attempt,
+            )
+        except retryable_errors as exc:
+            if attempt >= MCP_MAX_ATTEMPTS:
+                logger.error(
+                    "MCP request exhausted retry budget",
+                    extra={
+                        "request_id": request_id,
+                        "attempt": attempt,
+                        "error_type": type(exc).__name__,
+                    },
+                )
+                return (
+                    False,
+                    None,
+                    "MCP service did not respond within the configured "
+                    "time limit or could not be reached.",
+                )
+
+            logger.warning(
+                "Transient MCP transport failure; retrying",
+                extra={
+                    "request_id": request_id,
+                    "attempt": attempt,
+                    "error_type": type(exc).__name__,
+                },
+            )
+            await asyncio.sleep(
+                MCP_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+            )
+
+    return False, None, "MCP request failed without a completed attempt."
 
 
+# QUERY PLAN RESOLUTION
 # ============================================================
+
+def is_analytics_data_request(question: str) -> bool:
+    """Identify explicit dataset-analysis requests that must not degrade to generic search."""
+    query = question.casefold()
+    analytic_markers = (
+        "میانگین", "مجموع", "جمع", "تعداد", "چه تعداد", "چند نفر",
+        "حداقل", "حداکثر", "بیشتر از", "کمتر از", "به تفکیک",
+        "برای هر", "گروه بندی", "گروه‌بندی", "فیلتر",
+        "average", "mean", "sum", "count", "how many", "at least",
+        "greater than", "less than", "group by", "per ",
+    )
+    dataset_markers = (
+        "درس", "دروس", "فارغ", "دانشگاه", "مهارت", "بازار",
+        "course", "graduate", "university", "skill", "market",
+    )
+    return (
+        any(marker in query for marker in analytic_markers)
+        and any(marker in query for marker in dataset_markers)
+    )
+
+
+async def resolve_query_plan(
+    client,
+    question: str,
+    conversation_context: str = "",
+) -> QueryPlan:
+    """Resolve plans using explicit authority and fallback order."""
+    plan = build_query_plan(
+        question,
+        conversation_context=conversation_context,
+    )
+    if plan.tool_name in {"get_top_skill_gaps", "get_top_market_skills"}:
+        # Keep the specialized fast path for ordinary rankings, but allow
+        # an explicit multi-metric comparison to use the generic analytics
+        # engine so no requested metric is silently discarded.
+        comparative_plan = build_deterministic_analytics_query_plan(question)
+        if (
+            comparative_plan is not None
+            and comparative_plan.tool_name == "analytics_query"
+            and len(comparative_plan.arguments.get("metrics", [])) >= 2
+        ):
+            return comparative_plan
+        return plan
+
+    has_structured_id = any(
+        entity.get("type") in {"graduate_id", "course_id"}
+        for entity in plan.requested_entities
+    )
+    if has_structured_id:
+        return plan
+
+    if plan.tool_name == "search_elasticsearch":
+        deterministic_plan = build_deterministic_analytics_query_plan(question)
+        if deterministic_plan is not None:
+            return deterministic_plan
+
+        analytics_plan = await build_analytics_query_plan(
+            client=client,
+            question=question,
+            conversation_context=conversation_context,
+        )
+        if analytics_plan is not None:
+            return analytics_plan
+    return plan
+
+
 # MAIN QUERY PIPELINE
 # ============================================================
 
-async def ask_nexusops(
+async def _ask_nexusops_for_state(
     question: str,
+    state: ConversationState,
+    request_id: str,
 ):
-
-    global conversation_history
-
     client = AsyncOpenAI(
         base_url=OLLAMA_BASE_URL,
         api_key="ollama",
+        timeout=OLLAMA_TIMEOUT_SECONDS,
+        max_retries=1,
     )
 
     language = detect_language(
@@ -2485,33 +2709,42 @@ async def ask_nexusops(
         # STEP 1 — QUERY PLANNER
         # =====================================================
 
-        plan = build_query_plan(
-            question,
-            conversation_context=conversation_summary,
+        plan = await resolve_query_plan(
+            client=client,
+            question=question,
+            conversation_context=state.summary,
         )
+
+        if (
+            plan.tool_name == "search_elasticsearch"
+            and is_analytics_data_request(question)
+        ):
+            return unavailable_evidence_message(question)
 
         # Any deterministic MCP plan requires fresh source data.
         if plan.tool_name is not None:
             plan.fresh_mcp_required = True
 
-        print("\n[Planner]")
-        print(
-            f"Tool: {plan.tool_name}"
+        logger.debug(
+            "Query plan selected",
+            extra={"request_id": request_id, "tool_name": plan.tool_name},
         )
-        print(
-            f"Arguments: {plan.arguments}"
+        logger.debug(
+            "Query plan resolved",
+            extra={
+                "request_id": request_id,
+                "tool_name": plan.tool_name,
+                "dataset_id": plan.arguments.get("dataset_id"),
+                "operation": plan.arguments.get("operation"),
+            },
         )
-        print(
-            f"Entities: "
-            f"{plan.requested_entities}"
-        )
-        print(
-            f"Count: "
-            f"{plan.requested_count}"
-        )
-        print(
-            f"Reason: "
-            f"{plan.reason}"
+        logger.debug(
+            "Planner metadata",
+            extra={
+                "request_id": request_id,
+                "requested_entity_count": len(plan.requested_entities),
+                "requested_count": plan.requested_count,
+            },
         )
 
         # =====================================================
@@ -2520,7 +2753,8 @@ async def ask_nexusops(
 
         structured_evidence = (
             retrieve_structured_evidence(
-                question
+                question,
+                memory_manager=state.memory_manager,
             )
         )
 
@@ -2548,73 +2782,50 @@ async def ask_nexusops(
 
         if plan.tool_name is not None:
 
-            print(
-                "[Pipeline] Structured query detected."
+            logger.debug(
+                "Structured request requires fresh MCP evidence",
+                extra={"request_id": request_id},
             )
 
-            print(
-                "[Pipeline] Fresh MCP verification "
-                "is mandatory."
+            (
+                mcp_success,
+                structured_output,
+                mcp_message,
+            ) = await execute_mcp_query_with_resilience(
+                plan,
+                request_id=request_id,
             )
 
-            async with streamable_http_client(
-                MCP_URL
-            ) as (
-                read_stream,
-                write_stream,
-            ):
+            if not mcp_success:
+                logger.warning(
+                    "Fresh MCP evidence unavailable",
+                    extra={
+                        "request_id": request_id,
+                        "tool_name": plan.tool_name,
+                        "failure": str(mcp_message)[:500],
+                    },
+                )
+                return unavailable_evidence_message(question)
 
-                async with ClientSession(
-                    read_stream,
-                    write_stream,
-                ) as session:
+            state.memory_manager.store_tool_result(
+                tool_name=plan.tool_name,
+                arguments=plan.arguments,
+                data=structured_output,
+            )
 
-                    await session.initialize()
-
-                    (
-                        mcp_success,
-                        structured_output,
-                        mcp_message,
-                    ) = await execute_planned_mcp_query(
-                        session,
-                        plan,
-                    )
-
-                    if not mcp_success:
-
-                        print(
-                            "[Validator] MCP result rejected: "
-                            + str(mcp_message)
-                        )
-
-                        return unavailable_evidence_message(
-                            question
-                        )
-
-                    # -----------------------------------------
-                    # Store exact verified result
-                    # -----------------------------------------
-
-                    structured_memory_manager.store_tool_result(
-                        tool_name=plan.tool_name,
-                        arguments=plan.arguments,
-                        data=structured_output,
-                    )
-
-                    current_turn_evidence.append(
-                        {
-                            "tool_name": plan.tool_name,
-                            "arguments": plan.arguments,
-                            "data": structured_output,
-                            "evidence_status": "tool_verified",
-                            "source": "MCP / Elasticsearch",
-                        }
-                    )
-
-                    print(
-                        "[Memory] Fresh MCP result stored "
-                        "as tool_verified."
-                    )
+            current_turn_evidence.append(
+                {
+                    "tool_name": plan.tool_name,
+                    "arguments": plan.arguments,
+                    "data": structured_output,
+                    "evidence_status": "tool_verified",
+                    "source": "MCP / Elasticsearch",
+                }
+            )
+            logger.info(
+                "Fresh MCP evidence stored",
+                extra={"request_id": request_id, "tool_name": plan.tool_name},
+            )
 
         # =====================================================
         # STEP 4 — DETERMINISTIC ANSWER LAYER
@@ -2622,9 +2833,9 @@ async def ask_nexusops(
 
         if current_turn_evidence:
 
-            print(
-                "[Answer Layer] "
-                "Attempting deterministic rendering."
+            logger.debug(
+                "Attempting deterministic answer rendering",
+                extra={"request_id": request_id},
             )
 
             deterministic_answer = (
@@ -2638,9 +2849,9 @@ async def ask_nexusops(
 
             if deterministic_answer:
 
-                print(
-                    "[Answer Layer] "
-                    "Deterministic answer generated."
+                logger.debug(
+                    "Deterministic answer rendered",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2649,9 +2860,9 @@ async def ask_nexusops(
 
             else:
 
-                print(
-                    "[Answer Layer] "
-                    "No deterministic renderer matched."
+                logger.debug(
+                    "Deterministic renderer did not match",
+                    extra={"request_id": request_id},
                 )
 
                 # -------------------------------------------------
@@ -2668,10 +2879,9 @@ async def ask_nexusops(
                     )
                 )
 
-                print(
-                    "[Grounding] "
-                    "Generating final answer from "
-                    "fresh verified evidence."
+                logger.debug(
+                    "Generating answer from fresh verified evidence",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2680,7 +2890,7 @@ async def ask_nexusops(
                         question=question,
                         evidence=final_evidence,
                         conversation_context=(
-                            conversation_summary
+                            state.summary
                         ),
                     )
                 )
@@ -2694,13 +2904,9 @@ async def ask_nexusops(
 
         elif memory_is_sufficient:
 
-            print(
-                "[Pipeline] No fresh MCP plan."
-            )
-
-            print(
-                "[Pipeline] Verified structured memory "
-                "is sufficient."
+            logger.debug(
+                "Using verified conversation memory",
+                extra={"request_id": request_id},
             )
 
             # Try deterministic answer using memory.
@@ -2717,9 +2923,9 @@ async def ask_nexusops(
 
             if deterministic_answer:
 
-                print(
-                    "[Answer Layer] "
-                    "Memory-based deterministic answer generated."
+                logger.debug(
+                    "Memory-based deterministic answer rendered",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2738,9 +2944,9 @@ async def ask_nexusops(
                     )
                 )
 
-                print(
-                    "[Grounding] "
-                    "Generating answer from verified memory."
+                logger.debug(
+                    "Generating answer from verified memory",
+                    extra={"request_id": request_id},
                 )
 
                 answer = (
@@ -2749,7 +2955,7 @@ async def ask_nexusops(
                         question=question,
                         evidence=final_evidence,
                         conversation_context=(
-                            conversation_summary
+                            state.summary
                         ),
                     )
                 )
@@ -2760,9 +2966,9 @@ async def ask_nexusops(
 
         else:
 
-            print(
-                "[Pipeline] No deterministic MCP plan "
-                "and no sufficient verified memory."
+            logger.debug(
+                "No structured evidence matched; using conversational response",
+                extra={"request_id": request_id},
             )
 
             # -------------------------------------------------
@@ -2772,7 +2978,7 @@ async def ask_nexusops(
             # -------------------------------------------------
 
             base_messages = (
-                make_base_messages()
+                make_base_messages(history=state.history, summary=state.summary)
             )
 
             base_messages.append(
@@ -2819,27 +3025,20 @@ async def ask_nexusops(
             },
         ]
 
-        conversation_history.append(
-            turn_messages
-        )
-
-        await manage_history(
-            client
+        state.history.append(turn_messages)
+        state.summary = await manage_history(
+            client,
+            history=state.history,
+            summary=state.summary,
         )
 
         return answer
 
-    except Exception as exc:
-
-        print(
-            "\n[Error] Could not complete the request."
+    except Exception:
+        logger.exception(
+            "NexusOps request failed",
+            extra={"request_id": request_id},
         )
-
-        print(
-            f"Details: {exc}"
-        )
-
-        traceback.print_exc()
 
         return (
             "نتوانستم درخواست را کامل کنم. "
@@ -2853,19 +3052,81 @@ async def ask_nexusops(
 
 
 # ============================================================
+
+
+async def ask_nexusops(
+    question: str,
+    conversation_id: str = "default",
+):
+    """
+    Process one request in an isolated conversation.
+
+    Requests sharing a conversation_id are serialized to preserve turn order;
+    different conversation IDs can execute concurrently.
+    """
+    if not isinstance(conversation_id, str) or not conversation_id.strip():
+        raise ValueError("conversation_id must be a non-empty string.")
+    conversation_id = conversation_id.strip()
+
+    with _CONVERSATION_STATES_GUARD:
+        state = get_conversation_state(conversation_id)
+        state.active_requests += 1
+
+    request_id = uuid.uuid4().hex
+    conversation_ref = hashlib.sha256(
+        conversation_id.strip().encode("utf-8")
+    ).hexdigest()[:16]
+
+    try:
+        async with state.lock:
+            started_at = time.perf_counter()
+            logger.info(
+                "NexusOps request started",
+                extra={
+                    "request_id": request_id,
+                    "conversation_ref": conversation_ref,
+                },
+            )
+            answer = await _ask_nexusops_for_state(
+                question,
+                state,
+                request_id,
+            )
+            logger.info(
+                "NexusOps request finished",
+                extra={
+                    "request_id": request_id,
+                    "conversation_id": conversation_id,
+                    "duration_ms": round((time.perf_counter() - started_at) * 1000, 3),
+                },
+            )
+            if conversation_id == "default":
+                global conversation_summary
+                conversation_summary = state.summary
+            return answer
+    finally:
+        with _CONVERSATION_STATES_GUARD:
+            state.active_requests = max(0, state.active_requests - 1)
+
+
 # MEMORY RESET
 # ============================================================
 
-def reset_memory():
-
-    global conversation_history
+def reset_memory(conversation_id: str = "default"):
+    """Clear history, summary, and verified evidence for one conversation."""
     global conversation_summary
 
-    conversation_history = []
-    conversation_summary = ""
+    state = get_conversation_state(conversation_id)
+    state.history.clear()
+    state.summary = ""
+    state.memory_manager.clear()
 
-    print(
-        "[Memory] Conversation history cleared."
+    if conversation_id == "default":
+        conversation_summary = ""
+
+    logger.info(
+        "Conversation memory reset",
+        extra={"conversation_id": conversation_id},
     )
 
 
