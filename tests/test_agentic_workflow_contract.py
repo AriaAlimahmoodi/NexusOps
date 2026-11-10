@@ -52,8 +52,12 @@ def test_mcp_session_headers_are_propagated_through_initialized_and_tool_calls()
     notify = _node(workflow, "MCP Initialized Notify")
     call_tool = _node(workflow, "MCP Call Tool")
 
+    # The session identifier is returned as an HTTP response header.
+    # The negotiated protocol version is returned in the initialize result
+    # body and must be propagated to subsequent MCP requests.
     assert 'getHeader("mcp-session-id")' in parse_init
-    assert 'getHeader("MCP-Protocol-Version")' in parse_init
+    assert "message.result.protocolVersion" in parse_init
+    assert 'reqHeaders["MCP-Protocol-Version"] = message.result.protocolVersion' in parse_init
     assert _header_names(notify) >= {
         "content-type", "accept", "mcp-session-id", "mcp-protocol-version"
     }
