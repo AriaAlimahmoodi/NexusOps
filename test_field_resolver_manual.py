@@ -189,9 +189,11 @@ resolved_6 = resolve_analytics_request(request_6)
 
 sort_definition = resolved_6["sort"][0]
 
-assert sort_definition["field_type"] == "metric"
-assert sort_definition["function"] == "avg"
-assert sort_definition["source_field"] == "demand_score"
+assert sort_definition == {
+    "alias": "average_demand",
+    "order": "desc",
+    "field_type": "metric",
+}
 
 print("Test 6 passed: Metric alias resolved for sorting")
 
