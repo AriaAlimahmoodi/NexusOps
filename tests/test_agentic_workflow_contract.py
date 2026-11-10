@@ -133,3 +133,18 @@ def test_multi_plan_correlation_and_completeness_reach_answer_context():
     assert '"partial_failure"' in context_code
     assert "planSetComplete" in compose_code
     assert "وضعیت اجرای چندبرنامه‌ای" in compose_code
+
+
+def test_mcp_tool_call_preserves_per_plan_transport_failures_for_partial_results():
+    workflow = _workflow()
+    call_tool = _node(workflow, "MCP Call Tool")
+    parser = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
+
+    assert call_tool["onError"] == "continueRegularOutput"
+    assert call_tool["retryOnFail"] is True
+    assert call_tool["maxTries"] == 2
+    assert call_tool["waitBetweenTries"] == 1000
+    assert "const responseItems = $input.all()" in parser
+    assert "responseItems[index]?.pairedItem" in parser
+    assert "statusCode: 599" in parser
+    assert "paired-item lineage" in parser
