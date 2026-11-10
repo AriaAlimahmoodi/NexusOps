@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_PATH = ROOT / "workflows" / "nexusops-agentic-workflow.json"
+
+
+def _workflow():
+    return json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+
+
+def _node(workflow, name):
+    matches = [node for node in workflow["nodes"] if node["name"] == name]
+    assert len(matches) == 1, f"Expected exactly one node named {name!r}"
+    return matches[0]
+
+
+def _header_names(node):
+    return {
+        str(item.get("name", "")).lower()
+        for item in node["parameters"]["headerParameters"]["parameters"]
+    }
+
+
+def test_mcp_initialize_sends_required_http_headers():
+    workflow = _workflow()
+    node = _node(workflow, "MCP Initialize")
+    parameters = node["parameters"]
+
+    assert parameters["method"] == "POST"
+    assert parameters["url"].endswith("/mcp")
+    assert parameters["sendHeaders"] is True
+    assert _header_names(node) >= {"content-type", "accept"}
+    assert all(
+        item.get("name") and item.get("value")
+        for item in parameters["headerParameters"]["parameters"]
+    )
+
+    request = json.loads(parameters["jsonBody"])
+    assert request["jsonrpc"] == "2.0"
+    assert request["method"] == "initialize"
+    assert request["params"]["protocolVersion"]
+
+
+def test_mcp_session_headers_are_propagated_through_initialized_and_tool_calls():
+    workflow = _workflow()
+
+    parse_init = _node(workflow, "MCP Parse Init")["parameters"]["jsCode"]
+    notify = _node(workflow, "MCP Initialized Notify")
+    call_tool = _node(workflow, "MCP Call Tool")
+
+    assert 'getHeader("mcp-session-id")' in parse_init
+    assert 'getHeader("MCP-Protocol-Version")' in parse_init
+    assert _header_names(notify) >= {
+        "content-type", "accept", "mcp-session-id", "mcp-protocol-version"
+    }
+    assert _header_names(call_tool) >= {
+        "content-type", "accept", "mcp-session-id", "mcp-protocol-version"
+    }
+
+    notify_body = json.loads(notify["parameters"]["jsonBody"])
+    assert notify_body["method"] == "notifications/initialized"
+    assert "id" not in notify_body
+
+
+def test_initialized_notification_is_a_gate_before_tool_execution():
+    workflow = _workflow()
+    connections = workflow["connections"]
+
+    assert connections["MCP Initialized Notify"]["main"][0][0]["node"] == (
+        "Validate Initialized Notification"
+    )
+    assert connections["Validate Initialized Notification"]["main"][0][0]["node"] == (
+        "Initialized Notification OK?"
+    )
+    branches = connections["Initialized Notification OK?"]["main"]
+    assert branches[0][0]["node"] == "Build Tool Call"
+    assert branches[1][0]["node"] == "Error Reply"
+
+
+def test_workflow_connections_reference_existing_nodes():
+    workflow = _workflow()
+    names = {node["name"] for node in workflow["nodes"]}
+
+    for source, outputs in workflow["connections"].items():
+        assert source in names, f"Unknown connection source: {source}"
+        for channel_outputs in outputs.values():
+            for branch in channel_outputs:
+                for connection in branch:
+                    assert connection["node"] in names, (
+                        f"Unknown connection target: {connection['node']}"
+                    )
