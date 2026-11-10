@@ -1,0 +1,853 @@
+{
+  "name": "NexusOps-Agentic-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nMy name is Nathan. How can I assist you today?\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1872,
+        176
+      ],
+      "id": "99f3b835-4a16-4829-b9b4-8ad9509489f6",
+      "name": "When chat message received",
+      "webhookId": "bb04e460-7b14-4e42-aab0-a907c8d614c6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Input — Run Once for All Items\n\nconst CONFIG = {\n  datasets: {\n    labor_market: {\n      description: \"Labor-market records\",\n      fields: {\n        market_record_id: { type: \"keyword\", groupable: false },\n        job_title:        { type: \"keyword\", groupable: true },\n        job_field:        { type: \"keyword\", groupable: true,\n          aliases: [\"حوزه شغلی\", \"حوزه‌های شغلی\", \"زمینه شغلی\", \"رشته شغلی\"] },\n        skill:            { type: \"keyword\", groupable: true,\n          aliases: [\"مهارت\", \"مهارت‌ها\", \"توانمندی\"] },\n        demand_score:     { type: \"number\",\n          aliases: [\"امتیاز تقاضا\", \"امتیاز بازار\", \"تقاضا\"] },\n        frequency:        { type: \"number\",\n          aliases: [\"فراوانی\", \"تعداد تکرار\", \"میزان تکرار\"] },\n        experience_level: { type: \"keyword\", groupable: true,\n          aliases: [\"سطح تجربه\", \"سابقه\"] },\n        source_type:      { type: \"keyword\", groupable: true,\n          aliases: [\"نوع منبع\", \"منبع داده\"] }\n      }\n    },\n\n    university_courses: {\n      description: \"University course records\",\n      fields: {\n        course_id:       { type: \"keyword\", groupable: false,\n          aliases: [\"شناسه درس\", \"کد درس\"] },\n        course_name:     { type: \"keyword\", groupable: true,\n          aliases: [\"نام درس\", \"عنوان درس\"] },\n        course_category: { type: \"keyword\", groupable: true,\n          aliases: [\"دسته‌بندی درس\", \"گروه درسی\"] },\n        credits:         { type: \"number\",\n          aliases: [\"واحد\", \"واحد درسی\", \"تعداد واحد\"] },\n        skills:          { type: \"keyword\", groupable: true,\n          aliases: [\"مهارت\", \"مهارت‌های درس\", \"مهارت‌های آموزشی\"] }\n      }\n    }\n  },\n\n  // کاتالوگ مستقل جست‌وجو — فقط برای search_elasticsearch\n  searchableEntities: {\n    graduate: {\n      idPattern: \"G####\",\n      examples: [\"G0001\", \"G0123\"],\n      description: \"University graduate records. Use search_elasticsearch with the graduate ID or name.\",\n      aliases: [\"فارغ التحصیل\", \"فارغ‌التحصیل\", \"دانش‌آموخته\", \"graduate\"]\n    },\n    course_document: {\n      idPattern: \"C###\",\n      examples: [\"C001\", \"C123\"],\n      description: \"Course documents by ID. Prefer search_elasticsearch for single-document lookup by course_id.\",\n      aliases: [\"شناسه درس\", \"کد درس\", \"course id\"]\n    }\n  },\n\n  metricFunctions: [\n    \"count_documents\", \"value_count\", \"sum\",\n    \"avg\", \"min\", \"max\", \"cardinality\"\n  ],\n\n  operators: {\n    keyword: [\"eq\", \"neq\", \"in\", \"not_in\", \"exists\", \"not_exists\"],\n    number: [\"eq\", \"neq\", \"gt\", \"gte\", \"lt\", \"lte\", \"between\", \"exists\", \"not_exists\"]\n  },\n\n  filterLogics: [\"and\", \"or\"],\n  arrayOperators: [\"in\", \"not_in\"],\n  maxQuestionLength: 1000\n};\n\nconst input = $input.first().json;\nconst question = String(input.chatInput ?? \"\").trim();\n\nif (!question) {\n  throw new Error(\"درخواست خالی است.\");\n}\n\nif (question.length > CONFIG.maxQuestionLength) {\n  throw new Error(\"طول سؤال از حد مجاز بیشتر است.\");\n}\n\n// ---------- Analytics Catalog ----------\nconst catalog = [];\n\nfor (const [datasetId, dataset] of Object.entries(CONFIG.datasets)) {\n  catalog.push(`dataset_id: ${datasetId}`);\n  catalog.push(`description: ${dataset.description}`);\n  catalog.push(\"fields:\");\n\n  for (const [fieldName, field] of Object.entries(dataset.fields)) {\n    catalog.push(\n      `- ${fieldName}: type=${field.type}, groupable=${field.groupable !== false}` +\n      (field.aliases ? `, Persian aliases=${field.aliases.join(\"، \")}` : \"\")\n    );\n  }\n\n  catalog.push(\"\");\n}\n\ncatalog.push(`metric_functions: ${CONFIG.metricFunctions.join(\", \")}`);\ncatalog.push(`filter_logic: ${CONFIG.filterLogics.join(\", \")}`);\ncatalog.push(\"sort schema: {field: string, order: 'asc'|'desc'}\");\n\n// ---------- Search Catalog (independent) ----------\nconst searchCatalog = [];\nsearchCatalog.push(\"SEARCHABLE ENTITIES (use tool=search_elasticsearch):\");\n\nfor (const [entityId, entity] of Object.entries(CONFIG.searchableEntities)) {\n  searchCatalog.push(`entity: ${entityId}`);\n  searchCatalog.push(`description: ${entity.description}`);\n  searchCatalog.push(`id_pattern: ${entity.idPattern}`);\n  searchCatalog.push(`examples: ${entity.examples.join(\", \")}`);\n  searchCatalog.push(`aliases: ${entity.aliases.join(\"، \")}`);\n  searchCatalog.push(\"\");\n}\n\nsearchCatalog.push(\"Rules:\");\nsearchCatalog.push(\"- For graduate ID like G0001 or graduate lookup → tool=search_elasticsearch, arguments={query: \\\"G0001\\\"}\");\nsearchCatalog.push(\"- For single course document by ID like C001 → tool=search_elasticsearch is allowed\");\nsearchCatalog.push(\"- Do NOT invent dataset_id=university_graduates for analytics_query\");\nsearchCatalog.push(\"- analytics_query only supports: labor_market, university_courses\");\n\nreturn [{\n  json: {\n    question,\n    config: CONFIG,\n    catalogText: catalog.join(\"\\n\"),\n    searchCatalogText: searchCatalog.join(\"\\n\")\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1712,
+        176
+      ],
+      "id": "625fac94-e55b-4744-b704-838eef971308",
+      "name": "Prepare Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Domain Gate — Run Once for All Items (نسخه بهبودیافته)\n\nconst p = $input.first().json;\nconst q = String(p.question ?? \"\");\n\nconst normalize = s => String(s ?? \"\")\n  .normalize(\"NFKC\")\n  .replace(/ي/g, \"ی\")\n  .replace(/ك/g, \"ک\")\n  .replace(/[\\u200c\\u200b\\u200e\\u200f]/g, \" \")\n  .replace(/[۰-۹]/g, d => \"۰۱۲۳۴۵۶۷۸۹\".indexOf(d))\n  .replace(/[٠-٩]/g, d => \"٠١٢٣٤٥٦٧٨٩\".indexOf(d))\n  .replace(/\\s+/g, \" \")\n  .toLowerCase()\n  .trim();\n\nconst nq = normalize(q);\nconst tokens = new Set(nq.match(/[\\p{L}\\p{N}_]+/gu) ?? []);\n\n// واژگان دامنه (گسترش‌یافته)\nconst exactTerms = [\n  // بازار کار و شغل\n  \"بازار کار\", \"بازار شغلی\", \"حوزه شغلی\", \"حوزه های شغلی\", \"حوزه‌های شغلی\",\n  \"شغل\", \"شغلی\", \"فرصت شغلی\", \"فرصت‌های شغلی\", \"موقعیت شغلی\",\n  \"job\", \"jobs\", \"labor market\", \"labour market\", \"job field\", \"job_field\",\n\n  // مهارت و توانمندی\n  \"مهارت\", \"مهارت ها\", \"مهارت‌ها\", \"توانمندی\", \"توانمندی‌ها\", \"تخصص\", \"تخصص‌ها\",\n  \"قابلیت\", \"قابلیت‌ها\", \"skill\", \"skills\", \"competency\", \"competencies\",\n\n  // تقاضا و فراوانی\n  \"تقاضا\", \"امتیاز تقاضا\", \"demand\", \"demand_score\",\n  \"فراوانی\", \"تعداد تکرار\", \"frequency\",\n\n  // دانشگاه و درس\n  \"دانشگاه\", \"درس\", \"دروس\", \"واحد درسی\", \"واحد\", \"سرفصل\", \"دوره\",\n  \"course\", \"courses\", \"university\", \"credit\", \"credits\",\n\n  // سایر\n  \"فارغ التحصیل\", \"فارغ‌التحصیل\", \"فارغ التحصیلان\", \"graduate\"\n];\n\n// نشانه‌های تحلیلی (گسترش‌یافته)\nconst analyticalCues = [\n  // پرسش و نمایش\n  \"چند\", \"تعداد\", \"نشان بده\", \"نمایش بده\", \"فهرست\", \"لیست\",\n  \"پیدا کن\", \"کدام\", \"چه\", \"برترین\", \"رتبه\", \"مقایسه\",\n\n  // محاسبات\n  \"میانگین\", \"متوسط\", \"مجموع\", \"جمع\", \"بیشترین\", \"کمترین\",\n  \"بالاتر از\", \"بیشتر از\", \"کمتر از\", \"حداقل\", \"حداکثر\", \"برابر\",\n\n  // گروه‌بندی\n  \"برای هر\", \"به تفکیک\", \"به ازای هر\", \"بر اساس\",\n\n  // واژگان پرتکرار مرتبط با تحلیل مهارت\n  \"پرتقاضا\", \"پر تقاضا\", \"مناسب\", \"مورد نیاز\", \"موردنیاز\",\n  \"نیاز\", \"احتیاج\", \"پرکاربرد\", \"مهم\",\n\n  // انگلیسی\n  \"average\", \"count\", \"sum\", \"compare\", \"top\", \"highest\", \"lowest\",\n  \"list\", \"show\", \"find\", \"group\", \"most\", \"best\"\n];\n\nconst hasDomain = exactTerms.some(term => {\n  const t = normalize(term);\n  if (t.includes(\" \")) return (` ${nq} `).includes(` ${t} `);\n  return tokens.has(t);\n});\n\nconst hasAnalyticalIntent = analyticalCues.some(term => {\n  const t = normalize(term);\n  if (t.includes(\" \")) return (` ${nq} `).includes(` ${t} `);\n  return tokens.has(t);\n});\n\n// منطق جدید: اگر دامنه تشخیص داده شد، حتی با نشانه تحلیلی ضعیف‌تر هم عبور کند\n// فقط وقتی هر دو غایب باشند رد می‌شود\nconst inScope = hasDomain && (hasAnalyticalIntent || hasDomain);\n\nreturn [{\n  json: {\n    ...p,\n    inScope,\n    domainReason: !hasDomain\n      ? \"هیچ نشانه روشنی از دامنه داده‌های دانشگاه یا بازار کار پیدا نشد.\"\n      : !hasAnalyticalIntent\n        ? \"درخواست مرتبط با دامنه است اما هدف تحلیلی مشخصی ندارد.\"\n        : \"درخواست در حوزه داده‌های دانشگاه یا بازار کار قرار دارد.\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        176
+      ],
+      "id": "5309b88e-49bb-491e-b798-331da9bd68ea",
+      "name": "Domain Gate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst output =\n  \"این درخواست در محدوده تحلیل داده‌های دانشگاهی و بازار کار NexusOps قرار نمی‌گیرد. \" +\n  \"لطفاً درباره دروس دانشگاهی، مهارت‌ها، حوزه‌های شغلی، تقاضای بازار کار یا شکاف مهارتی سؤال کنید.\";\n\nreturn [{ json: { output, text: output, reason: j.domainReason } }];;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        400
+      ],
+      "id": "e703b867-e934-47c8-be13-40564f6d01c9",
+      "name": "Out of Scope Reply"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=\n# SYSTEM MESSAGE — NexusOps Query Planner\n# Version: 2.0\n# Role: Structured Query Planning and MCP Tool Selection\n\n/no_think\n\nتو موتور برنامه‌ریزی هوشمند پروژه NexusOps هستی.\n\nوظیفه تو تبدیل سؤال کاربر به یک یا چند Plan ساختاریافته و معتبر برای ابزارهای MCP است.\n\nتو مستقیماً به Elasticsearch دسترسی نداری.\nتو نباید نتیجه تحلیل را جعل یا محاسبه کنی.\nوظیفه تو فقط انتخاب ابزار مناسب، استخراج پارامترها و تولید Plan مطابق قرارداد واقعی سیستم است.\n\nخروجی باید فقط یک JSON Object معتبر باشد.\nهیچ Markdown، توضیح، متن اضافی یا کدبلاک تولید نکن.\n\n==================================================\n1. INPUT CONTEXT\n==================================================\n\nAnalytics Catalog:\n{{ $json.catalogText }}\n\nSearch Catalog:\n{{ $json.searchCatalogText }}\n\nPrevious Validation Error:\n{{ $json.lastError || \"ندارد\" }}\n\nPrevious Invalid Plan:\n{{ $json.lastRaw || \"ندارد\" }}\n\nCurrent User Question:\n{{ $json.question }}\n\nIMPORTANT CONTEXT RULES:\n\n1. فقط سؤال فعلی را تحلیل کن.\n2. هیچ فیلتر، عدد، شناسه، فیلد، عملیات یا شرطی از سؤال قبلی وارد نکن.\n3. اطلاعات قبلی فقط برای اصلاح ساختار Plan در مرحله Retry مجاز است.\n4. خطای اعتبارسنجی قبلی را فقط در صورتی استفاده کن که مستقیماً به Plan فعلی مربوط باشد.\n5. اگر سؤال فعلی ناقص یا مبهم است، پارامترهای گمشده را حدس نزن.\n6. هیچ نام فیلد یا دیتاستی خارج از کاتالوگ اختراع نکن.\n\n==================================================\n2. AVAILABLE MCP TOOLS\n==================================================\n\nفقط ابزارهای ثبت‌شده زیر مجاز هستند:\n\n1. analytics_query\n2. get_top_market_skills\n3. get_top_skill_gaps\n4. get_market_skill_details\n5. search_elasticsearch\n\nهر ابزار قرارداد ورودی مستقل دارد. نام ابزار یا پارامتر خارج از این فهرست تولید نکن.\n\nهرگز پارامترهای یک ابزار را به ابزار دیگر منتقل نکن.\n\n\n==================================================\n3. OUTPUT CONTRACT\n==================================================\n\nA. SINGLE PLAN\n\nبرای درخواست تک‌بخشی، خروجی باید یک JSON Object با ساختار زیر باشد:\n\n{\n  \"tool\": \"tool_name\",\n  \"arguments\": {\n    \"tool_specific_arguments\": \"...\"\n  },\n  \"unsupported_reason\": null\n}\n\nB. MULTI-PLAN PLANNING\n\nدرخواست چندبخشی زمانی تشخیص داده می‌شود که کاربر دو هدف مستقل و قابل اجرا را در یک پیام مطرح کند.\n\nدر مرحله فعلی پروژه، تولید و اعتبارسنجی Multi-plan فعال است.\n\nبرای درخواست چندبخشی، خروجی باید ساختار زیر را داشته باشد:\n\n{\n  \"plans\": [\n    {\n      \"sub_question\": \"سؤال مستقل بخش اول\",\n      \"tool\": \"tool_name\",\n      \"arguments\": {},\n      \"unsupported_reason\": null\n    },\n    {\n      \"sub_question\": \"سؤال مستقل بخش دوم\",\n      \"tool\": \"tool_name\",\n      \"arguments\": {},\n      \"unsupported_reason\": null\n    }\n  ],\n  \"unsupported_reason\": null\n}\n\nقواعد اجباری:\n\n1. حداکثر 2 Plan تولید کن.\n2. هر Plan باید یک هدف مستقل داشته باشد.\n3. sub_question باید سؤال مستقل و دقیق همان Plan باشد.\n4. هر sub_question باید فقط شامل اطلاعات مربوط به همان بخش از سؤال کاربر باشد.\n5. هر Plan باید tool و arguments معتبر داشته باشد.\n6. هیچ Plan نباید به نتیجه Plan دیگر وابسته باشد.\n7. هیچ پارامتر، فیلتر یا عددی از یک Plan به Plan دیگر منتقل نکن.\n8. هر Plan باید مطابق قرارداد واقعی ابزار مربوط به خودش باشد.\n9. اگر حتی یکی از اهداف قابل پشتیبانی نباشد، کل درخواست را با unsupported_reason رد کن.\n10. هیچ‌گاه فقط اولین بخش درخواست چندبخشی را به‌عنوان پاسخ کامل تولید نکن.\n\nC. EXECUTION STATUS\n\nتوجه:\n\nتولید و اعتبارسنجی چند Plan در مرحله فعلی فعال است؛ اما تا زمانی که اجرای چندگانه، حفظ نتایج مستقل و تجمیع خروجی‌ها در Workflow تکمیل و آزمایش نشده‌اند، ادعای اجرای موفق Multi-plan نکن.\n\nوظیفه Planner فقط تولید Plan معتبر است، نه اجرای آن.\n\nدر صورت وجود هدفی که ابزار یا قرارداد لازم برای آن وجود ندارد، خروجی باید Unsupported باشد.\n\nD. MAXIMUM PLAN COUNT\n\nحداکثر تعداد Plan برابر 2 است.\n\nاگر درخواست بیش از دو هدف مستقل داشته باشد، آن را Unsupported اعلام کن.\n\n==================================================\n4. TOOL SELECTION PRIORITY\n==================================================\n\nانتخاب ابزار باید بر اساس هدف اصلی سؤال انجام شود.\n\nPRIORITY 1 — UNIVERSITY-MARKET SKILL GAP\n\nاگر هدف اصلی سؤال رتبه‌بندی شکاف مهارتی دانشگاه و بازار کار، یافتن مهارت‌های دارای بیشترین market_gap یا اولویت‌بندی بهبود برنامه درسی است، از ابزار ثبت‌شده get_top_skill_gaps استفاده کن.\n\nساختار:\n{\n  \"tool\": \"get_top_skill_gaps\",\n  \"arguments\": {\n    \"limit\": 10\n  },\n  \"unsupported_reason\": null\n}\n\nقواعد:\n1. limit پیش‌فرض 10 و در بازه 1 تا 50 است.\n2. این ابزار نتایج را بر اساس market_gap نزولی مرتب می‌کند.\n3. هر نتیجه یک مهارت است؛ associated_course صرفاً درس مرتبط با آن مهارت است.\n4. واحد و معنای course_coverage را حدس نزن.\n5. نبود یک مهارت در Top N اثبات نمی‌کند که در کل داده‌ها وجود ندارد.\n\nPRIORITY 2 — NAMED MARKET SKILLS\n\nاگر کاربر مهارت‌های مشخصی را نام برده و تقاضا، میانگین demand_score، total_frequency یا مقایسه همان مهارت‌ها را می‌خواهد، از get_market_skill_details استفاده کن.\n\nساختار:\n{\n  \"tool\": \"get_market_skill_details\",\n  \"arguments\": {\n    \"skills\": [\"DevOps\", \"Cloud Computing\"]\n  },\n  \"unsupported_reason\": null\n}\n\nقواعد:\n1. فقط مهارت‌هایی را وارد کن که کاربر صریحاً نام برده است.\n2. skills باید آرایه‌ای غیرخالی از رشته‌ها باشد.\n3. missing_skills را در پاسخ نهایی لحاظ کن؛ نبود نتیجه را به‌معنای تقاضای صفر تفسیر نکن.\n\nPRIORITY 3 — DOCUMENT SEARCH\n\nاگر هدف بازیابی یک سند یا رکورد مشخص باشد، از search_elasticsearch استفاده کن.\n\nنمونه‌ها:\n\n- اطلاعات فارغ‌التحصیل G0001\n- مشخصات درس C001\n- جست‌وجوی یک شناسه مشخص\n- بازیابی رکوردهای مرتبط با یک عبارت مشخص\n\nساختار:\n\n{\n  \"tool\": \"search_elasticsearch\",\n  \"arguments\": {\n    \"query\": \"G0001\"\n  },\n  \"unsupported_reason\": null\n}\n\nقواعد:\n\n1. query باید رشته غیرخالی باشد.\n2. شناسه یا عبارت جست‌وجو را تا حد امکان عیناً حفظ کن.\n3. هیچ dataset_id یا فیلتر Analytics به این ابزار اضافه نکن.\n4. پارامتر اصلی این ابزار query است.\n5. هرگز از arguments اضافی و تعریف‌نشده استفاده نکن.\n\nPRIORITY 4 — TOP MARKET SKILLS\n\nاگر هدف سؤال شناسایی یا رتبه‌بندی مهارت‌های پرتقاضای بازار کار است:\n\n{\n  \"tool\": \"get_top_market_skills\",\n  \"arguments\": {\n    \"limit\": 10\n  },\n  \"unsupported_reason\": null\n}\n\nقواعد:\n\n1. مقدار پیش‌فرض limit برابر 10 است.\n2. اگر کاربر تعداد مشخصی درخواست کرد، همان مقدار را قرار بده.\n3. limit باید عدد صحیح بین 1 و 50 باشد.\n4. این ابزار را برای محاسبه میانگین تقاضا بر اساس حوزه شغلی استفاده نکن.\n5. این ابزار را برای محاسبه شکاف مهارتی استفاده نکن.\n\nPRIORITY 5 — GENERAL ANALYTICS\n\nبرای سایر تحلیل‌های قابل انجام، از analytics_query استفاده کن.\n\n==================================================\n5. ANALYTICS DATASET RULES\n==================================================\n\nدیتاست‌های مجاز:\n\n- labor_market\n- university_courses\n\nقواعد:\n\n1. dataset_id باید دقیقاً از کاتالوگ Analytics انتخاب شود.\n2. فقط فیلدهای موجود در همان دیتاست مجاز هستند.\n3. هیچ فیلد فرضی یا مشابهی اختراع نکن.\n4. هرگز university_graduates را به‌عنوان dataset_id برای analytics_query انتخاب نکن.\n5. جست‌وجوی فارغ‌التحصیلان باید از search_elasticsearch استفاده کند.\n6. اگر فیلد موردنیاز در کاتالوگ وجود ندارد، درخواست را unsupported اعلام کن.\n\n==================================================\n6. ANALYTICS OPERATIONS\n==================================================\n\nسه عملیات معتبر وجود دارد:\n\nA. SELECT\n\nبرای بازیابی رکوردها و مشاهده مقادیر فیلدها.\n\nB. COUNT\n\nبرای شمارش تعداد اسناد منطبق با شرایط.\n\nC. AGGREGATE\n\nبرای محاسبه معیارهای آماری و گروه‌بندی.\n\n------------------------------------------\n6.1 COUNT — STRICT RULES\n------------------------------------------\nThe `sort` property MUST always be an array of objects.\n\nEach object MUST contain exactly these properties:\n- `field`: a valid sortable field name.\n- `order`: either `\"asc\"` or `\"desc\"`.\n\nValid example:\n```json\n\"sort\": [\n  {\n    \"field\": \"demand_score\",\n    \"order\": \"desc\"\n  }\n]\n```\n\nInvalid examples:\n```json\n\"sort\": [\"demand_score\", \"desc\"]\n```\n\n```json\n\"sort\": [\n  {\n    \"demand_score\": \"desc\"\n  }\n]\n```\n\nRules:\n1. Never represent sort as an array of strings.\n2. Never use positional values such as `[field, order]`.\n3. Use only fields available in the selected dataset catalog.\n4. If sorting is not requested, return `\"sort\": []`.\n5. For multiple sort criteria, use one object per criterion.\n6. Never invent a sortable field.\n\n------------------------------------------\n6.2 SELECT — RULES\n------------------------------------------\n\nSELECT is a fully supported and mandatory operation for retrieving records from Analytics datasets.\n\nNever claim that the system supports only COUNT and AGGREGATE.\n\n### A. Intent Mapping\n\nThe following Persian expressions indicate SELECT intent:\n\n- نمایش بده\n- نشان بده\n- فهرست کن\n- لیست کن\n- مشاهده کن\n- اطلاعات را ارائه کن\n- همه رکوردها را نمایش بده\n- تمامی رکوردها را نشان بده\n\nEnglish equivalents include:\n\n- show\n- display\n- list\n- retrieve\n- fetch\n- view\n\n### B. Dataset Mapping\n\nWhen the user requests university courses, course lists, or all university course records:\n\n- dataset_id = university_courses\n- operation = select\n\nDo not use search_elasticsearch for retrieving the entire university_courses dataset.\n\nUse search_elasticsearch only for specific document retrieval, such as a course identified by C001.\n\n### C. Mandatory All-Courses Plan\n\nFor the following request:\n\n\"تمامی درس‌های دانشگاه را نمایش بده\"\n\nYou MUST generate:\n\n{\n  \"tool\": \"analytics_query\",\n  \"arguments\": {\n    \"dataset_id\": \"university_courses\",\n    \"operation\": \"select\",\n    \"filter_conditions\": [],\n    \"filter_logic\": \"and\",\n    \"sort\": [],\n    \"limit\": 1000\n  },\n  \"unsupported_reason\": null\n}\n\nThe current university_courses dataset contains 20 records.\n\n### D. General Rules\n\n1. A valid SELECT request must never be rejected merely because it requests all records.\n2. Use only fields and datasets present in Analytics Catalog.\n3. Do not invent filters.\n4. Do not use aggregate for simple record retrieval.\n5. Do not use count when the user asks to display records.\n6. Do not use search_elasticsearch for listing an entire Analytics dataset.\n7. If the requested dataset exists and SELECT is supported, produce a valid SELECT plan.\n------------------------------------------\n6.3 AGGREGATE — RULES\n------------------------------------------\n\nبرای محاسبات گروهی و آماری از aggregate استفاده کن.\n\nتوابع مجاز:\n\n- count_documents\n- value_count\n- sum\n- avg\n- min\n- max\n- cardinality\n\nقواعد:\n\n1. aggregate باید حداقل یک group_by معتبر داشته باشد.\n2. group_by فقط شامل فیلدهای مجاز کاتالوگ باشد.\n3. برای avg، sum، min و max وجود field الزامی است.\n4. field باید عددی باشد.\n5. count_documents فقط به function و alias نیاز دارد.\n6. برای هر metric یک alias یکتا تعیین کن.\n7. alias نباید با نام فیلدهای group_by تداخل داشته باشد.\n8. sort در aggregate می‌تواند روی فیلدهای group_by یا alias یکی از metricهای همان Plan انجام شود؛ هیچ فیلد یا alias تعریف‌نشده‌ای مجاز نیست.\n9. برای aggregate بدون گروه‌بندی، درخواست را unsupported اعلام کن؛ مگر اینکه قرارداد ابزار بعداً توسعه یابد.\n\nنمونه:\n\n{\n  \"tool\": \"analytics_query\",\n  \"arguments\": {\n    \"dataset_id\": \"labor_market\",\n    \"operation\": \"aggregate\",\n    \"group_by\": [\"job_field\"],\n    \"metrics\": [\n      {\n        \"function\": \"avg\",\n        \"field\": \"demand_score\",\n        \"alias\": \"avg_demand_score\"\n      }\n    ],\n    \"filter_conditions\": [],\n    \"filter_logic\": \"and\",\n    \"sort\": [],\n    \"limit\": null\n  },\n  \"unsupported_reason\": null\n}\n\n==================================================\n7. FILTER CONDITIONS\n==================================================\n\nهر شرط باید دارای ساختار زیر باشد:\n\n{\n  \"field\": \"field_name\",\n  \"operator\": \"operator_name\",\n  \"value\": \"value\",\n  \"evidence\": \"عبارت مستند در سؤال کاربر\"\n}\n\nقواعد:\n\n1. field باید در کاتالوگ دیتاست وجود داشته باشد.\n2. evidence باید مستقیماً از سؤال فعلی استخراج شود.\n3. هیچ شرطی را صرفاً از روی حدس ایجاد نکن.\n4. مقدار عددی باید عدد JSON باشد، نه رشته.\n5. مقدار متنی باید رشته JSON باشد.\n6. مقادیر boolean باید true یا false باشند.\n7. مقادیر بین دو حد باید آرایه‌ای شامل دو مقدار باشند.\n\nعملگرهای مجاز، مشروط به پشتیبانی Validator:\n\n- eq\n- neq\n- in\n- not_in\n- gt\n- gte\n- lt\n- lte\n- between\n- exists\n- not_exists\n\nبرای between:\n\n{\n  \"field\": \"demand_score\",\n  \"operator\": \"between\",\n  \"value\": [4.2, 4.8],\n  \"evidence\": \"بین 4.2 و 4.8\"\n}\n\nقواعد عددی:\n\n- بیشتر از X → gt\n- حداقل X → gte\n- کمتر از X → lt\n- حداکثر X → lte\n- دقیقاً X → eq\n- بین X و Y → between\n\nقواعد filter_logic:\n\n- فقط AND → and\n- فقط OR → or\n\nاگر منطق تودرتوی AND/OR لازم باشد و قرارداد فعلی آن را پشتیبانی نکند:\n\n{\n  \"unsupported_reason\": \"منطق ترکیبی تودرتو در نسخه فعلی پشتیبانی نمی‌شود.\"\n}\n\nهیچ‌گاه ساختار شرط‌های تودرتو را به چند شرط ساده تبدیل نکن؛ زیرا معنای منطقی پرس‌وجو تغییر می‌کند.\n\n==================================================\n8. MULTI-INTENT DETECTION\n==================================================\n\nابتدا سؤال کاربر را از نظر تعداد اهداف مستقل تحلیل کن.\n\nA. SINGLE-INTENT\n\nاگر سؤال فقط یک هدف تحلیلی یا بازیابی داشته باشد، دقیقاً یک Plan تولید کن.\n\nنمونه:\n\n«میانگین امتیاز تقاضا را برای هر حوزه شغلی محاسبه کن.»\n\nخروجی:\nیک Plan از analytics_query با operation=aggregate.\n\nB. MULTI-INTENT\n\nاگر سؤال شامل دو هدف مستقل باشد، دو Plan مستقل تولید کن.\n\nنمونه:\n\n«تمام درس‌های دانشگاه را نمایش بده و میانگین امتیاز تقاضای بازار کار را به تفکیک حوزه شغلی محاسبه کن.»\n\nهدف اول:\nنمایش تمام درس‌های دانشگاه.\n\nPlan اول:\n\n{\n  \"sub_question\": \"تمام درس‌های دانشگاه را نمایش بده.\",\n  \"tool\": \"analytics_query\",\n  \"arguments\": {\n    \"dataset_id\": \"university_courses\",\n    \"operation\": \"select\",\n    \"filter_conditions\": [],\n    \"filter_logic\": \"and\",\n    \"sort\": [],\n    \"limit\": 1000\n  },\n  \"unsupported_reason\": null\n}\n\nهدف دوم:\nمحاسبه میانگین امتیاز تقاضای بازار کار به تفکیک حوزه شغلی.\n\nPlan دوم:\n\n{\n  \"sub_question\": \"میانگین امتیاز تقاضای بازار کار را به تفکیک حوزه شغلی محاسبه کن.\",\n  \"tool\": \"analytics_query\",\n  \"arguments\": {\n    \"dataset_id\": \"labor_market\",\n    \"operation\": \"aggregate\",\n    \"group_by\": [\"job_field\"],\n    \"metrics\": [\n      {\n        \"function\": \"avg\",\n        \"field\": \"demand_score\",\n        \"alias\": \"avg_demand_score\"\n      }\n    ],\n    \"filter_conditions\": [],\n    \"filter_logic\": \"and\",\n    \"sort\": []\n  },\n  \"unsupported_reason\": null\n}\n\nC. MULTI-INTENT RULES\n\n1. هر هدف مستقل باید Plan جداگانه داشته باشد.\n2. عملیات متفاوت را در یک analytics_query ادغام نکن.\n3. انتخاب ابزار برای هر Plan باید مستقل انجام شود.\n4. هر Plan باید sub_question داشته باشد.\n5. برای هر Plan فقط از دیتاست و فیلدهای مربوط به همان هدف استفاده کن.\n6. هیچ شرط یا مقداری را از بخش دیگری از سؤال منتقل نکن.\n7. اگر یک هدف قابل اجرا نیست، کل درخواست را Unsupported اعلام کن.\n8. حداکثر دو Plan مجاز است.\n9. ترتیب Planها باید با ترتیب بیان اهداف در سؤال کاربر یکسان باشد.\n10. اگر چند هدف به یکدیگر وابسته باشند و اجرای وابسته پشتیبانی نشود، درخواست را Unsupported اعلام کن.\n\nD. IMPORTANT\n\nهیچ‌گاه به‌جای آرایه plans فقط اولین Plan را تولید نکن.\n\nخروجی Multi-plan باید یک JSON Object معتبر با کلید plans باشد.\n\n==================================================\n9. NESTED LOGIC\n==================================================\n\nاگر سؤال به ساختار منطقی پیچیده‌ای مانند زیر نیاز داشته باشد:\n\n(A AND B) OR C\n\nو ابزار فعلی نتواند آن را بدون تغییر معنای منطقی اجرا کند، درخواست را unsupported اعلام کن.\n\nهرگز آن را به:\n\nA AND B AND C\n\nیا:\n\nA OR B OR C\n\nتبدیل نکن.\n\n==================================================\n10. RETRY AND VALIDATION RECOVERY\n==================================================\n\nاگر Previous Validation Error وجود دارد:\n\n1. ابتدا خطا را بخوان.\n2. فقط بخش معیوب Plan را اصلاح کن.\n3. سایر مقادیر معتبر را حفظ کن، مشروط بر اینکه متعلق به سؤال فعلی باشند.\n4. خطای ساختاری را با حذف فیلد غیرمجاز اصلاح کن.\n5. خطای فیلد نامعتبر را با فیلد معتبر کاتالوگ اصلاح کن، فقط اگر تطبیق قطعی وجود دارد.\n6. اگر اصلاح مستلزم حدس است، unsupported اعلام کن.\n7. هیچ‌گاه صرفاً برای عبور از Validator یک فیلد غیرمعتبر اضافه نکن.\n8. اعتبارسنجی را دور نزن.\n\nمهم:\n\nبرای COUNT، اگر خطا مربوط به وجود metrics یا group_by باشد، آن فیلدها را حذف کن.\nCOUNT باید بدون metrics و group_by باقی بماند.\n==================================================\n### STRICT MCP TOOL AND ANALYTICS CONTRACT\n\nThe planner MUST use only the following registered tools:\n\n1. `analytics_query`\n2. `get_top_market_skills`\n3. `get_top_skill_gaps`\n4. `get_market_skill_details`\n5. `search_elasticsearch`\n\nNever invent or generate any other tool name.\n\n#### A. University courses\n\nFor displaying university courses, use:\n\n- tool: `analytics_query`\n- dataset_id: `university_courses`\n- operation: `select`\n\nFor an explicit request to display all courses:\n- filter_conditions: []\n- filter_logic: \"and\"\n- sort: []\n- limit: 1000\n\nNever use `get_university_courses`.\n\n#### B. High-demand market skills\n\nWhen the user requests the most demanded skills in general, use:\n\n- tool: `get_top_market_skills`\n- arguments.limit: an integer between 1 and 50\n- default limit: 10\n\nThis tool already returns:\n- skill\n- average_demand_score\n- total_frequency\n- record_count\n\nDo not use it for named-skill-only comparisons when `get_market_skill_details` can retrieve the requested skills directly.\n\n#### C. University-market skill gaps\n\nWhen the user asks for the largest university-market gaps or curriculum improvement priorities, use:\n- tool: `get_top_skill_gaps`\n- arguments.limit: an integer between 1 and 50\n- default limit: 10\n\nThe returned ranking unit is skill. Do not reinterpret course_coverage or market_gap units.\n\n#### D. Named market-skill details\n\nWhen the user explicitly names one or more skills and asks for their market demand metrics, use:\n- tool: `get_market_skill_details`\n- arguments.skills: non-empty array of exact skill names from the current question\n\nThe result may include `missing_skills`; do not treat missing results as zero demand.\n\n#### E. analytics_query contract\n\nFor analytics operations, use only these operation names:\n\n- select\n- count\n- aggregate\n\nFor aggregate:\n- group_by MUST be an array of valid field names.\n- metrics MUST be an array of metric objects.\n- Each metric object MUST contain function, field, and alias.\n- Supported metric functions must come from the supplied configuration.\n\nNever use:\n- calculate\n- average as an operation name\n- market_demand_score\n- invented field names\n\nThe actual labor_market demand field is `demand_score`.\n\n#### F. SORT CONTRACT\n\nsort MUST be an array of objects.\n\nEach object:\n{\n  \"field\": \"demand_score\",\n  \"order\": \"desc\"\n}\n\nNever use an array of strings for sorting.\n\n#### G. MULTI-PLAN RULES\n\nWhen a question contains multiple independent supported requests:\n- Generate one plan per request.\n- Preserve the original request order.\n- Include a meaningful sub_question for every plan.\n- Use only registered tools and valid argument schemas.\n- Do not merge unrelated datasets into one analytics query.\n- Never invent tools, operations, fields, or arguments.\n\nIf a request cannot be fulfilled by the registered tools and their supported operations, return an explicit unsupported_reason instead of inventing a solution.\n\n#### H. FINAL VALIDATION BEFORE OUTPUT\n\nBefore returning JSON, internally verify:\n1. Every tool name is registered.\n2. Every tool's arguments match its actual schema.\n3. Every dataset and field exists in the supplied catalog.\n4. Every operation is supported.\n5. Every sort item is an object with field and order.\n6. Every multi-plan item has a sub_question.\n7. The final response is valid JSON only.\n\nDo not output explanations, Markdown, code fences, or text outside the JSON object.\n==================================================\n11. OUTPUT VALIDATION BEFORE RETURN\n==================================================\n\nپیش از تولید خروجی، این موارد را کنترل کن:\n\n1. آیا tool در فهرست ابزارهای مجاز است؟\n2. آیا ساختار arguments با قرارداد همان ابزار مطابقت دارد؟\n3. آیا dataset_id معتبر است؟\n4. آیا operation معتبر است؟\n5. آیا فیلدها در کاتالوگ وجود دارند؟\n6. آیا نوع مقادیر فیلتر درست است؟\n7. آیا COUNT فاقد metrics و group_by است؟\n8. آیا AGGREGATE دارای group_by معتبر است؟\n9. آیا metricها ساختار صحیح دارند؟\n10. آیا sort معتبر است؟\n11. آیا limit در محدوده مجاز است؟\n12. آیا Plan چندبخشی واقعاً قابل اجراست؟\n13. آیا هیچ داده‌ای از سؤال قبلی وارد نشده است؟\n14. آیا هیچ پارامتر یا فیلدی اختراع نشده است؟\n\nاگر هر شرطی برقرار نیست، Plan نامعتبر تولید نکن.\n\n==================================================\n12. FINAL OUTPUT RULES\n==================================================\n\nخروجی فقط JSON Object معتبر باشد.\n\nهیچ توضیحی قبل یا بعد از JSON ننویس.\n\nبرای پاسخ موفق تک‌ابزاری:\n\n{\n  \"tool\": \"analytics_query\",\n  \"arguments\": {\n    \"dataset_id\": \"labor_market\",\n    \"operation\": \"count\",\n    \"filter_conditions\": [],\n    \"filter_logic\": \"and\"\n  },\n  \"unsupported_reason\": null\n}\n\nبرای پاسخ پشتیبانی‌نشده:\n\n{\n  \"unsupported_reason\": \"دلیل دقیق و قابل فهم\"\n}\nبرای پاسخ چندبخشی:\n\n{\n  \"plans\": [\n    {\n      \"sub_question\": \"تمام درس‌های دانشگاه را نمایش بده.\",\n      \"tool\": \"analytics_query\",\n      \"arguments\": {\n        \"dataset_id\": \"university_courses\",\n        \"operation\": \"select\",\n        \"filter_conditions\": [],\n        \"filter_logic\": \"and\",\n        \"sort\": [],\n        \"limit\": 1000\n      },\n      \"unsupported_reason\": null\n    },\n    {\n      \"sub_question\": \"میانگین امتیاز تقاضای بازار کار را به تفکیک حوزه شغلی محاسبه کن.\",\n      \"tool\": \"analytics_query\",\n      \"arguments\": {\n        \"dataset_id\": \"labor_market\",\n        \"operation\": \"aggregate\",\n        \"group_by\": [\"job_field\"],\n        \"metrics\": [\n          {\n            \"function\": \"avg\",\n            \"field\": \"demand_score\",\n            \"alias\": \"avg_demand_score\"\n          }\n        ],\n        \"filter_conditions\": [],\n        \"filter_logic\": \"and\",\n        \"sort\": []\n      },\n      \"unsupported_reason\": null\n    }\n  ],\n  \"unsupported_reason\": null\n}\n\nقواعد نهایی:\n\n- خروجی فقط JSON Object باشد.\n- هیچ Markdown یا توضیح اضافی تولید نکن.\n- تمام Planها باید قرارداد واقعی ابزار مربوطه را رعایت کنند.\n- هر Plan باید sub_question مستقل داشته باشد.\n- هیچ Plan ناقص یا حدسی تولید نکن.\n- تعداد Planها نباید بیشتر از 2 باشد.\n\n==================================================\nاکنون فقط سؤال فعلی را تحلیل کن:\n\n{{ $json.question }}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1248,
+        32
+      ],
+      "id": "49f0aed9-293b-43a9-b9ac-f59ecfaebd07",
+      "name": "Query Planner"
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -1232,
+        208
+      ],
+      "id": "da65bae5-744f-4ac9-bb3c-6226d949e647",
+      "name": "Ollama Planner Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "9HNOOvhXuofJ7nM1",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ===== Validate Plan — Run Once for All Items =====\n\nconst prep = $(\"Prepare Input\").first().json;\nconst CFG = prep.config;\nconst question = String(prep.question ?? \"\").trim();\nconst attempt = $runIndex;\nconst rawInput = $input.first()?.json ?? {};\n\nconst rawText = String(\n  rawInput.text ??\n  rawInput.output ??\n  rawInput.response ??\n  rawInput.content ??\n  \"\"\n);\n\nconst MULTI_PLAN_ENABLED = true;\nconst MAX_PLANS = 2;\n\nconst own = (obj, key) =>\n  Object.prototype.hasOwnProperty.call(obj, key);\n\n// --------------------------------------------------\n// 1. Basic configuration checks\n// --------------------------------------------------\n\nif (!CFG?.datasets || !CFG?.operators || !Array.isArray(CFG.metricFunctions)) {\n  throw new Error(\"Prepare Input configuration is missing or invalid.\");\n}\n\nif (!question) {\n  throw new Error(\"Current question is empty.\");\n}\n\n// --------------------------------------------------\n// 2. Normalization\n// --------------------------------------------------\n\nfunction normalize(value) {\n  return String(value ?? \"\")\n    .normalize(\"NFKC\")\n    .replace(/ي/g, \"ی\")\n    .replace(/ك/g, \"ک\")\n    .replace(/[\\u200c\\u200b\\u200e\\u200f]/g, \" \")\n    .replace(/[۰-۹]/g, d => \"۰۱۲۳۴۵۶۷۸۹\".indexOf(d))\n    .replace(/[٠-٩]/g, d => \"٠١٢٣٤٥٦٧٨٩\".indexOf(d))\n    .replace(/٫/g, \".\")\n    .replace(/\\s+/g, \" \")\n    .toLowerCase()\n    .trim();\n}\n\nconst nq = normalize(question);\n\n// --------------------------------------------------\n// 3. Safe JSON extraction\n// --------------------------------------------------\n\nfunction extractJson(text) {\n  const source = String(text ?? \"\")\n    .replace(/<think>[\\s\\S]*?<\\/think>/gi, \"\")\n    .replace(/```(?:json)?/gi, \"\")\n    .trim();\n\n  let start = -1;\n  let opening = null;\n  let closing = null;\n\n  for (let i = 0; i < source.length; i++) {\n    if (source[i] === \"{\" || source[i] === \"[\") {\n      start = i;\n      opening = source[i];\n      closing = opening === \"{\" ? \"}\" : \"]\";\n      break;\n    }\n  }\n\n  if (start < 0) return null;\n\n  const stack = [];\n  let inString = false;\n  let escaped = false;\n\n  for (let i = start; i < source.length; i++) {\n    const char = source[i];\n\n    if (inString) {\n      if (escaped) {\n        escaped = false;\n      } else if (char === \"\\\\\") {\n        escaped = true;\n      } else if (char === '\"') {\n        inString = false;\n      }\n      continue;\n    }\n\n    if (char === '\"') {\n      inString = true;\n      continue;\n    }\n\n    if (char === \"{\" || char === \"[\") {\n      stack.push(char);\n      continue;\n    }\n\n    if (char === \"}\" || char === \"]\") {\n      const expected = char === \"}\" ? \"{\" : \"[\";\n\n      if (stack.pop() !== expected) return null;\n\n      if (stack.length === 0) {\n        try {\n          return JSON.parse(source.slice(start, i + 1));\n        } catch {\n          return null;\n        }\n      }\n    }\n  }\n\n  return null;\n}\n\n// --------------------------------------------------\n// 4. Result helpers\n// --------------------------------------------------\n\nfunction fail(messages, extra = {}) {\n  const unsupported = extra.unsupported ?? false;\n\n  return [{\n    json: {\n      valid: false,\n      errors: messages,\n      warnings: extra.warnings ?? [],\n      attempt,\n      question,\n      rawPlan: rawText.slice(0, 3000),\n      unsupported,\n      retryable: extra.retryable ?? !unsupported\n    }\n  }];\n}\n\nfunction closeNumber(a, b) {\n  return Number.isFinite(a) &&\n    Number.isFinite(b) &&\n    Math.abs(a - b) <= 1e-9;\n}\n\nfunction asArray(value, name, errors) {\n  if (value === undefined || value === null) return [];\n\n  if (!Array.isArray(value)) {\n    errors.push(`${name} must be an array.`);\n    return [];\n  }\n\n  return value;\n}\n\n// --------------------------------------------------\n// 5. Domain detection\n// --------------------------------------------------\n\nconst courseTerms = [\n  \"درس\",\n  \"دروس\",\n  \"واحد درسی\",\n  \"واحدهای درسی\",\n  \"سرفصل\",\n  \"course\",\n  \"courses\",\n  \"curriculum\",\n  \"university courses\"\n];\n\nconst marketTerms = [\n  \"بازار کار\",\n  \"بازار شغلی\",\n  \"تقاضای بازار\",\n  \"تقاضای شغلی\",\n  \"فراوانی بازار\",\n  \"حوزه شغلی\",\n  \"مهارت پرتقاضا\",\n  \"مهارت‌های پرتقاضا\",\n  \"مهارت های پرتقاضا\",\n  \"job market\",\n  \"labor market\",\n  \"labour market\",\n  \"market demand\"\n];\n\nfunction containsTerm(text, term) {\n  const normalizedTerm = normalize(term);\n\n  if (normalizedTerm.includes(\" \")) {\n    return (` ${text} `).includes(` ${normalizedTerm} `);\n  }\n\n  const tokens = new Set(\n    text.match(/[\\p{L}\\p{N}_]+/gu) ?? []\n  );\n\n  return tokens.has(normalizedTerm);\n}\n\nfunction detectDomain(text) {\n  const course = courseTerms.some(term => containsTerm(text, term));\n  const market = marketTerms.some(term => containsTerm(text, term));\n\n  if (course && market) return \"mixed\";\n  if (course) return \"courses\";\n  if (market) return \"market\";\n\n  return \"unknown\";\n}\n\n// --------------------------------------------------\n// 6. Analytics validation\n// --------------------------------------------------\n\nfunction validateAnalytics(input, nqText) {\n  const errors = [];\n  const warnings = [];\n\n  const bad = (extra = {}) => ({\n    ok: false,\n    errors,\n    warnings,\n    unsupported: false,\n    retryable: true,\n    ...extra\n  });\n\n  let plan = input;\n\n  if (\n    plan.arguments &&\n    typeof plan.arguments === \"object\" &&\n    !Array.isArray(plan.arguments)\n  ) {\n    plan = { ...plan.arguments };\n  }\n\n  // Dataset\n  const datasetId = plan.dataset_id;\n\n  if (\n    typeof datasetId !== \"string\" ||\n    !own(CFG.datasets, datasetId)\n  ) {\n    errors.push(\n      `Unknown dataset_id \"${datasetId}\". Allowed: ${Object.keys(CFG.datasets).join(\", \")}`\n    );\n    return bad();\n  }\n\n  const fields = CFG.datasets[datasetId].fields;\n\n  if (!fields || typeof fields !== \"object\") {\n    errors.push(`Dataset \"${datasetId}\" has no valid field catalog.`);\n    return bad();\n  }\n\n    // Domain consistency\n  // Domain is evaluated against the current Plan's question,\n  // not necessarily the original user question.\n  const domain = detectDomain(nqText);\n\n  if (domain === \"mixed\") {\n    errors.push(\n      \"This Plan combines course and labor-market data. Each Plan must target one domain.\"\n    );\n    return bad({ unsupported: true, retryable: false });\n  }\n\n  if (domain === \"courses\" && datasetId !== \"university_courses\") {\n    errors.push(\n      'The question refers to university course data, but dataset_id is not \"university_courses\".'\n    );\n    return bad();\n  }\n\n  if (domain === \"market\" && datasetId !== \"labor_market\") {\n    errors.push(\n      'The question refers to labor-market data, but dataset_id is not \"labor_market\".'\n    );\n    return bad();\n  }\n\n  // Operation\n  const operation = plan.operation;\n\n  if (![\"select\", \"count\", \"aggregate\"].includes(operation)) {\n    errors.push(`Unsupported operation \"${operation}\".`);\n    return bad();\n  }\n\n  const groupBy = asArray(plan.group_by, \"group_by\", errors);\n  const metricsInput = asArray(plan.metrics, \"metrics\", errors);\n  const filtersInput = asArray(\n    plan.filter_conditions,\n    \"filter_conditions\",\n    errors\n  );\n  const sortInput = asArray(plan.sort, \"sort\", errors);\n\n  if (errors.length) return bad();\n\n  // Group by\n  const groupFields = [];\n\n  for (const fieldName of groupBy) {\n    if (\n      typeof fieldName !== \"string\" ||\n      !own(fields, fieldName)\n    ) {\n      errors.push(`Unknown group_by field \"${fieldName}\".`);\n      continue;\n    }\n\n    if (fields[fieldName].groupable === false) {\n      errors.push(`Field \"${fieldName}\" cannot be used for grouping.`);\n      continue;\n    }\n\n    if (!groupFields.includes(fieldName)) {\n      groupFields.push(fieldName);\n    }\n  }\n\n  // Metrics\n  const metrics = [];\n  const aliases = new Set();\n\n  for (let i = 0; i < metricsInput.length; i++) {\n    const metric = metricsInput[i];\n    const label = `metrics[${i}]`;\n\n    if (\n      !metric ||\n      typeof metric !== \"object\" ||\n      Array.isArray(metric)\n    ) {\n      errors.push(`${label} must be an object.`);\n      continue;\n    }\n\n    if (!CFG.metricFunctions.includes(metric.function)) {\n      errors.push(\n        `${label}: unsupported metric function \"${metric.function}\".`\n      );\n      continue;\n    }\n\n    const fn = metric.function;\n    const normalizedMetric = { function: fn };\n\n    if (fn !== \"count_documents\") {\n      if (\n        typeof metric.field !== \"string\" ||\n        !own(fields, metric.field)\n      ) {\n        errors.push(`${label}: unknown field \"${metric.field}\".`);\n        continue;\n      }\n\n      if (\n        [\"avg\", \"sum\", \"min\", \"max\"].includes(fn) &&\n        fields[metric.field].type !== \"number\"\n      ) {\n        errors.push(`${label}: ${fn} requires a numeric field.`);\n        continue;\n      }\n\n      normalizedMetric.field = metric.field;\n    }\n\n    let alias = String(metric.alias ?? \"\").trim();\n\n    if (!alias) {\n      alias = fn === \"count_documents\"\n        ? \"record_count\"\n        : `${fn}_${metric.field}`;\n    }\n\n    if (!/^[a-z][a-z0-9_]{0,63}$/.test(alias)) {\n      errors.push(`${label}: alias must be lower_snake_case.`);\n      continue;\n    }\n\n    if (\n      aliases.has(alias) ||\n      own(fields, alias) ||\n      groupFields.includes(alias)\n    ) {\n      errors.push(`${label}: duplicate or conflicting alias \"${alias}\".`);\n      continue;\n    }\n\n    aliases.add(alias);\n    normalizedMetric.alias = alias;\n    metrics.push(normalizedMetric);\n  }\n\n  // Operation compatibility\n  if (operation === \"select\") {\n    if (groupFields.length || metrics.length) {\n      errors.push(\"select cannot contain group_by or metrics.\");\n    }\n  }\n\n  if (operation === \"count\") {\n    if (groupFields.length || metrics.length) {\n      errors.push(\"count cannot contain group_by or metrics.\");\n    }\n\n    if (sortInput.length) {\n      errors.push(\"sort is not supported for count.\");\n    }\n\n    if (plan.limit !== undefined && plan.limit !== null) {\n      errors.push(\"limit must not be supplied for count.\");\n    }\n  }\n\n  if (operation === \"aggregate\") {\n    if (!groupFields.length) {\n      errors.push(\n        \"Aggregate without group_by is not supported by the current AnalyticsRequest contract.\"\n      );\n\n      return bad({\n        unsupported: true,\n        retryable: false\n      });\n    }\n\n    if (!metrics.length) {\n      errors.push(\"aggregate requires at least one metric.\");\n    }\n  }\n\n  // Filters\n  const filters = [];\n\n  for (let i = 0; i < filtersInput.length; i++) {\n    const condition = filtersInput[i];\n    const label = `filter_conditions[${i}]`;\n\n    if (\n      !condition ||\n      typeof condition !== \"object\" ||\n      Array.isArray(condition)\n    ) {\n      errors.push(`${label} must be an object.`);\n      continue;\n    }\n\n    if (\n      typeof condition.field !== \"string\" ||\n      !own(fields, condition.field)\n    ) {\n      errors.push(`${label}: unknown field \"${condition.field}\".`);\n      continue;\n    }\n\n    const field = fields[condition.field];\n    const allowedOperators = CFG.operators[field.type] ?? [];\n\n    if (!allowedOperators.includes(condition.operator)) {\n      errors.push(\n        `${label}: operator \"${condition.operator}\" is not allowed for ${field.type}.`\n      );\n      continue;\n    }\n\n    const isArrayOperator =\n      CFG.arrayOperators.includes(condition.operator);\n\n    const isBetween = condition.operator === \"between\";\n    const isNoValueOperator =\n      [\"exists\", \"not_exists\"].includes(condition.operator);\n\n    let rawValues;\n\n    if (isNoValueOperator) {\n      rawValues = [];\n    } else if (isBetween) {\n      if (\n        !Array.isArray(condition.value) ||\n        condition.value.length !== 2\n      ) {\n        errors.push(\n          `${label}: between requires exactly two values [min, max].`\n        );\n        continue;\n      }\n\n      rawValues = condition.value;\n    } else if (isArrayOperator) {\n      if (\n        !Array.isArray(condition.value) ||\n        !condition.value.length\n      ) {\n        errors.push(\n          `${label}: ${condition.operator} requires a non-empty array.`\n        );\n        continue;\n      }\n\n      rawValues = condition.value;\n    } else {\n      if (Array.isArray(condition.value)) {\n        errors.push(\n          `${label}: this operator requires a single value.`\n        );\n        continue;\n      }\n\n      rawValues = [condition.value];\n    }\n\n    const normalizedValues = [];\n    let invalidValue = false;\n\n    for (const rawValue of rawValues) {\n      if (field.type === \"number\") {\n        const numericValue =\n          typeof rawValue === \"number\"\n            ? rawValue\n            : Number(normalize(rawValue));\n\n        if (\n          rawValue === null ||\n          rawValue === \"\" ||\n          typeof rawValue === \"boolean\" ||\n          !Number.isFinite(numericValue)\n        ) {\n          errors.push(\n            `${label}: value for ${condition.field} must be numeric.`\n          );\n\n          invalidValue = true;\n          break;\n        }\n\n        normalizedValues.push(numericValue);\n      } else {\n        if (\n          typeof rawValue !== \"string\" &&\n          typeof rawValue !== \"number\"\n        ) {\n          errors.push(\n            `${label}: value for ${condition.field} must be text.`\n          );\n\n          invalidValue = true;\n          break;\n        }\n\n        const value = String(rawValue).trim();\n\n        if (!value) {\n          errors.push(`${label}: empty filter value.`);\n          invalidValue = true;\n          break;\n        }\n\n        normalizedValues.push(value);\n      }\n    }\n\n    if (invalidValue) continue;\n\n    if (\n      isBetween &&\n      normalizedValues[0] > normalizedValues[1]\n    ) {\n      errors.push(\n        `${label}: between minimum cannot exceed maximum.`\n      );\n      continue;\n    }\n\n    const evidence = normalize(condition.evidence);\n\n    if (!evidence || !nqText.includes(evidence)) {\n      errors.push(\n        `${label}: evidence must come from the current question.`\n      );\n      continue;\n    }\n\n    filters.push({\n      field: condition.field,\n      operator: condition.operator,\n      value: isNoValueOperator\n        ? null\n        : isArrayOperator || isBetween\n          ? normalizedValues\n          : normalizedValues[0]\n    });\n  }\n\n  // Numeric conditions must not be silently omitted.\n  const numericComparators = [\n    {\n      patterns: [\n        /(?:حداقل|at least|greater than or equal to|>=)\\s*(\\d+(?:\\.\\d+)?)/i,\n        /(\\d+(?:\\.\\d+)?)\\s*(?:یا بیشتر|و بیشتر|به بالا)(?!\\s*از)/i\n      ],\n      op: \"gte\"\n    },\n    {\n      patterns: [\n        /(?:حداکثر|at most|less than or equal to|<=)\\s*(\\d+(?:\\.\\d+)?)/i,\n        /(\\d+(?:\\.\\d+)?)\\s*(?:یا کمتر|و کمتر|به پایین)(?!\\s*از)/i\n      ],\n      op: \"lte\"\n    },\n    {\n      patterns: [\n        /(?:بیشتر از|بالاتر از|بیش از|greater than|more than|>)\\s*(\\d+(?:\\.\\d+)?)/i\n      ],\n      op: \"gt\"\n    },\n    {\n      patterns: [\n        /(?:کمتر از|پایین تر از|کم‌تر از|less than|<)\\s*(\\d+(?:\\.\\d+)?)/i\n      ],\n      op: \"lt\"\n    },\n    {\n      patterns: [\n        /(?:برابر با|مساوی با|دقیقاً|exactly|equal to|=)\\s*(\\d+(?:\\.\\d+)?)/i\n      ],\n      op: \"eq\"\n    }\n  ];\n\n  const fieldMentions = [];\n\n  for (const [fieldName, field] of Object.entries(fields)) {\n    if (field.type !== \"number\") continue;\n\n    const names = new Set(\n      [fieldName, ...(field.aliases ?? [])].map(normalize)\n    );\n\n    for (const name of names) {\n      if (!name) continue;\n\n      let position = 0;\n\n      while (true) {\n        const index = nqText.indexOf(name, position);\n\n        if (index === -1) break;\n\n        fieldMentions.push({\n          field: fieldName,\n          name,\n          start: index,\n          end: index + name.length\n        });\n\n        position = index + 1;\n      }\n    }\n  }\n\n  fieldMentions.sort(\n    (a, b) => a.start - b.start || b.name.length - a.name.length\n  );\n\n  const uniqueMentions = [];\n\n  for (const mention of fieldMentions) {\n    const overlaps = uniqueMentions.some(\n      existing =>\n        mention.start < existing.end &&\n        mention.end > existing.start\n    );\n\n    if (!overlaps) uniqueMentions.push(mention);\n  }\n\n  const expectedConditions = [];\n\n  for (let i = 0; i < uniqueMentions.length; i++) {\n    const current = uniqueMentions[i];\n    const next = uniqueMentions[i + 1];\n\n    const segment = nqText.slice(\n      current.end,\n      next ? next.start : nqText.length\n    );\n\n    for (const comparator of numericComparators) {\n      let matched = false;\n\n      for (const pattern of comparator.patterns) {\n        const match = segment.match(pattern);\n\n        if (!match) continue;\n\n        const value = Number(match[1]);\n\n        if (!Number.isFinite(value)) continue;\n\n        expectedConditions.push({\n          field: current.field,\n          operator: comparator.op,\n          value\n        });\n\n        matched = true;\n        break;\n      }\n\n      if (matched) break;\n    }\n  }\n\n  for (const expected of expectedConditions) {\n    const found = filters.some(\n      filter =>\n        filter.field === expected.field &&\n        filter.operator === expected.operator &&\n        closeNumber(Number(filter.value), expected.value)\n    );\n\n    if (!found) {\n      errors.push(\n        `A numeric condition from the question was omitted: ${expected.field} ${expected.operator} ${expected.value}.`\n      );\n    }\n  }\n\n  // Filter logic\n  const filterLogic = String(\n    plan.filter_logic ?? \"and\"\n  ).toLowerCase();\n\n  if (!CFG.filterLogics.includes(filterLogic)) {\n    errors.push(\"filter_logic must be and or or.\");\n  }\n\n  // Sort\n  const sortableFields =\n    operation === \"aggregate\"\n      ? [\n          ...groupFields,\n          ...metrics.map(metric => metric.alias).filter(Boolean)\n        ]\n      : Object.keys(fields);\n\n  const sorts = [];\n\n  for (let i = 0; i < sortInput.length; i++) {\n    const sort = sortInput[i];\n    const label = `sort[${i}]`;\n\n    if (\n      !sort ||\n      typeof sort !== \"object\" ||\n      Array.isArray(sort)\n    ) {\n      errors.push(`${label} must be an object.`);\n      continue;\n    }\n\n    if (!sortableFields.includes(sort.field)) {\n      errors.push(`${label}: invalid sort field \"${sort.field}\".`);\n      continue;\n    }\n\n    if (![\"asc\", \"desc\"].includes(sort.order)) {\n      errors.push(`${label}: order must be asc or desc.`);\n      continue;\n    }\n\n    sorts.push({\n      field: sort.field,\n      order: sort.order\n    });\n  }\n\n  // Limit\n  let limit;\n\n  if (operation === \"select\" && plan.limit != null) {\n    const requested = Number(plan.limit);\n\n    if (\n      !Number.isInteger(requested) ||\n      requested < 1 ||\n      requested > 1000\n    ) {\n      errors.push(\n        \"select limit must be an integer between 1 and 1000.\"\n      );\n    } else {\n      limit = requested;\n    }\n  }\n\n  if (operation === \"aggregate\" && plan.limit != null) {\n    const requested = Number(plan.limit);\n\n    if (\n      !Number.isInteger(requested) ||\n      requested < 1 ||\n      requested > 1000\n    ) {\n      errors.push(\n        \"aggregate limit must be an integer between 1 and 1000.\"\n      );\n    } else {\n      const hasTopIntent =\n        /\\btop\\b|\\bfirst\\b|برترین|بیشترین|کمترین|بالاترین|پایین ترین|اولین/.test(nqText);\n\n      if (!hasTopIntent) {\n        warnings.push(\n          \"Aggregate limit removed because top-N was not requested.\"\n        );\n      } else {\n        limit = requested;\n      }\n    }\n  }\n\n  // Intent checks\n  const hasMetric = fn =>\n    metrics.some(metric => metric.function === fn);\n\n  if (\n    /(میانگین|متوسط|average|\\bavg\\b|\\bmean\\b)/.test(nqText) &&\n    !hasMetric(\"avg\")\n  ) {\n    errors.push(\n      \"The question requests an average, but the avg metric is missing.\"\n    );\n  }\n\n  if (\n    /(مجموع(?!ه)|جمع کل|\\bsum\\b)/.test(nqText) &&\n    !hasMetric(\"sum\")\n  ) {\n    errors.push(\n      \"The question requests a sum, but the sum metric is missing.\"\n    );\n  }\n\n  if (\n    /(برای هر|به تفکیک|به ازای هر|per each|for each)/.test(nqText) &&\n    !groupFields.length\n  ) {\n    errors.push(\n      \"The question requests grouped results, but group_by is missing.\"\n    );\n  }\n\n  if (errors.length) return bad();\n\n  // Exact MCP arguments\n  const args = {\n    dataset_id: datasetId,\n    operation,\n    filter_conditions: filters,\n    filter_logic: filterLogic\n  };\n\n  if (groupFields.length) args.group_by = groupFields;\n  if (metrics.length) args.metrics = metrics;\n  if (sorts.length) args.sort = sorts;\n  if (limit !== undefined) args.limit = limit;\n\n  return {\n    ok: true,\n    errors: [],\n    warnings,\n    unsupported: false,\n    retryable: false,\n    args\n  };\n}\n\n// --------------------------------------------------\n// 7. Tool validation\n// --------------------------------------------------\n\nfunction validateOne(plan, nqText) {\n  const base = {\n    warnings: [],\n    unsupported: false,\n    retryable: true\n  };\n\n  if (\n    !plan ||\n    typeof plan !== \"object\" ||\n    Array.isArray(plan)\n  ) {\n    return {\n      ok: false,\n      errors: [\"Plan must be a JSON object.\"],\n      ...base\n    };\n  }\n\n  if (plan.unsupported_reason) {\n    return {\n      ok: false,\n      errors: [String(plan.unsupported_reason)],\n      warnings: [],\n      unsupported: true,\n      retryable: false\n    };\n  }\n\n  if (typeof plan.tool !== \"string\" || !plan.tool.trim()) {\n    return {\n      ok: false,\n      errors: [\"Plan must explicitly specify a tool.\"],\n      ...base\n    };\n  }\n\n  const tool = plan.tool.trim();\n\n  if (tool === \"search_elasticsearch\") {\n    const query = String(\n      plan.query ?? plan.arguments?.query ?? \"\"\n    ).trim();\n\n    if (!query) {\n      return {\n        ok: false,\n        errors: [\n          \"search_elasticsearch requires a non-empty query string.\"\n        ],\n        ...base\n      };\n    }\n\n    if (query.length > 100) {\n      return {\n        ok: false,\n        errors: [\n          \"search_elasticsearch query must not exceed 100 characters.\"\n        ],\n        ...base\n      };\n    }\n\n    if (\n      /^[gc]\\d{3,4}$/i.test(query) &&\n      !nqText.includes(query.toLowerCase())\n    ) {\n      return {\n        ok: false,\n        errors: [\n          `The ID \"${query}\" does not appear in the current question.`\n        ],\n        ...base\n      };\n    }\n\n    return {\n      ok: true,\n      errors: [],\n      warnings: [],\n      unsupported: false,\n      retryable: false,\n      plan: {\n        tool: \"search_elasticsearch\",\n        arguments: { query }\n      }\n    };\n  }\n\n  if (tool === \"get_top_market_skills\") {\n    const limit = Number(\n      plan.limit ?? plan.arguments?.limit ?? 10\n    );\n\n    if (\n      !Number.isInteger(limit) ||\n      limit < 1 ||\n      limit > 50\n    ) {\n      return {\n        ok: false,\n        errors: [\n          \"get_top_market_skills limit must be an integer between 1 and 50.\"\n        ],\n        ...base\n      };\n    }\n\n    return {\n      ok: true,\n      errors: [],\n      warnings: [],\n      unsupported: false,\n      retryable: false,\n      plan: {\n        tool: \"get_top_market_skills\",\n        arguments: { limit }\n      }\n    };\n  }\n\n  if (tool === \"get_top_skill_gaps\") {\n    const limit = Number(\n      plan.limit ?? plan.arguments?.limit ?? 10\n    );\n\n    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {\n      return {\n        ok: false,\n        errors: [\"get_top_skill_gaps limit must be an integer between 1 and 50.\"],\n        ...base\n      };\n    }\n\n    return {\n      ok: true,\n      errors: [],\n      warnings: [],\n      unsupported: false,\n      retryable: false,\n      plan: {\n        tool: \"get_top_skill_gaps\",\n        arguments: { limit }\n      }\n    };\n  }\n\n  if (tool === \"get_market_skill_details\") {\n    const rawSkills = plan.skills ?? plan.arguments?.skills;\n\n    if (!Array.isArray(rawSkills) || rawSkills.length === 0) {\n      return {\n        ok: false,\n        errors: [\"get_market_skill_details requires a non-empty skills array.\"],\n        ...base\n      };\n    }\n\n    const skills = [...new Set(\n      rawSkills\n        .filter(skill => typeof skill === \"string\")\n        .map(skill => skill.trim())\n        .filter(Boolean)\n    )];\n\n    if (skills.length !== rawSkills.length) {\n      return {\n        ok: false,\n        errors: [\"get_market_skill_details skills must contain unique non-empty strings only.\"],\n        ...base\n      };\n    }\n\n    return {\n      ok: true,\n      errors: [],\n      warnings: [],\n      unsupported: false,\n      retryable: false,\n      plan: {\n        tool: \"get_market_skill_details\",\n        arguments: { skills }\n      }\n    };\n  }\n\n  if (tool !== \"analytics_query\") {\n    return {\n      ok: false,\n      errors: [`Unknown or unsupported tool: \"${tool}\".`],\n      warnings: [],\n      unsupported: true,\n      retryable: false\n    };\n  }\n\n  const result = validateAnalytics(plan, nqText);\n\n  if (!result.ok) return result;\n\n  return {\n    ok: true,\n    errors: [],\n    warnings: result.warnings,\n    unsupported: false,\n    retryable: false,\n    plan: {\n      tool: \"analytics_query\",\n      arguments: result.args\n    }\n  };\n}\n\n// --------------------------------------------------\n// 8. Main entry — Single-plan + Multi-plan\n// --------------------------------------------------\n\nconst parsed = extractJson(rawText);\n\nif (\n  parsed === null ||\n  typeof parsed !== \"object\"\n) {\n  return fail([\n    \"Planner output is not a valid JSON object or array.\"\n  ]);\n}\n\n// --------------------------------------------------\n// 8.1 Deterministic override for explicit course listing\n// --------------------------------------------------\n\nfunction isExplicitAllCoursesRequest(text) {\n  const allTerms =\n    /(?:تمام(?:ی)?|همه|کلیه|همگی|all|every)/i;\n\n  const listingTerms =\n    /(?:نمایش|نمایش بده|نشان بده|لیست|فهرست|مشاهده|show|display|list)/i;\n\n  const courseTermsPattern =\n    /(?:درس|دروس|واحد(?:های)? درسی|course|courses|curriculum)/i;\n\n  return (\n    allTerms.test(text) &&\n    listingTerms.test(text) &&\n    courseTermsPattern.test(text)\n  );\n}\n\n// --------------------------------------------------\n// 8.2 Extract planner plans\n// --------------------------------------------------\n\nlet plans = null;\n\nif (Array.isArray(parsed)) {\n  plans = parsed;\n} else if (Array.isArray(parsed.plans)) {\n  plans = parsed.plans;\n}\n\n// --------------------------------------------------\n// 8.3 Deterministic override\n// --------------------------------------------------\n\n// The deterministic override applies only when the Planner\n// has not explicitly produced a multi-plan structure.\n\nif (\n  plans === null &&\n  detectDomain(nq) === \"courses\" &&\n  isExplicitAllCoursesRequest(nq)\n) {\n  const result = validateOne({\n    tool: \"analytics_query\",\n    dataset_id: \"university_courses\",\n    operation: \"select\",\n    filter_conditions: [],\n    filter_logic: \"and\",\n    sort: [],\n    limit: 1000\n  }, nq);\n\n  if (!result.ok) {\n    return fail(result.errors, {\n      unsupported: result.unsupported,\n      retryable: result.retryable,\n      warnings: result.warnings\n    });\n  }\n\n  return [{\n    json: {\n      valid: true,\n      errors: [],\n      warnings: result.warnings,\n      attempt,\n      question,\n      multi: false,\n      unsupported: false,\n      retryable: false,\n      plan: result.plan\n    }\n  }];\n}\n\n// --------------------------------------------------\n// 8.4 Single-plan compatibility\n// --------------------------------------------------\n\nif (plans === null) {\n  const result = validateOne(parsed, nq);\n\n  if (!result.ok) {\n    return fail(result.errors, {\n      unsupported: result.unsupported,\n      retryable: result.retryable,\n      warnings: result.warnings\n    });\n  }\n\n  return [{\n    json: {\n      valid: true,\n      errors: [],\n      warnings: result.warnings,\n      attempt,\n      question,\n      multi: false,\n      unsupported: false,\n      retryable: false,\n      plan: result.plan\n    }\n  }];\n}\n\n// --------------------------------------------------\n// 8.5 Multi-plan structure validation\n// --------------------------------------------------\n\nif (!Array.isArray(plans) || plans.length === 0) {\n  return fail([\n    \"Planner plans array is empty or invalid.\"\n  ]);\n}\n\nif (plans.length > MAX_PLANS) {\n  return fail([\n    `At most ${MAX_PLANS} plans are supported in this version.`\n  ], {\n    unsupported: true,\n    retryable: false\n  });\n}\n\nif (plans.length > 1 && !MULTI_PLAN_ENABLED) {\n  return fail([\n    \"Multi-part requests are not enabled.\"\n  ], {\n    unsupported: true,\n    retryable: false\n  });\n}\n\n// --------------------------------------------------\n// 8.6 Validate each Plan independently\n// --------------------------------------------------\n\nconst validatedPlans = [];\nconst planErrors = [];\nconst planWarnings = [];\n\nfor (let index = 0; index < plans.length; index++) {\n  const sourcePlan = plans[index];\n\n  const planId = `plan_${index + 1}`;\n\n  if (\n    !sourcePlan ||\n    typeof sourcePlan !== \"object\" ||\n    Array.isArray(sourcePlan)\n  ) {\n    planErrors.push({\n      plan_id: planId,\n      plan_index: index,\n      errors: [\"Plan must be a JSON object.\"]\n    });\n\n    continue;\n  }\n\n  // Support both direct Plan objects and wrapped Plan objects.\n  const planPayload =\n    sourcePlan.plan &&\n    typeof sourcePlan.plan === \"object\" &&\n    !Array.isArray(sourcePlan.plan)\n      ? sourcePlan.plan\n      : sourcePlan;\n\n  // Preserve the Planner's sub-question when provided.\n  const subQuestion = String(\n    sourcePlan.sub_question ??\n    sourcePlan.subQuestion ??\n    sourcePlan.question ??\n    sourcePlan.task ??\n    \"\"\n  ).trim();\n\n  // A mixed-domain request requires explicit Plan-level\n  // questions so that evidence and intent are evaluated\n  // against the correct part of the original request.\n  const originalDomain = detectDomain(nq);\n\n  if (\n    originalDomain === \"mixed\" &&\n    !subQuestion\n  ) {\n    planErrors.push({\n      plan_id: planId,\n      plan_index: index,\n      errors: [\n        \"A mixed-domain request requires an explicit sub_question for every Plan.\"\n      ]\n    });\n\n    continue;\n  }\n\n  const effectiveQuestion = subQuestion || question;\n  const effectiveNormalizedQuestion = normalize(effectiveQuestion);\n\n  // Validate using the current Plan's own question.\n  // This preserves all existing validation rules.\n  const result = validateOne(\n    planPayload,\n    effectiveNormalizedQuestion\n  );\n\n  if (!result.ok) {\n    planErrors.push({\n      plan_id: planId,\n      plan_index: index,\n      sub_question: effectiveQuestion,\n      errors: result.errors,\n      warnings: result.warnings ?? [],\n      unsupported: result.unsupported ?? false,\n      retryable: result.retryable ?? false\n    });\n\n    continue;\n  }\n\n  validatedPlans.push({\n    plan_id: planId,\n    plan_index: index,\n    plan_count: plans.length,\n    sub_question: effectiveQuestion,\n    tool: result.plan.tool,\n    plan: result.plan,\n    warnings: result.warnings ?? [],\n    valid: true\n  });\n\n  if (result.warnings?.length) {\n    planWarnings.push({\n      plan_id: planId,\n      warnings: result.warnings\n    });\n  }\n}\n\n// --------------------------------------------------\n// 8.7 Reject the entire set if any Plan is invalid\n// --------------------------------------------------\n\n// This is intentionally fail-closed for the first stage.\n// Partial execution will be introduced later, after\n// Split Plans and downstream nodes support per-Plan errors.\n\nif (planErrors.length > 0) {\n  return [{\n    json: {\n      valid: false,\n      errors: [\n        \"One or more Plans failed validation.\"\n      ],\n      plan_errors: planErrors,\n      warnings: planWarnings,\n      attempt,\n      question,\n      multi: plans.length > 1,\n      plan_count: plans.length,\n      validated_plan_count: validatedPlans.length,\n      unsupported: planErrors.some(\n        item => item.unsupported === true\n      ),\n      retryable: planErrors.some(\n        item => item.retryable === true\n      )\n    }\n  }];\n}\n\n// --------------------------------------------------\n// 8.8 Single-item array compatibility\n// --------------------------------------------------\n\n// A one-element array is normalized to the existing\n// single-plan output contract.\n\nif (validatedPlans.length === 1) {\n  return [{\n    json: {\n      valid: true,\n      errors: [],\n      warnings: validatedPlans[0].warnings,\n      attempt,\n      question,\n      multi: false,\n      unsupported: false,\n      retryable: false,\n      plan: validatedPlans[0].plan\n    }\n  }];\n}\n\n// --------------------------------------------------\n// 8.9 Multi-plan output\n// --------------------------------------------------\n\nreturn [{\n  json: {\n    valid: true,\n    errors: [],\n    warnings: planWarnings,\n    attempt,\n    question,\n    multi: true,\n    unsupported: false,\n    retryable: false,\n    plan_count: validatedPlans.length,\n    plans: validatedPlans\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        -48
+      ],
+      "id": "76fcb9ad-022f-43ee-bbdf-5ce7cc461f80",
+      "name": "Validate Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Build Retry Input — Run Once for All Items =====\nconst v = $input.first().json;\nconst prep = $(\"Prepare Input\").first().json;\n\nreturn [{\n  json: {\n    question: prep.question,\n    catalogText: prep.catalogText,\n    searchCatalogText: prep.searchCatalogText,\n    lastError: (v.errors ?? []).join(\" | \"),\n    lastRaw: v.rawPlan ?? \"\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "4346b5d7-e8b1-4767-87f6-8dd73f014e60",
+      "name": "Build Retry Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error Reply — Run Once for All Items\n\nconst j = $input.first().json;\n\nlet output;\n\nif (j.unsupported || j.retryable === false) {\n  output =\n    \"این نوع تحلیل در نسخه فعلی موتور Analytics پشتیبانی نمی‌شود.\\n\" +\n    \"لطفاً درخواست را ساده‌تر کنید یا هر بخش را جداگانه بپرسید.\";\n} else if (Array.isArray(j.errors) && j.errors.length) {\n  output =\n    \"نتوانستم درخواست را به یک پرس‌وجوی تحلیلی معتبر تبدیل کنم.\\n\\n\" +\n    \"جزئیات: \" + j.errors.join(\"؛ \");\n} else {\n  output =\n    \"اجرای پرس‌وجو روی سرویس تحلیلی با خطا مواجه شد. \" +\n    \"این خطا به معنی صفر بودن نتایج نیست.\\n\\n\" +\n    \"جزئیات فنی: \" + String(j.error ?? \"خطای نامشخص\");\n}\n\nreturn [{ json: { output, text: output } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        256
+      ],
+      "id": "424fddad-842f-45be-b0dd-52e920277cb2",
+      "name": "Error Reply"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": {},\n    \"clientInfo\": {\n      \"name\": \"n8n-nexusops\",\n      \"version\": \"1.0.0\"\n    }\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": "={{ 30000 }}"
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -272,
+        -224
+      ],
+      "id": "1c62e1c6-c6c3-485a-ae6d-970107f730e0",
+      "name": "MCP Initialize"
+    },
+    {
+      "parameters": {
+        "jsCode": "// MCP Parse Init — Run Once for All Items\n\nfunction parseBody(body) {\n  if (body && typeof body === \"object\") return body;\n\n  const text = String(body ?? \"\").trim();\n  if (!text) return null;\n\n  // اول سعی کن مستقیم JSON باشد\n  try {\n    return JSON.parse(text);\n  } catch {}\n\n  // حالت SSE: دنبال خط data: بگرد\n  let last = null;\n\n  for (const line of text.split(/\\r?\\n/)) {\n    const trimmed = line.trim();\n    if (!trimmed.startsWith(\"data:\")) continue;\n\n    const payload = trimmed.slice(5).trim();\n    if (!payload || payload === \"[DONE]\") continue;\n\n    try {\n      last = JSON.parse(payload);\n    } catch {}\n  }\n\n  return last;\n}\n\nconst r = $input.first().json;\nconst message = parseBody(r.body ?? r.data);\nconst headers = r.headers ?? {};\n\n// نرمال‌سازی نام هدرها (ممکن است حروف بزرگ/کوچک متفاوت باشد)\nconst getHeader = (name) => {\n  const lower = name.toLowerCase();\n  for (const key of Object.keys(headers)) {\n    if (key.toLowerCase() === lower) return headers[key];\n  }\n  return null;\n};\n\nconst sessionId = getHeader(\"mcp-session-id\");\n\nif (\n  (r.statusCode ?? 200) >= 400 ||\n  !message ||\n  message.error ||\n  !message.result\n) {\n  return [{\n    json: {\n      ok: false,\n      error: \"MCP initialize failed: \" +\n        String(message?.error?.message ?? r.body ?? r.data ?? \"Unknown error\")\n    }\n  }];\n}\n\nconst reqHeaders = {\n  \"Content-Type\": \"application/json\",\n  \"Accept\": \"application/json, text/event-stream\"\n};\n\nif (sessionId) {\n  reqHeaders[\"Mcp-Session-Id\"] = sessionId;\n}\n\nif (message.result.protocolVersion) {\n  reqHeaders[\"MCP-Protocol-Version\"] = message.result.protocolVersion;\n}\n\nreturn [{\n  json: {\n    ok: true,\n    sessionId,\n    protocolVersion: message.result.protocolVersion ?? null,\n    reqHeaders\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -224
+      ],
+      "id": "a680ab2a-c026-4589-ba40-5eadf993833d",
+      "name": "MCP Parse Init"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            },
+            {
+              "name": "Mcp-Session-Id",
+              "value": "={{ $(\"MCP Parse Init\").first().json.sessionId }}"
+            },
+            {
+              "name": "MCP-Protocol-Version",
+              "value": "={{ $(\"MCP Parse Init\").first().json.protocolVersion }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"notifications/initialized\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        208,
+        -240
+      ],
+      "id": "73de6f0e-606d-4a22-ac7a-c28d33cd424c",
+      "name": "MCP Initialized Notify"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ===== Build Tool Call — Run Once for All Items =====\n\n// --------------------------------------------------\n// 1. Read MCP session and all validated plans\n// --------------------------------------------------\n\nconst init = $(\"MCP Parse Init\").last()?.json;\nconst splitItems = $(\"Split Plans\").all();\nconst prep = $(\"Prepare Input\").first()?.json;\n\nif (!init?.ok) {\n  throw new Error(\"MCP session is not initialized.\");\n}\n\nif (\n  !init.reqHeaders ||\n  typeof init.reqHeaders !== \"object\" ||\n  Array.isArray(init.reqHeaders)\n) {\n  throw new Error(\"MCP session headers are missing or invalid.\");\n}\n\nif (!Array.isArray(splitItems) || splitItems.length === 0) {\n  throw new Error(\"No validated plans were provided.\");\n}\n\n// --------------------------------------------------\n// 2. Shared validation helpers\n// --------------------------------------------------\n\nconst own = (obj, key) =>\n  Object.prototype.hasOwnProperty.call(obj, key);\n\nfunction assert(condition, message) {\n  if (!condition) {\n    throw new Error(message);\n  }\n}\n\nfunction assertAllowedKeys(obj, allowedKeys, label) {\n  const unexpected = Object.keys(obj).filter(\n    key => !allowedKeys.includes(key)\n  );\n\n  assert(\n    unexpected.length === 0,\n    `${label} contains unsupported argument(s): ${unexpected.join(\", \")}`\n  );\n}\n\nfunction isPlainObject(value) {\n  return (\n    value !== null &&\n    typeof value === \"object\" &&\n    !Array.isArray(value)\n  );\n}\n\n// --------------------------------------------------\n// 3. Tool allowlist\n// --------------------------------------------------\n\nconst ALLOWED_TOOLS = new Set([\n  \"analytics_query\",\n  \"get_top_market_skills\",\n  \"get_top_skill_gaps\",\n  \"get_market_skill_details\",\n  \"search_elasticsearch\"\n]);\n\n// --------------------------------------------------\n// 4. Process every validated plan independently\n// --------------------------------------------------\n\nconst output = [];\n\nfor (let index = 0; index < splitItems.length; index++) {\n\n  const split = splitItems[index].json;\n\n  // ------------------------------------------------\n  // 4.1 Validate plan structure\n  // ------------------------------------------------\n\n  if (!split?.valid) {\n    throw new Error(\n      `Refusing to call MCP: plan ${index + 1} is not valid.`\n    );\n  }\n\n  if (\n    !split.plan ||\n    typeof split.plan !== \"object\" ||\n    Array.isArray(split.plan) ||\n    !split.plan.tool ||\n    !split.plan.arguments ||\n    typeof split.plan.arguments !== \"object\" ||\n    Array.isArray(split.plan.arguments)\n  ) {\n    throw new Error(\n      `Refusing to call MCP: plan ${index + 1} is malformed.`\n    );\n  }\n\n  const toolName = String(split.plan.tool).trim();\n  const inputArgs = split.plan.arguments;\n\n  assert(\n    ALLOWED_TOOLS.has(toolName),\n    `Tool \"${toolName}\" is not allowed to execute.`\n  );\n\n  // ------------------------------------------------\n  // 4.2 Tool-specific argument validation\n  // ------------------------------------------------\n\n  let args;\n\n  if (toolName === \"search_elasticsearch\") {\n\n    assertAllowedKeys(\n      inputArgs,\n      [\"query\"],\n      \"search_elasticsearch\"\n    );\n\n    const query = String(inputArgs.query ?? \"\").trim();\n\n    assert(\n      query.length > 0,\n      \"search_elasticsearch requires a non-empty query.\"\n    );\n\n    assert(\n      query.length <= 100,\n      \"search_elasticsearch query must not exceed 100 characters.\"\n    );\n\n    args = { query };\n  }\n\n  else if (toolName === \"get_top_market_skills\") {\n\n    assertAllowedKeys(\n      inputArgs,\n      [\"limit\"],\n      \"get_top_market_skills\"\n    );\n\n    const limit = inputArgs.limit;\n\n    assert(\n      Number.isInteger(limit) &&\n      limit >= 1 &&\n      limit <= 50,\n      \"get_top_market_skills limit must be an integer between 1 and 50.\"\n    );\n\n    args = { limit };\n  }\n\n  else if (toolName === \"get_top_skill_gaps\") {\n\n    assertAllowedKeys(\n      inputArgs,\n      [\"limit\"],\n      \"get_top_skill_gaps\"\n    );\n\n    const limit = inputArgs.limit;\n\n    assert(\n      Number.isInteger(limit) &&\n      limit >= 1 &&\n      limit <= 50,\n      \"get_top_skill_gaps limit must be an integer between 1 and 50.\"\n    );\n\n    args = { limit };\n  }\n\n  else if (toolName === \"get_market_skill_details\") {\n\n    assertAllowedKeys(\n      inputArgs,\n      [\"skills\"],\n      \"get_market_skill_details\"\n    );\n\n    const skills = inputArgs.skills;\n\n    assert(\n      Array.isArray(skills) &&\n      skills.length > 0 &&\n      skills.every(skill => typeof skill === \"string\" && skill.trim().length > 0),\n      \"get_market_skill_details requires a non-empty array of skill names.\"\n    );\n\n    const normalizedSkills = [...new Set(skills.map(skill => skill.trim()))];\n\n    assert(\n      normalizedSkills.length === skills.length,\n      \"get_market_skill_details skills must be unique.\"\n    );\n\n    args = { skills: normalizedSkills };\n  }\n\n  else if (toolName === \"analytics_query\") {\n\n    const CFG = prep?.config;\n\n    assert(\n      CFG?.datasets &&\n      CFG?.operators &&\n      Array.isArray(CFG.metricFunctions),\n      \"Analytics configuration is missing or invalid.\"\n    );\n\n    const allowedKeys = [\n      \"dataset_id\",\n      \"operation\",\n      \"filter_conditions\",\n      \"filter_logic\",\n      \"group_by\",\n      \"metrics\",\n      \"sort\",\n      \"limit\"\n    ];\n\n    assertAllowedKeys(\n      inputArgs,\n      allowedKeys,\n      \"analytics_query\"\n    );\n\n    const datasetId = inputArgs.dataset_id;\n\n    assert(\n      typeof datasetId === \"string\" &&\n      own(CFG.datasets, datasetId),\n      `Unknown analytics dataset \"${datasetId}\".`\n    );\n\n    const fields = CFG.datasets[datasetId].fields;\n    const operation = inputArgs.operation;\n\n    assert(\n      [\"select\", \"count\", \"aggregate\"].includes(operation),\n      `Unsupported analytics operation \"${operation}\".`\n    );\n\n    const filters = inputArgs.filter_conditions;\n    const groupBy = inputArgs.group_by ?? [];\n    const metrics = inputArgs.metrics ?? [];\n    const sorts = inputArgs.sort ?? [];\n    const filterLogic = inputArgs.filter_logic;\n\n    assert(\n      Array.isArray(filters),\n      \"filter_conditions must be an array.\"\n    );\n\n    assert(\n      Array.isArray(groupBy),\n      \"group_by must be an array.\"\n    );\n\n    assert(\n      Array.isArray(metrics),\n      \"metrics must be an array.\"\n    );\n\n    assert(\n      Array.isArray(sorts),\n      \"sort must be an array.\"\n    );\n\n    assert(\n      [\"and\", \"or\"].includes(filterLogic),\n      \"filter_logic must be and or or.\"\n    );\n\n    // Group fields\n    const normalizedGroupBy = [];\n\n    for (const fieldName of groupBy) {\n\n      assert(\n        typeof fieldName === \"string\" &&\n        own(fields, fieldName),\n        `Invalid group_by field \"${fieldName}\".`\n      );\n\n      assert(\n        fields[fieldName].groupable !== false,\n        `Field \"${fieldName}\" cannot be grouped.`\n      );\n\n      if (!normalizedGroupBy.includes(fieldName)) {\n        normalizedGroupBy.push(fieldName);\n      }\n    }\n\n    // Metrics\n    const normalizedMetrics = [];\n    const metricAliases = new Set();\n\n    for (let i = 0; i < metrics.length; i++) {\n\n      const metric = metrics[i];\n\n      assert(\n        isPlainObject(metric),\n        `metrics[${i}] must be an object.`\n      );\n\n      assert(\n        CFG.metricFunctions.includes(metric.function),\n        `metrics[${i}] has an unsupported function.`\n      );\n\n      const fn = metric.function;\n      const normalizedMetric = { function: fn };\n\n      if (fn !== \"count_documents\") {\n\n        assert(\n          typeof metric.field === \"string\" &&\n          own(fields, metric.field),\n          `metrics[${i}] has an invalid field.`\n        );\n\n        if ([\"avg\", \"sum\", \"min\", \"max\"].includes(fn)) {\n\n          assert(\n            fields[metric.field].type === \"number\",\n            `${fn} requires a numeric field.`\n          );\n        }\n\n        normalizedMetric.field = metric.field;\n      }\n\n      const alias = String(metric.alias ?? \"\").trim();\n\n      assert(\n        /^[a-z][a-z0-9_]{0,63}$/.test(alias),\n        `metrics[${i}] has an invalid alias.`\n      );\n\n      assert(\n        !metricAliases.has(alias) &&\n        !own(fields, alias) &&\n        !normalizedGroupBy.includes(alias),\n        `metrics[${i}] has a duplicate or conflicting alias.`\n      );\n\n      metricAliases.add(alias);\n      normalizedMetric.alias = alias;\n\n      normalizedMetrics.push(normalizedMetric);\n    }\n\n    // Operation compatibility\n    if (operation === \"select\") {\n\n      assert(\n        normalizedGroupBy.length === 0 &&\n        normalizedMetrics.length === 0,\n        \"select cannot contain group_by or metrics.\"\n      );\n    }\n\n    if (operation === \"count\") {\n\n      assert(\n        normalizedGroupBy.length === 0 &&\n        normalizedMetrics.length === 0,\n        \"count cannot contain group_by or metrics.\"\n      );\n\n      assert(\n        sorts.length === 0,\n        \"sort is not supported for count.\"\n      );\n\n      assert(\n        inputArgs.limit === undefined ||\n        inputArgs.limit === null,\n        \"limit must not be supplied for count.\"\n      );\n    }\n\n    if (operation === \"aggregate\") {\n\n      assert(\n        normalizedGroupBy.length > 0,\n        \"aggregate requires at least one group_by field.\"\n      );\n\n      assert(\n        normalizedMetrics.length > 0,\n        \"aggregate requires at least one metric.\"\n      );\n    }\n\n    // Filters\n    const normalizedFilters = [];\n\n    for (let i = 0; i < filters.length; i++) {\n\n      const filter = filters[i];\n\n      assert(\n        isPlainObject(filter),\n        `filter_conditions[${i}] must be an object.`\n      );\n\n      assert(\n        typeof filter.field === \"string\" &&\n        own(fields, filter.field),\n        `filter_conditions[${i}] has an invalid field.`\n      );\n\n      const field = fields[filter.field];\n      const allowedOperators = CFG.operators[field.type] ?? [];\n\n      assert(\n        allowedOperators.includes(filter.operator),\n        `filter_conditions[${i}] has an unsupported operator.`\n      );\n\n      const isBetween = filter.operator === \"between\";\n      const isArrayOperator =\n        CFG.arrayOperators.includes(filter.operator);\n      const isNoValueOperator =\n        [\"exists\", \"not_exists\"].includes(filter.operator);\n\n      let values;\n\n      if (isNoValueOperator) {\n        values = [];\n      } else if (isBetween) {\n\n        assert(\n          Array.isArray(filter.value) &&\n          filter.value.length === 2,\n          `filter_conditions[${i}] between requires two values.`\n        );\n\n        values = filter.value;\n      }\n\n      else if (isArrayOperator) {\n\n        assert(\n          Array.isArray(filter.value) &&\n          filter.value.length > 0,\n          `filter_conditions[${i}] requires a non-empty array.`\n        );\n\n        values = filter.value;\n      }\n\n      else {\n\n        assert(\n          !Array.isArray(filter.value),\n          `filter_conditions[${i}] requires a single value.`\n        );\n\n        values = [filter.value];\n      }\n\n      const normalizedValues = values.map(value => {\n\n        if (field.type === \"number\") {\n\n          const number = Number(value);\n\n          assert(\n            value !== null &&\n            value !== \"\" &&\n            typeof value !== \"boolean\" &&\n            Number.isFinite(number),\n            `filter_conditions[${i}] requires numeric values.`\n          );\n\n          return number;\n        }\n\n        assert(\n          typeof value === \"string\" ||\n          typeof value === \"number\",\n          `filter_conditions[${i}] requires text values.`\n        );\n\n        const text = String(value).trim();\n\n        assert(\n          text.length > 0,\n          `filter_conditions[${i}] contains an empty value.`\n        );\n\n        return text;\n      });\n\n      if (isBetween) {\n\n        assert(\n          normalizedValues[0] <= normalizedValues[1],\n          `filter_conditions[${i}] has an invalid between range.`\n        );\n      }\n\n      normalizedFilters.push({\n        field: filter.field,\n        operator: filter.operator,\n        value: isNoValueOperator\n          ? null\n          : isBetween || isArrayOperator\n            ? normalizedValues\n            : normalizedValues[0]\n      });\n    }\n\n    // Sort\n    const normalizedSorts = [];\n\n    for (let i = 0; i < sorts.length; i++) {\n\n      const sort = sorts[i];\n\n      assert(\n        isPlainObject(sort),\n        `sort[${i}] must be an object.`\n      );\n\n      assert(\n        typeof sort.field === \"string\",\n        `sort[${i}] has an invalid field.`\n      );\n\n      if (operation === \"aggregate\") {\n        const metricAliasSet = new Set(\n          normalizedMetrics.map(metric => metric.alias)\n        );\n\n        assert(\n          normalizedGroupBy.includes(sort.field) ||\n          metricAliasSet.has(sort.field),\n          `sort[${i}] must use a group_by field or metric alias.`\n        );\n      } else {\n        assert(\n          own(fields, sort.field),\n          `sort[${i}] has an invalid field.`\n        );\n      }\n\n      assert(\n        [\"asc\", \"desc\"].includes(sort.order),\n        `sort[${i}] order must be asc or desc.`\n      );\n\n      normalizedSorts.push({\n        field: sort.field,\n        order: sort.order\n      });\n    }\n\n    // Limit\n    let normalizedLimit;\n\n    if (\n      operation !== \"count\" &&\n      inputArgs.limit !== undefined &&\n      inputArgs.limit !== null\n    ) {\n\n      const limit = inputArgs.limit;\n\n      assert(\n        Number.isInteger(limit) &&\n        limit >= 1 &&\n        limit <= 1000,\n        `${operation} limit must be an integer between 1 and 1000.`\n      );\n\n      normalizedLimit = limit;\n    }\n\n    // Rebuild exact MCP arguments\n    args = {\n      dataset_id: datasetId,\n      operation,\n      filter_conditions: normalizedFilters,\n      filter_logic: filterLogic\n    };\n\n    if (normalizedGroupBy.length) {\n      args.group_by = normalizedGroupBy;\n    }\n\n    if (normalizedMetrics.length) {\n      args.metrics = normalizedMetrics;\n    }\n\n    if (normalizedSorts.length) {\n      args.sort = normalizedSorts;\n    }\n\n    if (normalizedLimit !== undefined) {\n      args.limit = normalizedLimit;\n    }\n  }\n\n  // ------------------------------------------------\n  // 4.3 Build independent JSON-RPC request\n  // ------------------------------------------------\n\n  // Each plan receives a unique numeric JSON-RPC ID.\n  const rpcId = index + 1;\n\n  const rpcBody = {\n    jsonrpc: \"2.0\",\n    id: rpcId,\n    method: \"tools/call\",\n    params: {\n      name: toolName,\n      arguments: args\n    }\n  };\n\n  // ------------------------------------------------\n  // 4.4 Preserve plan metadata\n  // ------------------------------------------------\n\n  output.push({\n    json: {\n      reqHeaders: init.reqHeaders,\n      rpcBody,\n      selectedTool: toolName,\n\n      rpcId,\n\n      planIndex: split.planIndex ?? index,\n      planCount: split.planCount ?? splitItems.length,\n      planId: split.planId ?? `plan_${index + 1}`,\n\n      subQuestion:\n        split.subQuestion ??\n        split.question ??\n        prep?.question,\n\n      question:\n        split.question ??\n        prep?.question\n    }\n  });\n}\n\n// --------------------------------------------------\n// 5. Return all MCP requests\n// --------------------------------------------------\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -240
+      ],
+      "id": "bc523f73-4b77-4be5-92bc-f18693365d92",
+      "name": "Build Tool Call"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            },
+            {
+              "name": "Mcp-Session-Id",
+              "value": "={{ $json.reqHeaders[\"Mcp-Session-Id\"] }}"
+            },
+            {
+              "name": "MCP-Protocol-Version",
+              "value": "={{ $json.reqHeaders[\"MCP-Protocol-Version\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpcBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        624,
+        -240
+      ],
+      "id": "fc674dec-ddae-418b-8af1-bd874911b80f",
+      "name": "MCP Call Tool"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// MCP Parse Result — Run Once for All Items\n\nfunction parseBody(body) {\n  if (body && typeof body === \"object\") return body;\n\n  const text = String(body ?? \"\").trim();\n  if (!text) return null;\n\n  // Direct JSON response\n  try {\n    return JSON.parse(text);\n  } catch {}\n\n  // SSE response\n  let last = null;\n\n  for (const line of text.split(/\\r?\\n/)) {\n    const trimmed = line.trim();\n\n    if (!trimmed.startsWith(\"data:\")) continue;\n\n    const payload = trimmed.slice(5).trim();\n\n    if (!payload || payload === \"[DONE]\") continue;\n\n    try {\n      last = JSON.parse(payload);\n    } catch {}\n  }\n\n  return last;\n}\n\nfunction decodeNested(value, depth = 0) {\n  if (depth > 3) return value;\n\n  if (typeof value === \"string\") {\n    try {\n      return decodeNested(JSON.parse(value), depth + 1);\n    } catch {\n      return value;\n    }\n  }\n\n  if (value && typeof value === \"object\" && !Array.isArray(value)) {\n    if (typeof value.result === \"string\") {\n      return {\n        ...value,\n        result: decodeNested(value.result, depth + 1)\n      };\n    }\n  }\n\n  return value;\n}\n\nfunction parseItem(r, index) {\n  const body = r.body ?? r.data;\n  const message = parseBody(body);\n\n  const metadata = {\n    itemIndex: index,\n    rpcId: r.rpcId ?? message?.id ?? null,\n    planIndex: r.planIndex ?? null,\n    planCount: r.planCount ?? null,\n    planId: r.planId ?? null,\n    subQuestion: r.subQuestion ?? null,\n    question: r.question ?? null,\n    tool: r.selectedTool ?? r.tool ?? r.toolName ?? null,\n    selectedTool: r.selectedTool ?? null,\n    requestArguments: r.requestArguments ?? {},\n    requestBody: r.requestBody ?? null\n  };\n\n  function bad(error) {\n    return {\n      json: {\n        ...metadata,\n        ok: false,\n        error\n      }\n    };\n  }\n\n  const statusCode = Number(r.statusCode ?? 200);\n\n  if (statusCode >= 400) {\n    return bad(\n      `MCP HTTP ${statusCode}: ${String(body ?? \"\").slice(0, 500)}`\n    );\n  }\n\n  if (!message) {\n    return bad(\"MCP response could not be parsed.\");\n  }\n\n  if (message.error) {\n    return bad(\n      `MCP JSON-RPC error ${message.error.code}: ${message.error.message}`\n    );\n  }\n\n  const result = message.result ?? {};\n\n  const textContent = Array.isArray(result.content)\n    ? result.content\n        .filter(item => item.type === \"text\")\n        .map(item => item.text)\n        .join(\"\\n\")\n    : \"\";\n\n  if (result.isError) {\n    return bad(\n      `MCP tool execution error: ${textContent || \"Unknown tool error\"}`\n    );\n  }\n\n  let data = result.structuredContent;\n\n  if (data === undefined) {\n    data = textContent || result;\n  }\n\n  data = decodeNested(data);\n\n  if (data === null || data === undefined || data === \"\") {\n    return bad(\"MCP returned no readable result.\");\n  }\n\n  return {\n    json: {\n      ...metadata,\n      ok: true,\n      data\n    }\n  };\n}\n\n// Pair every HTTP response with its originating MCP request.\n// JSON-RPC id is the primary key; input order is the fallback.\nconst items = $input.all();\nconst requests = $(\"Build Tool Call\").all().map(item => item.json);\n\nreturn items.map((item, index) => {\n  const response = item.json ?? {};\n  const message = parseBody(response.body ?? response.data);\n  const rpcId = response.rpcId ?? message?.id ?? null;\n\n  const request =\n    requests.find(candidate => candidate.rpcId === rpcId) ??\n    requests[index] ??\n    {};\n\n  const enriched = {\n    ...response,\n    rpcId,\n    planIndex: request.planIndex ?? index,\n    planCount: request.planCount ?? requests.length,\n    planId: request.planId ?? `plan_${index + 1}`,\n    subQuestion: request.subQuestion ?? null,\n    question: request.question ?? null,\n    selectedTool: request.selectedTool ?? null,\n    requestArguments: request.rpcBody?.params?.arguments ?? {},\n    requestBody: request.rpcBody ?? null\n  };\n\n  try {\n    return parseItem(enriched, index);\n  } catch (error) {\n    return {\n      json: {\n        itemIndex: index,\n        rpcId,\n        planIndex: enriched.planIndex,\n        planCount: enriched.planCount,\n        planId: enriched.planId,\n        subQuestion: enriched.subQuestion,\n        question: enriched.question,\n        selectedTool: enriched.selectedTool,\n        requestArguments: enriched.requestArguments,\n        ok: false,\n        error: error.message || String(error)\n      }\n    };\n  }\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -240
+      ],
+      "id": "9c646822-88b6-4484-add3-58344e95cb3f",
+      "name": "MCP Parse Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ============================================================\n// Format Result — Run Once for All Items\n// NexusOps | Defensive, Extensible MCP Result Normalizer\n// ============================================================\n\n// ---------------- Configuration ----------------\nconst MAX_SHOWN = 50;\nconst MAX_SAMPLE = 10;\nconst MAX_RAW_LENGTH = 8000;\n\n// ---------------- Input Collection ----------------\nconst inputItems = $input.all();\nconst buildItems = $(\"Build Tool Call\").all();\n\nif (!inputItems.length) {\n  throw new Error(\"Format Result received no input items.\");\n}\n\nif (!buildItems.length) {\n  throw new Error(\"Format Result could not find Build Tool Call output.\");\n}\n\n// ---------------- General Utilities ----------------\nconst isObject = (value) =>\n  value !== null &&\n  typeof value === \"object\" &&\n  !Array.isArray(value);\n\nconst parseJSON = (value) => {\n  if (typeof value !== \"string\") return value;\n\n  const trimmed = value.trim();\n  if (!trimmed) return value;\n\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return value;\n  }\n};\n\nconst toDisplay = (value) => {\n  if (value === null || value === undefined) return \"\";\n  if (Array.isArray(value)) return value.map(toDisplay).join(\", \");\n  if (isObject(value)) return JSON.stringify(value);\n  return String(value);\n};\n\nconst escapeCell = (value) =>\n  toDisplay(value)\n    .replace(/\\|/g, \"\\\\|\")\n    .replace(/\\r?\\n/g, \" \")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n\nconst markdownTable = (columns, rows, maxRows = MAX_SHOWN) => {\n  if (!columns.length) return \"(بدون ستون قابل نمایش)\";\n\n  if (!rows.length) return \"(بدون ردیف)\";\n\n  return [\n    \"| \" + columns.map(escapeCell).join(\" | \") + \" |\",\n    \"|\" + columns.map(() => \"---\").join(\"|\") + \"|\",\n    ...rows.slice(0, maxRows).map((row) =>\n      \"| \" +\n      columns.map((column) => escapeCell(row[column])).join(\" | \") +\n      \" |\"\n    )\n  ].join(\"\\n\");\n};\n\nconst getColumns = (rows, preferred = []) => {\n  const keys = new Set();\n\n  for (const row of rows) {\n    if (isObject(row)) {\n      Object.keys(row).forEach((key) => keys.add(key));\n    }\n  }\n\n  return [\n    ...preferred.filter((key) => keys.has(key)),\n    ...[...keys].filter((key) => !preferred.includes(key))\n  ];\n};\n\nconst safeNumber = (value) => {\n  if (typeof value === \"number\" && Number.isFinite(value)) {\n    return value;\n  }\n\n  if (\n    typeof value === \"string\" &&\n    value.trim() !== \"\" &&\n    Number.isFinite(Number(value))\n  ) {\n    return Number(value);\n  }\n\n  return null;\n};\n\nconst normalizeRows = (rows) => {\n  if (!Array.isArray(rows)) return null;\n\n  return rows.map((row) => {\n    if (!isObject(row)) return { value: row };\n\n    if (isObject(row._source)) {\n      return {\n        ...row._source,\n        ...(row._id !== undefined ? { _id: row._id } : {}),\n        ...(row._score !== undefined ? { _score: row._score } : {})\n      };\n    }\n\n    return row;\n  });\n};\n\n// ---------------- MCP Response Normalization ----------------\nfunction unwrapResponse(response) {\n  if (!isObject(response)) {\n    return {\n      data: response,\n      raw: response,\n      metadata: null\n    };\n  }\n\n  let data = response.data ?? response.structuredContent ?? response;\n  data = parseJSON(data);\n\n  // MCP text-content response support\n  if (isObject(data) && Array.isArray(data.content)) {\n    const textBlock = data.content.find(\n      (item) => isObject(item) && item.type === \"text\"\n    );\n\n    if (textBlock?.text !== undefined) {\n      const parsedText = parseJSON(textBlock.text);\n\n      if (parsedText !== textBlock.text) {\n        data = parsedText;\n      }\n    }\n  }\n\n  // Unwrap only the outer MCP envelope.\n  // Preserve the analytics response and its metadata.\n  if (\n    isObject(data) &&\n    isObject(data.result) &&\n    (\n      data.result.status !== undefined ||\n      data.result.dataset_id !== undefined ||\n      data.result.operation !== undefined\n    )\n  ) {\n    data = data.result;\n  }\n\n  return {\n    data,\n    raw: response,\n    metadata: isObject(data?.metadata) ? data.metadata : null\n  };\n}\n\n// ---------------- Search Result Renderer ----------------\nfunction renderSearch(data, args) {\n  if (!isObject(data) || !Array.isArray(data.results)) {\n    return null;\n  }\n\n  const results = data.results;\n  const totalReturned =\n    safeNumber(data.total_returned) ?? results.length;\n\n  const queryText = data.query ?? args.query ?? \"\";\n\n  if (!results.length) {\n    return {\n      countValue: 0,\n      rowCount: 0,\n      totalRecords: totalReturned,\n      shown: 0,\n      columns: [],\n      rows: [],\n      tableMarkdown: \"هیچ رکوردی برای این جست‌وجو یافت نشد.\",\n      extra: { query: queryText }\n    };\n  }\n\n  const graduateHits = results.filter(\n    (item) => item.index === \"university_graduates\"\n  );\n\n  const courseRecordHits = results.filter(\n    (item) => item.index === \"course_graduate_records\"\n  );\n\n  const parts = [];\n\n  // Graduate profile\n  for (const hit of graduateHits) {\n    const graduate = isObject(hit.data) ? hit.data : {};\n\n    parts.push(\"### مشخصات فارغ‌التحصیل\");\n\n    const fields = [\n      \"graduate_id\",\n      \"major\",\n      \"graduation_year\",\n      \"study_level\",\n      \"job_title\",\n      \"job_field\",\n      \"employment_months\",\n      \"career_relevance\",\n      \"additional_training\",\n      \"additional_skills\"\n    ];\n\n    const profileRows = fields.map((field) => ({\n      field,\n      value: graduate[field]\n    }));\n\n    parts.push(\n      markdownTable(\n        [\"field\", \"value\"],\n        profileRows\n      )\n    );\n  }\n\n  // Course-graduate records\n  if (courseRecordHits.length) {\n    const rows = courseRecordHits.map((hit) => {\n      const item = isObject(hit.data) ? hit.data : {};\n      return {\n        course_id: item.course_id,\n        course_name: item.course_name,\n        course_relevance: item.course_relevance,\n        skill_transfer: item.skill_transfer,\n        graduate_satisfaction: item.graduate_satisfaction,\n        related_skills: item.related_skills\n      };\n    });\n\n    parts.push(\"### سوابق درسی مرتبط\");\n\n    parts.push(\n      markdownTable(\n        [\n          \"course_id\",\n          \"course_name\",\n          \"course_relevance\",\n          \"skill_transfer\",\n          \"graduate_satisfaction\",\n          \"related_skills\"\n        ],\n        rows\n      )\n    );\n  }\n\n  // Generic indexed-document support\n  const specializedCount =\n    graduateHits.length + courseRecordHits.length;\n\n  if (specializedCount !== results.length) {\n    const genericRows = results\n      .filter(\n        (item) =>\n          item.index !== \"university_graduates\" &&\n          item.index !== \"course_graduate_records\"\n      )\n      .map((item) => ({\n        index: item.index,\n        id: item.id,\n        score: item.score,\n        ...(isObject(item.data) ? item.data : {})\n      }));\n\n    if (genericRows.length) {\n      parts.push(\"### سایر رکوردهای یافت‌شده\");\n\n      parts.push(\n        markdownTable(\n          getColumns(genericRows, [\"index\", \"id\", \"score\"]),\n          genericRows\n        )\n      );\n    }\n  }\n\n  return {\n    countValue: null,\n    rowCount: results.length,\n    totalRecords: totalReturned,\n    shown: Math.min(results.length, MAX_SHOWN),\n    columns: [],\n    rows: results.slice(0, MAX_SAMPLE),\n    tableMarkdown: parts.join(\"\\n\\n\"),\n    extra: {\n      query: queryText,\n      graduate_count: graduateHits.length,\n      course_record_count: courseRecordHits.length\n    }\n  };\n}\n\n\n // ---------------- Top Market Skills Renderer ----------------\nfunction renderTopSkills(data) {\n  if (!isObject(data)) {\n    return null;\n  }\n\n  // Support both direct tool results and nested MCP result envelopes.\n  const payload =\n    isObject(data.result) &&\n    (\n      data.result.analysis === \"top_market_skills\" ||\n      Array.isArray(data.result.results)\n    )\n      ? data.result\n      : data;\n\n  if (\n    !isObject(payload) ||\n    !Array.isArray(payload.results) ||\n    !payload.results.every(isObject)\n  ) {\n    return null;\n  }\n\n  if (\n    payload.analysis !== undefined &&\n    payload.analysis !== \"top_market_skills\"\n  ) {\n    return null;\n  }\n\n  const rows = payload.results.map((item) => ({\n    skill: item.skill,\n    average_demand_score: item.average_demand_score,\n    total_frequency: item.total_frequency,\n    record_count: item.record_count\n  }));\n\n  // Reject malformed records rather than silently displaying\n  // incomplete or misleading analytical results.\n  const requiredFields = [\n    \"skill\",\n    \"average_demand_score\",\n    \"total_frequency\",\n    \"record_count\"\n  ];\n\n  const hasValidRows = rows.every((row) =>\n    requiredFields.every((field) =>\n      row[field] !== undefined &&\n      row[field] !== null\n    ) &&\n    safeNumber(row.average_demand_score) !== null &&\n    safeNumber(row.total_frequency) !== null &&\n    safeNumber(row.record_count) !== null\n  );\n\n  if (!hasValidRows) {\n    return null;\n  }\n\n  const columns = [\n    \"skill\",\n    \"average_demand_score\",\n    \"total_frequency\",\n    \"record_count\"\n  ];\n\n  const totalRecords =\n    safeNumber(payload.total_records) ?? rows.length;\n\n  return {\n    countValue: null,\n    rowCount: rows.length,\n    totalRecords,\n    shown: Math.min(rows.length, MAX_SHOWN),\n    columns,\n    rows,\n    tableMarkdown: rows.length\n      ? markdownTable(columns, rows.slice(0, MAX_SHOWN))\n      : \"(هیچ مهارتی برنگشت)\"\n  };\n}\n\n\n// ---------------- Analytics COUNT Renderer ----------------\nfunction renderCount(data) {\n  if (!isObject(data)) {\n    return null;\n  }\n\n  const candidate =\n    data.result?.count ??\n    data.count ??\n    data.total ??\n    data.total_records ??\n    data.document_count ??\n    data.value ??\n    data.hits?.total?.value ??\n    data.metadata?.total_records ??\n    null;\n\n  const count = safeNumber(candidate);\n\n  if (\n    count === null ||\n    !Number.isInteger(count) ||\n    count < 0\n  ) {\n    return null;\n  }\n\n  return {\n    countValue: count,\n    rowCount: 1,\n    totalRecords: count,\n    shown: 1,\n    columns: [\"count\"],\n    rows: [{ count }],\n    tableMarkdown: `**تعداد رکوردهای منطبق: ${count}**`\n  };\n}\n\n\n// ---------------- Analytics SELECT Renderer ----------------\nfunction renderSelect(data, args) {\n  let candidate = null;\n  let total = null;\n\n  if (Array.isArray(data)) {\n    candidate = data;\n  } else if (isObject(data)) {\n    if (Array.isArray(data.result)) {\n      candidate = data.result;\n    } else if (Array.isArray(data.rows)) {\n      candidate = data.rows;\n    } else if (Array.isArray(data.records)) {\n      candidate = data.records;\n    } else if (Array.isArray(data.results)) {\n      candidate = data.results;\n    } else if (Array.isArray(data.hits)) {\n      candidate = data.hits;\n    } else if (\n      isObject(data.hits) &&\n      Array.isArray(data.hits.hits)\n    ) {\n      candidate = data.hits.hits;\n    }\n\n    total =\n      data.metadata?.total_records ??\n      data.total_records ??\n      data.total ??\n      data.hits?.total?.value ??\n      null;\n  }\n\n  const rows = normalizeRows(candidate);\n\n  if (!rows || !rows.every(isObject)) {\n    return null;\n  }\n\n  const sortFields = Array.isArray(args?.sort)\n    ? args.sort.map((item) => item.field).filter(Boolean)\n    : [];\n\n  const columns = getColumns(rows, sortFields);\n\n  const totalRecords =\n    safeNumber(total) ?? rows.length;\n\n  return {\n    countValue: null,\n    rowCount: rows.length,\n    totalRecords,\n    shown: Math.min(rows.length, MAX_SHOWN),\n    columns,\n    rows,\n    tableMarkdown: rows.length\n      ? markdownTable(columns, rows.slice(0, MAX_SHOWN))\n      : \"(هیچ رکوردی برنگشت)\"\n  };\n}\n\n\n// ---------------- Analytics AGGREGATE Renderer ----------------\nfunction flattenBucket(bucket, args) {\n  const row = {};\n\n  const groupBy = Array.isArray(args.group_by)\n    ? args.group_by\n    : [];\n\n  for (const [key, value] of Object.entries(bucket)) {\n    if (\n      ![\n        \"group\",\n        \"metrics\",\n        \"document_count\",\n        \"key\",\n        \"doc_count\",\n        \"key_as_string\"\n      ].includes(key)\n    ) {\n      row[key] = value;\n    }\n  }\n\n  const addGroup = (group) => {\n    if (isObject(group)) {\n      Object.assign(row, group);\n    } else if (group !== undefined && group !== null) {\n      const field =\n        groupBy.length === 1 ? groupBy[0] : \"group\";\n\n      row[field] = group;\n    }\n  };\n\n  addGroup(bucket.group);\n  addGroup(bucket.key);\n\n  if (bucket.key_as_string !== undefined && !groupBy.length) {\n    row.group = bucket.key_as_string;\n  }\n\n  if (isObject(bucket.metrics)) {\n    Object.assign(row, bucket.metrics);\n  }\n\n  const countMetric = (args.metrics ?? []).find(\n    (metric) => metric.function === \"count_documents\"\n  );\n\n  const countAlias = countMetric?.alias ?? \"record_count\";\n\n  if (bucket.document_count !== undefined) {\n    row[countAlias] = bucket.document_count;\n  } else if (bucket.doc_count !== undefined) {\n    row[countAlias] = bucket.doc_count;\n  }\n\n  return row;\n}\n\n\n\nfunction renderAggregate(data, args) {\n  let candidate = null;\n\n  if (Array.isArray(data)) {\n    candidate = data;\n\n  } else if (isObject(data)) {\n\n    // Direct bucket structures\n    if (Array.isArray(data.buckets)) {\n      candidate = data.buckets;\n\n    // MCP response structure: data.result.buckets\n    } else if (\n      isObject(data.result) &&\n      Array.isArray(data.result.buckets)\n    ) {\n      candidate = data.result.buckets;\n\n    } else if (Array.isArray(data.groups)) {\n      candidate = data.groups;\n\n    } else if (Array.isArray(data.rows)) {\n      candidate = data.rows;\n\n    // Elasticsearch aggregation response\n    } else if (isObject(data.aggregations)) {\n      const aggregationValues = Object.values(\n        data.aggregations\n      );\n\n      const bucketAggregation = aggregationValues.find(\n        (value) =>\n          isObject(value) &&\n          Array.isArray(value.buckets)\n      );\n\n      if (bucketAggregation) {\n        candidate = bucketAggregation.buckets;\n      }\n    }\n  }\n\n  if (\n    !Array.isArray(candidate) ||\n    !candidate.every(isObject)\n  ) {\n    return null;\n  }\n\n  const rows = candidate.map((bucket) =>\n    flattenBucket(bucket, args)\n  );\n\n  const requiredColumns = [\n    ...(Array.isArray(args?.group_by)\n      ? args.group_by\n      : []),\n\n    ...(Array.isArray(args?.metrics)\n      ? args.metrics\n          .map((metric) => metric.alias)\n          .filter(Boolean)\n      : [])\n  ];\n\n  const missingColumns = requiredColumns.filter(\n    (column) =>\n      rows.some(\n        (row) =>\n          !isObject(row) ||\n          !(column in row)\n      )\n  );\n\n  if (missingColumns.length) {\n    return null;\n  }\n\n  const columns = getColumns(\n    rows,\n    requiredColumns\n  );\n\n  return {\n    countValue: null,\n    rowCount: rows.length,\n    totalRecords: rows.length,\n    shown: Math.min(rows.length, MAX_SHOWN),\n    columns,\n    rows,\n    tableMarkdown: rows.length\n      ? markdownTable(columns, rows.slice(0, MAX_SHOWN))\n      : \"(هیچ گروهی برنگشت)\"\n  };\n}\n\n\n\n// ---------------- Additional Tool Result Renderer ----------------\nfunction renderGenericTool(data) {\n  if (Array.isArray(data)) {\n    const rows = normalizeRows(data);\n\n    if (!rows || !rows.every(isObject)) return null;\n\n    const columns = getColumns(rows);\n\n    return {\n      countValue: null,\n      rowCount: rows.length,\n      totalRecords: rows.length,\n      shown: Math.min(rows.length, MAX_SHOWN),\n      columns,\n      rows,\n      tableMarkdown: markdownTable(columns, rows.slice(0, MAX_SHOWN))\n    };\n  }\n\n  if (isObject(data)) {\n    const candidate =\n      data.rows ??\n      data.results ??\n      data.records ??\n      null;\n\n    if (Array.isArray(candidate)) {\n      const rows = normalizeRows(candidate);\n\n      if (!rows || !rows.every(isObject)) return null;\n\n      const columns = getColumns(rows);\n\n      return {\n        countValue: null,\n        rowCount: rows.length,\n        totalRecords:\n          safeNumber(\n            data.total_records ??\n            data.total ??\n            data.total_returned\n          ) ?? rows.length,\n        shown: Math.min(rows.length, MAX_SHOWN),\n        columns,\n        rows,\n        tableMarkdown: rows.length\n          ? markdownTable(columns, rows.slice(0, MAX_SHOWN))\n          : \"(بدون نتیجه)\",\n        extra: {\n          analysis: data.analysis ?? null,\n          ranking_unit: data.ranking_unit ?? null,\n          description: data.description ?? null,\n          requested_skills: data.requested_skills ?? [],\n          missing_skills: data.missing_skills ?? []\n        }\n      };\n    }\n  }\n\n  return null;\n}\n\n// ============================================================\n// Main Processing\n// ============================================================\n\nconst output = [];\n\nfor (let index = 0; index < inputItems.length; index++) {\n  const response = inputItems[index].json ?? {};\n\n  // Match the originating request by JSON-RPC id; fall back to preserved metadata\n  // and only then to item order.\n  const matchedBuild =\n    response.rpcId != null\n      ? buildItems.find(item => item.json?.rpcId === response.rpcId)\n      : null;\n\n  const build =\n    matchedBuild?.json ??\n    buildItems[index]?.json ??\n    {};\n\n  const selectedTool =\n    response.selectedTool ??\n    build.selectedTool ??\n    build.plan?.tool ??\n    null;\n\n  const args =\n    response.requestArguments ??\n    build.rpcBody?.params?.arguments ??\n    build.arguments ??\n    build.plan?.arguments ??\n    {};\n\n  const question = response.question ?? build.question ?? null;\n\n  const operation =\n    selectedTool === \"analytics_query\"\n      ? args.operation ?? null\n      : null;\n\n  if (response.ok === false) {\n    const errorText = String(\n      response.error?.message ??\n      response.error ??\n      response.message ??\n      \"Unknown MCP error\"\n    );\n\n    const queryJson = selectedTool === \"analytics_query\"\n      ? JSON.stringify(args)\n      : JSON.stringify({ tool: selectedTool, ...args });\n\n    const facts = {\n      tool: selectedTool,\n      dataset_id: args.dataset_id ?? null,\n      operation,\n      recognized: false,\n      execution_status: \"failure\",\n      error: errorText,\n      count: null,\n      row_count: null,\n      total_records: null,\n      shown: 0,\n      columns: [],\n      rows: [],\n      rows_sample: []\n    };\n\n    output.push({\n      json: {\n        question,\n        selectedTool,\n        operation,\n        rpcId: response.rpcId ?? build.rpcId ?? null,\n        planIndex: response.planIndex ?? build.planIndex ?? index,\n        planCount: response.planCount ?? build.planCount ?? buildItems.length,\n        planId: response.planId ?? build.planId ?? `plan_${index + 1}`,\n        subQuestion: response.subQuestion ?? build.subQuestion ?? question,\n        queryJson,\n        recognized: false,\n        executionSuccess: false,\n        error: errorText,\n        countValue: null,\n        rowCount: null,\n        totalRecords: null,\n        shown: 0,\n        columns: [],\n        tableMarkdown: `اجرای این بخش از درخواست ناموفق بود: ${errorText}`,\n        factsJson: JSON.stringify(facts)\n      }\n    });\n\n    continue;\n  }\n\n  const normalized = unwrapResponse(response);\n  const data = normalized.data;\n  const rawData = normalized.raw;\n\n  let result = null;\n\n  if (selectedTool === \"search_elasticsearch\") {\n    result = renderSearch(data, args);\n  } else if (selectedTool === \"get_top_market_skills\") {\n    result = renderTopSkills(data);\n  } else if (selectedTool === \"analytics_query\") {\n    if (operation === \"count\") {\n      result = renderCount(data);\n    } else if (operation === \"select\") {\n      result = renderSelect(data, args);\n    } else if (operation === \"aggregate\") {\n      result = renderAggregate(data, args);\n    }\n  } else {\n    // Future MCP tools can use a generic result renderer\n    // without changing the existing specialized renderers.\n    result = renderGenericTool(data);\n  }\n\n  const recognized = result !== null;\n\n  const queryJson =\n    selectedTool === \"analytics_query\"\n      ? JSON.stringify(args)\n      : JSON.stringify({\n          tool: selectedTool,\n          ...args\n        });\n\nconst allRows = Array.isArray(result?.rows)\n  ? result.rows\n  : [];\n\nconst facts = {\n  tool: selectedTool,\n  dataset_id: args.dataset_id ?? null,\n  operation,\n  recognized,\n\n  count: result?.countValue ?? null,\n  row_count: result?.rowCount ?? null,\n  total_records: result?.totalRecords ?? null,\n  shown: result?.shown ?? 0,\n\n  columns: result?.columns ?? [],\n\n  // Complete structured dataset for downstream analysis\n  rows: allRows,\n\n  // Limited preview for lightweight inspection\n  rows_sample: allRows.slice(0, MAX_SAMPLE),\n\n  ...(result?.extra ?? {})\n};\n\n  const tableMarkdown = recognized\n    ? result.tableMarkdown\n    : [\n        \"ساختار پاسخ ابزار با قالب‌های شناخته‌شده تطبیق داده نشد.\",\n        \"پاسخ خام ابزار برای بررسی و توسعه قالب نمایش:\",\n        \"\",\n        \"```json\",\n        (rawData ?? String(data)).slice(0, MAX_RAW_LENGTH),\n        \"```\"\n      ].join(\"\\n\");\n\n  output.push({\n    json: {\n      question,\n      selectedTool,\n      operation,\n      rpcId: response.rpcId ?? build.rpcId ?? null,\n      planIndex: response.planIndex ?? build.planIndex ?? index,\n      planCount: response.planCount ?? build.planCount ?? buildItems.length,\n      planId: response.planId ?? build.planId ?? `plan_${index + 1}`,\n      subQuestion: response.subQuestion ?? build.subQuestion ?? question,\n      queryJson,\n      recognized,\n      executionSuccess: true,\n\n      countValue: result?.countValue ?? null,\n      rowCount: result?.rowCount ?? null,\n      totalRecords: result?.totalRecords ?? null,\n      shown: result?.shown ?? 0,\n\n      columns: result?.columns ?? [],\n      tableMarkdown,\n\n      factsJson: JSON.stringify(facts)\n    }\n  });\n}\n\n// Preserve the original user-request order even if MCP responses arrive out of order.\noutput.sort((a, b) =>\n  Number(a.json.planIndex ?? 0) - Number(b.json.planIndex ?? 0)\n);\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -240
+      ],
+      "id": "6d218206-8fb0-4fcb-8c3b-b17b1ccf5aed",
+      "name": "Format Result"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# نقش و مأموریت\n\nتو موتور تحلیل داده و استدلال سامانه NexusOps هستی.\n\nوظیفه تو تحلیل، پردازش، مقایسه و تفسیر نتایج واقعی ابزارهای MCP است.\n\nتو مستقیماً به Elasticsearch دسترسی نداری. تمام شواهد موردنیاز برای پاسخ‌گویی باید از اطلاعات موجود در `contextJson` استخراج شوند.\n\nهدف تو صرفاً خلاصه‌سازی خروجی ابزارها نیست؛ باید بتوانی از چند نتیجه مستقل، تحلیل منسجم و استدلال مستدل تولید کنی.\n\n---\n\n# 1. منبع حقیقت و اعتبار داده‌ها\n\n1. تنها منبع معتبر برای پاسخ‌گویی، اطلاعات موجود در `contextJson` است.\n2. هیچ عدد، نام، رکورد، درس، مهارت، رتبه، شاخص یا آماری را خارج از داده‌های ورودی تولید نکن.\n3. از دانش عمومی، اطلاعات قبلی مدل یا حدس برای تکمیل داده‌های مفقود استفاده نکن.\n4. داده‌های ساختاریافته موجود در `facts` مبنای اصلی تحلیل هستند.\n5. از `executed_query` برای تشخیص محدوده، فیلترها، معیارها و هدف عملیات استفاده کن.\n6. اطلاعات `metadata` و `data_statistics` را بدون تغییر و با حفظ محدوده آماری تفسیر کن.\n7. اگر داده‌های دو نتیجه با یکدیگر تناقض دارند، تناقض را آشکارا گزارش کن.\n8. اطلاعات موجود در `display_reference` صرفاً برای نمایش و ارجاع است؛ آن را جایگزین داده‌های ساختاریافته نکن.\n9. برای محاسبات و تطبیق‌های داده‌ای، فقط از مقادیری استفاده کن که واقعاً در ورودی موجود هستند.\n\n# 2. بررسی کامل نتایج و Planها\n\nپیش از تحلیل سؤال، تمام Planهای موجود در `contextJson` را بررسی کن.\n\nبرای هر Plan موارد زیر را تشخیص بده:\n\n- نوع عملیات و ابزار مورد استفاده\n- وضعیت شناسایی Plan\n- وضعیت واقعی اجرای عملیات\n- تعداد رکوردهای بازگردانده‌شده\n- تعداد کل رکوردهای موجود، در صورت ارائه\n- محدودیت‌ها و فیلترهای اعمال‌شده\n- کامل یا نمونه‌ای بودن داده‌های در دسترس\n\nقواعد مهم:\n\n1. شناسایی شدن Plan به معنای اجرای موفق آن نیست.\n2. وضعیت `unknown` را موفق تلقی نکن.\n3. وجود داده در خروجی به‌تنهایی اثبات‌کننده موفقیت اجرای Plan نیست.\n4. اگر وضعیت اجرا مشخص نشده باشد، آن را نامعلوم گزارش کن.\n5. اگر داده‌ها نمونه‌ای یا محدودشده هستند، از تعمیم نتایج به کل مجموعه خودداری کن.\n6. اگر تعداد `shown` کمتر از `total_records` است، محدودیت پوشش داده را در نظر بگیر.\n7. نبود یک رکورد در داده‌های نمونه‌ای، اثبات نمی‌کند که آن رکورد در مجموعه کامل وجود ندارد.\n8. در صورت شکست یا نامشخص بودن یک Plan، تأثیر آن را بر اعتبار و کامل بودن پاسخ مشخص کن.\n\n# 3. تحلیل چندمنبعی\n\nتو باید بتوانی نتایج چند Plan و چند ابزار MCP را به‌صورت یک مجموعه اطلاعات مرتبط بررسی کنی.\n\nدر صورت وجود شواهد کافی:\n\n- نتایج ابزارهای مختلف را با یکدیگر ترکیب کن.\n- روابط میان درس‌های دانشگاهی و مهارت‌های بازار کار را بررسی کن.\n- داده‌های فارغ‌التحصیلان را با داده‌های بازار کار مقایسه کن.\n- شاخص‌های مرتبط را تحلیل و مقایسه کن.\n- شکاف میان مهارت‌های آموزشی و تقاضای بازار را بررسی کن.\n- الگوها، تفاوت‌ها، هم‌پوشانی‌ها و نقاط قابل توجه را شناسایی کن.\n- برای پاسخ به سؤال‌های چندمرحله‌ای، از تمام نتایج مرتبط استفاده کن.\n\nقواعد ارتباط‌دهی:\n\n1. صرفاً به دلیل شباهت نام ابزارها، دو مجموعه داده را مرتبط فرض نکن.\n2. ارتباط میان داده‌ها باید با فیلدها، مقادیر یا روابط صریح موجود در ورودی پشتیبانی شود.\n3. اگر ارتباط بر اساس تطبیق نام یا مقدار یک فیلد برقرار شده است، معیار تطبیق را در تحلیل مشخص کن.\n4. تمام رکوردهای در دسترس را بررسی کن؛ به اولین نتیجه یا چند نمونه ابتدایی اکتفا نکن.\n5. اگر فقط بخشی از رکوردها در دسترس است، تحلیل را به همان بخش محدود کن.\n6. از نسبت دادن یک مهارت به درس یا یک ویژگی به فارغ‌التحصیل، بدون وجود رابطه مستند خودداری کن.\n\n# 4. تطبیق مهارت‌ها و تحلیل شکاف\n\nدر سؤال‌هایی که به ارتباط میان مهارت‌های آموزشی و مهارت‌های بازار کار مربوط هستند:\n\n1. مهارت‌های موجود در داده‌های دروس را استخراج کن.\n2. مهارت‌های موجود در نتایج بازار کار را استخراج کن.\n3. تمام تطبیق‌های معتبر میان دو مجموعه را بررسی کن.\n4. همه درس‌های مرتبط با هر مهارت را در نظر بگیر.\n5. هیچ تطبیقی را صرفاً به دلیل محدودیت تعداد نمونه‌ها یا ترتیب رکوردها حذف نکن.\n6. مهارت‌های دارای تطبیق را از مهارت‌های بدون تطبیق جدا کن.\n7. اگر تطبیق مستقیم انجام شده است، آن را از تطبیق مفهومی متمایز کن.\n8. اگر تطبیق مفهومی پشتوانه کافی ندارد، آن را به‌عنوان رابطه قطعی گزارش نکن.\n\nدر تحلیل شکاف:\n\n- نبود یک مهارت در Top N را به معنای نبود تقاضا تلقی نکن.\n- نبود یک مهارت در داده‌های موجود را به معنای بی‌اهمیت بودن آن تلقی نکن.\n- فقط در محدوده شاخص‌ها و رکوردهای موجود نتیجه‌گیری کن.\n- بین شکاف قابل مشاهده در داده‌ها و شکاف اثبات‌شده در کل بازار تمایز قائل شو.\n\n# 5. استدلال و محاسبات\n\nدر صورت وجود داده کافی، مجاز هستی:\n\n- میانگین، نسبت، درصد و اختلاف محاسبه کنی.\n- مقادیر را مرتب و رتبه‌بندی کنی.\n- شاخص‌های مرتبط را با یکدیگر مقایسه کنی.\n- از ترکیب چند نتیجه مستقل، استنباط تحلیلی بسازی.\n- نقاط قوت و ضعف قابل مشاهده را شناسایی کنی.\n\nقواعد محاسبات:\n\n1. تمام مقادیر موردنیاز باید در ورودی موجود باشند.\n2. فرمول و مبنای محاسبه باید مشخص باشد.\n3. واحد اندازه‌گیری، تعداد نمونه‌ها و محدوده داده‌ها را حفظ کن.\n4. داده‌های ناقص را با مقادیر فرضی تکمیل نکن.\n5. مقدار محاسبه‌شده را از مقدار ثبت‌شده در داده‌ها متمایز کن.\n6. اگر مخرج محاسبه صفر یا نامشخص است، مقدار عددی تولید نکن.\n7. اگر داده‌ها برای محاسبه کافی نیستند، محدودیت را اعلام کن.\n\n# 6. تفکیک واقعیت، محاسبه و استنباط\n\nدر تحلیل خود سه سطح را از یکدیگر متمایز کن:\n\n**واقعیت داده‌ای:**\nاطلاعاتی که مستقیماً در خروجی ابزارهای MCP ثبت شده‌اند.\n\n**نتیجه محاسباتی:**\nمقداری که با استفاده از داده‌های ثبت‌شده و یک فرمول مشخص محاسبه شده است.\n\n**استنباط تحلیلی:**\nنتیجه‌ای که با استدلال از ترکیب یا مقایسه اطلاعات موجود به دست می‌آید.\n\nهیچ استنباطی را به‌عنوان واقعیت ثبت‌شده معرفی نکن.\n\nاز عبارت‌های دقیق مانند موارد زیر استفاده کن:\n\n- بر اساس داده‌های ثبت‌شده\n- محاسبات نشان می‌دهد\n- مقایسه نتایج نشان می‌دهد\n- می‌توان استنباط کرد\n- شواهد موجود حاکی از آن است\n- اطلاعات برای نتیجه‌گیری قطعی کافی نیست\n\n# 7. تشخیص نوع سؤال\n\nابتدا هدف اصلی سؤال کاربر را تشخیص بده.\n\n**نمایش اطلاعات:** فقط اطلاعات مورد درخواست را تحلیل کن و داده‌های نمایشی را تکرار نکن.\n\n**مقایسه:** معیارهای مشترک را استخراج و تفاوت‌ها را بررسی کن.\n\n**تحلیل:** روابط، الگوها، نقاط قوت، ضعف و محدودیت‌های داده را بررسی کن.\n\n**علت‌یابی:** فقط علت‌هایی را مطرح کن که شواهد موجود از آن‌ها پشتیبانی می‌کنند.\n\n**پیش‌بینی:** فقط در صورت وجود داده کافی و مبنای معتبر پیش‌بینی انجام بده؛ در غیر این صورت محدودیت را توضیح بده.\n\n**رتبه‌بندی:** معیار رتبه‌بندی را مشخص کن و فقط از شاخص‌های موجود استفاده کن.\n\n**سؤال ترکیبی:** تمام Planها و نتایج مرتبط را با یکدیگر ترکیب کن و پاسخ را به یک منبع محدود نکن.\n\n# 8. محدودیت‌های تولید پاسخ\n\n- هیچ جدول جدیدی تولید نکن.\n- هیچ فهرست کاملی از رکوردها را بازنویسی نکن.\n- جدول‌های تولیدشده توسط بخش دیگر سامانه را تکرار نکن.\n- داده‌های خام را بدون نیاز در پاسخ کپی نکن.\n- نام ابزارها، نام فیلدها و مقادیر ثبت‌شده را تغییر نده.\n- از تکرار بی‌مورد اطلاعات خودداری کن.\n- ادعای استخدام‌پذیری، موفقیت شغلی، کیفیت آموزشی یا اثرگذاری واقعی را بدون داده مستقیم و کافی مطرح نکن.\n- نبود یک مقدار در نتایج محدود را به‌عنوان اثبات نبود آن در واقعیت تفسیر نکن.\n- از نتیجه‌گیری فراتر از محدوده داده‌های موجود خودداری کن.\n\n# 9. ساختار پاسخ\n\nپاسخ باید:\n\n- فارسی باشد.\n- دقیق، مستدل و ساختارمند باشد.\n- مستقیماً به سؤال کاربر پاسخ دهد.\n- از توضیحات غیرضروری پرهیز کند.\n- میان واقعیت داده‌ای، نتیجه محاسباتی و استنباط تمایز قائل شود.\n- در صورت وجود محدودیت مهم، آن را صریحاً اعلام کند.\n\nدر صورت نیاز از عنوان‌هایی مانند موارد زیر استفاده کن:\n\n- تحلیل داده‌ها\n- مقایسه نتایج\n- یافته‌های اصلی\n- استنباط تحلیلی\n- محدودیت تحلیل\n\nساختار پاسخ را با نوع سؤال تطبیق بده و از استفاده اجباری از تمام عنوان‌ها خودداری کن.\n\n# هدف نهایی\n\nبا استفاده از تمام شواهد معتبر و در دسترس در `contextJson`، تحلیل چندمرحله‌ای، مقایسه چندمنبعی و استدلال منطقی انجام بده.\n\nوظیفه تو صرفاً خلاصه کردن خروجی ابزارها نیست؛ باید روابط واقعی میان داده‌ها را کشف و تفسیر کنی.\n\nبا این حال، هیچ‌گاه از محدوده شواهد موجود فراتر نرو.\n\nخروجی تو صرفاً شامل تحلیل و توضیحات مرتبط با سؤال کاربر باشد.\n## سؤال کاربر\n\n{{ $json.question }}\n\n## contextJson\n\n{{ $json.contextJson }}\n\n## دستور اجرای تحلیل\n\nبا رعایت تمام دستورالعمل‌های System Message:\n\n1. سؤال کاربر را از نظر هدف و نوع تحلیل موردنیاز بررسی کن.\n2. تمام Planها و نتایج موجود در contextJson را ارزیابی کن.\n3. فقط از داده‌های معتبر و واقعاً در دسترس استفاده کن.\n4. در صورت ارتباط شواهد، نتایج چند ابزار MCP را با یکدیگر ترکیب کن.\n5. تمام روابط و رکوردهای در دسترس مرتبط با سؤال را بررسی کن.\n6. میان واقعیت داده‌ای، نتیجه محاسباتی و استنباط تحلیلی تمایز قائل شو.\n7. محدودیت داده‌ها و وضعیت اجرای Planها را در نتیجه‌گیری لحاظ کن.\n\nفقط تحلیل و توضیحات مرتبط با سؤال کاربر را ارائه بده.\n\nاز بازنویسی جدول‌ها، فهرست کامل رکوردها و تکرار خروجی نمایشی سایر بخش‌های سامانه خودداری کن.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1536,
+        -224
+      ],
+      "id": "14c022f5-7eda-4652-8f95-36b20b6ff1f2",
+      "name": "Answer Writer"
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {
+          "topP": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        -64
+      ],
+      "id": "395907db-283a-43ab-a0df-17ef3fffbcfd",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "9HNOOvhXuofJ7nM1",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ============================================================\n// Compose Final — Run Once for All Items\n// NexusOps | Multi-Plan Final Response Composer\n// ============================================================\n\n// ---------------- Input Collection ----------------\n\nconst results = $(\"Format Result\").all().map(item => item.json);\n\nif (!results.length) {\n  throw new Error(\"Compose Final: Format Result returned no items.\");\n}\n\n// Read Answer Writer output\nconst answerItems = $(\"Answer Writer\").all().map(item => item.json);\n\nconst analysisText = answerItems\n  .map(item => item.text)\n  .filter(text => typeof text === \"string\" && text.trim())\n  .join(\"\\n\\n\")\n  .trim();\n\n// ---------------- Utilities ----------------\n\nconst toolTitle = (item) => {\n  if (item.selectedTool === \"analytics_query\") {\n    if (item.operation === \"select\" && item.queryJson) {\n      try {\n        const query = typeof item.queryJson === \"string\"\n          ? JSON.parse(item.queryJson)\n          : item.queryJson;\n\n        if (query.dataset_id === \"university_courses\") {\n          return \"تمامی درس‌های دانشگاه\";\n        }\n      } catch {}\n    }\n\n    return \"نتیجه تحلیل دانشگاه\";\n  }\n\n  if (item.selectedTool === \"get_top_market_skills\") {\n    return \"مهارت‌های پرتقاضای بازار کار\";\n  }\n\n  if (item.selectedTool === \"get_top_skill_gaps\") {\n    return \"بیشترین شکاف مهارتی دانشگاه و بازار کار\";\n  }\n\n  if (item.selectedTool === \"get_market_skill_details\") {\n    return \"جزئیات مهارت‌های بازار کار\";\n  }\n\n  if (item.selectedTool === \"search_elasticsearch\") {\n    return \"نتایج جست‌وجو در Elasticsearch\";\n  }\n\n  return `نتیجه ابزار ${item.selectedTool ?? \"ناشناخته\"}`;\n};\n\n// ---------------- Original Results Assembly ----------------\n\nconst outputParts = [];\n\nfor (let index = 0; index < results.length; index++) {\n  const item = results[index];\n\n  outputParts.push(`## ${toolTitle(item)}`, \"\");\n\n  if (item.executionSuccess === false) {\n    outputParts.push(\n      \"**وضعیت اجرا:** ناموفق\",\n      item.error\n        ? `**خطا:** ${item.error}`\n        : (item.tableMarkdown ?? \"اجرای ابزار ناموفق بود.\"),\n      \"\"\n    );\n    continue;\n  }\n\n  if (item.recognized !== true) {\n    outputParts.push(\n      \"ساختار پاسخ ابزار برای نمایش استاندارد شناسایی نشد؛ این وضعیت به‌معنای صفر بودن نتایج نیست.\",\n      item.tableMarkdown ?? \"\",\n      \"\"\n    );\n    continue;\n  }\n\n  if (item.countValue === 0 || item.rowCount === 0) {\n    outputParts.push(\n      \"هیچ رکوردی مطابق این درخواست یافت نشد.\",\n      \"\"\n    );\n  } else {\n    outputParts.push(item.tableMarkdown || \"(بدون نتیجه)\", \"\");\n  }\n\n  if (\n    item.shown != null &&\n    item.rowCount != null &&\n    item.rowCount > item.shown\n  ) {\n    outputParts.push(\n      `نمایش ${item.shown} ردیف از ${item.rowCount} ردیف.`,\n      \"\"\n    );\n  }\n\n  if (item.queryJson) {\n    outputParts.push(\n      \"**پرس‌وجوی اجراشده:**\",\n      \"\",\n      \"```json\",\n      typeof item.queryJson === \"string\"\n        ? item.queryJson\n        : JSON.stringify(item.queryJson, null, 2),\n      \"```\",\n      \"\"\n    );\n  }\n}\n\n// ---------------- LLM Analysis Assembly ----------------\n\nif (analysisText) {\n  outputParts.push(\n    \"## تحلیل و تفسیر نتایج\",\n    \"\",\n    analysisText,\n    \"\"\n  );\n}\n\n// ---------------- Final Output ----------------\n\nconst finalText = [\n  \"نتایج درخواست شما:\",\n  \"\",\n  ...outputParts\n].join(\"\\n\").trim();\n\nreturn [{\n  json: {\n    output: finalText,\n    text: finalText,\n    totalResults: results.length,\n    successfulResults: results.filter(\n      item => item.executionSuccess === true\n    ).length,\n    failedResults: results.filter(\n      item => item.executionSuccess === false\n    ).length,\n    unrecognizedResults: results.filter(\n      item => item.executionSuccess === true && item.recognized !== true\n    ).length,\n    analysisIncluded: Boolean(analysisText),\n    multiPlan: results.length > 1\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -224
+      ],
+      "id": "741cc628-40a7-43c5-aee6-26f28c1a03e5",
+      "name": "Compose Final"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "83f505ff-de01-42d6-82c8-c4024a49f28e",
+              "leftValue": "={{$json.inScope}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -1440,
+        192
+      ],
+      "id": "75cdb6e2-8561-46a9-b36c-41430507e649",
+      "name": "In Scope?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "6d112596-d413-4cbc-86bc-8c9a15f6ee51",
+              "leftValue": "={{$json.valid}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -784,
+        -32
+      ],
+      "id": "198da522-762e-4359-8ac6-19fedd340c76",
+      "name": "Plan Valid?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "6aa3a7e2-4c51-4f4c-ae5a-82fff90de1ef",
+              "leftValue": "={{$json.attempt}}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "92e51c93-7cff-4fe5-a05d-77e30adfc714",
+              "leftValue": "={{$json.retryable}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -480,
+        -16
+      ],
+      "id": "2bdb661e-3b3f-483f-827a-549953073fbc",
+      "name": "Can Retry?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "8c188f94-4aad-4942-900f-dc3858811612",
+              "leftValue": "={{$json.ok}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        32,
+        -224
+      ],
+      "id": "752850e3-fe96-43a4-88ec-ebd4ef5d037c",
+      "name": "Init OK?"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Split Plans — Run Once for All Items\n\nconst item = $input.first().json;\n\n// Normalize a validated plan while preserving its metadata.\nfunction normalizePlan(plan, index, total) {\n  if (!plan || typeof plan !== \"object\" || Array.isArray(plan)) {\n    throw new Error(`Invalid plan structure at index ${index}.`);\n  }\n\n  // Multi-plan validation may wrap the actual validated plan\n  // inside an additional \"plan\" property.\n  const validatedPlan =\n    plan.plan &&\n    typeof plan.plan === \"object\" &&\n    !Array.isArray(plan.plan)\n      ? plan.plan\n      : plan;\n\n  if (\n    typeof validatedPlan.tool !== \"string\" ||\n    !validatedPlan.tool.trim() ||\n    !validatedPlan.arguments ||\n    typeof validatedPlan.arguments !== \"object\" ||\n    Array.isArray(validatedPlan.arguments)\n  ) {\n    throw new Error(\n      `Malformed validated plan at index ${index}.`\n    );\n  }\n\n  return {\n    valid: true,\n    errors: [],\n    warnings: plan.warnings ?? [],\n    attempt: item.attempt ?? 0,\n    question: item.question,\n    multi: total > 1,\n    planId: plan.plan_id ?? plan.planId ?? `plan_${index + 1}`,\n    planIndex: index,\n    planCount: total,\n    subQuestion:\n      plan.sub_question ??\n      plan.subQuestion ??\n      item.question,\n    plan: validatedPlan\n  };\n}\n\n// If validation failed, pass the failure through unchanged.\nif (!item.valid) {\n  return [{ json: item }];\n}\n\n// Multi-plan mode\nif (item.multi === true && Array.isArray(item.plans)) {\n  if (item.plans.length === 0) {\n    return [{\n      json: {\n        valid: false,\n        errors: [\"No validated plans were provided.\"],\n        warnings: item.warnings ?? [],\n        attempt: item.attempt ?? 0,\n        question: item.question,\n        multi: true,\n        planCount: 0\n      }\n    }];\n  }\n\n  return item.plans.map((plan, index) => ({\n    json: normalizePlan(\n      plan,\n      index,\n      item.plans.length\n    )\n  }));\n}\n\n// Single-plan mode — backward compatible\nif (!item.plan) {\n  return [{\n    json: {\n      valid: false,\n      errors: [\"Validated plan is missing.\"],\n      warnings: item.warnings ?? [],\n      attempt: item.attempt ?? 0,\n      question: item.question,\n      multi: false,\n      planCount: 1\n    }\n  }];\n}\n\nreturn [{\n  json: normalizePlan(item.plan, 0, 1)\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        -224
+      ],
+      "id": "ab0395dd-d80a-41bd-a80a-1f1ee6a47016",
+      "name": "Split Plans"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Prepare LLM Context\n// Version: 2.1\n// Mode: Run Once for All Items\n\nconst items = $input.all().map(item => item.json);\n\nif (items.length === 0) {\n  throw new Error(\n    \"Prepare LLM Context: ورودی Format Result خالی است.\"\n  );\n}\n\n// Safely parse JSON values.\nfunction parseJson(value, fieldName) {\n  if (value === undefined || value === null || value === \"\") {\n    return null;\n  }\n\n  if (typeof value !== \"string\") {\n    return value;\n  }\n\n  try {\n    return JSON.parse(value);\n  } catch (error) {\n    return {\n      parse_error: true,\n      field: fieldName,\n      raw_value: value\n    };\n  }\n}\n\n// Return the first valid non-negative numeric value.\nfunction getNumericValue(...values) {\n  for (const value of values) {\n    if (\n      value !== undefined &&\n      value !== null &&\n      value !== \"\" &&\n      Number.isFinite(Number(value)) &&\n      Number(value) >= 0\n    ) {\n      return Number(value);\n    }\n  }\n\n  return null;\n}\n\n// Validate the user's question.\nconst questions = [\n  ...new Set(\n    items\n      .map(item => String(item.question ?? \"\").trim())\n      .filter(Boolean)\n  )\n];\n\nif (questions.length === 0) {\n  throw new Error(\n    \"Prepare LLM Context: متن سؤال کاربر پیدا نشد.\"\n  );\n}\n\nif (questions.length > 1) {\n  throw new Error(\n    \"Prepare LLM Context: چند سؤال متفاوت در ورودی دریافت شد.\"\n  );\n}\n\nconst question = questions[0];\n\n// Normalize each MCP plan independently.\nconst results = items.map((item, index) => {\n\n  const parsedFacts = parseJson(\n    item.factsJson ?? item.facts,\n    \"factsJson\"\n  );\n\n  const executedQuery = parseJson(\n    item.queryJson ?? item.executedQuery,\n    \"queryJson\"\n  );\n\n  const facts =\n    parsedFacts &&\n    typeof parsedFacts === \"object\" &&\n    !Array.isArray(parsedFacts)\n      ? parsedFacts\n      : null;\n\n  // Execution status is independent of plan recognition.\n  let executionStatus = \"unknown\";\n\n  if (typeof item.executionSuccess === \"boolean\") {\n    executionStatus = item.executionSuccess\n      ? \"success\"\n      : \"failure\";\n  } else if (typeof item.success === \"boolean\") {\n    executionStatus = item.success\n      ? \"success\"\n      : \"failure\";\n  } else if (item.error) {\n    executionStatus = \"failure\";\n  }\n\n  // Full structured records must be supplied by Format Result\n  // under facts.rows.\n  const fullRows = Array.isArray(facts?.rows)\n    ? facts.rows\n    : null;\n\n  // rows_sample is only a preview, not a replacement for rows.\n  const sampleRows = Array.isArray(facts?.rows_sample)\n    ? facts.rows_sample\n    : [];\n\n  const expectedRecords = getNumericValue(\n    item.totalRecords,\n    facts?.total_records,\n    item.rowCount,\n    facts?.row_count,\n    item.shown,\n    facts?.shown\n  );\n\n  const availableRecords = fullRows\n    ? fullRows.length\n    : sampleRows.length;\n\n  let completenessStatus = \"unknown\";\n\n  if (fullRows !== null) {\n    if (expectedRecords === null) {\n      completenessStatus = \"available_unverified\";\n    } else {\n      completenessStatus =\n        fullRows.length >= expectedRecords\n          ? \"complete\"\n          : \"incomplete\";\n    }\n  } else if (sampleRows.length > 0) {\n    completenessStatus = \"sample_only\";\n  } else {\n    completenessStatus = \"no_structured_rows\";\n  }\n\n  return {\n    result_index: index + 1,\n\n    tool: item.selectedTool ?? \"unknown\",\n    operation: item.operation ?? null,\n\n    plan_status: {\n      recognized: item.recognized === true,\n      execution_status: executionStatus,\n      error: item.error ?? null\n    },\n\n    data_statistics: {\n      row_count: getNumericValue(\n        item.rowCount,\n        facts?.row_count\n      ),\n\n      total_records: getNumericValue(\n        item.totalRecords,\n        facts?.total_records\n      ),\n\n      shown: getNumericValue(\n        item.shown,\n        facts?.shown\n      ),\n\n      count_value: item.countValue ?? facts?.count ?? null\n    },\n\n    data_completeness: {\n      status: completenessStatus,\n      expected_records: expectedRecords,\n      available_records: availableRecords,\n      structured_rows_available: fullRows !== null,\n      is_complete:\n        completenessStatus === \"complete\"\n          ? true\n          : completenessStatus === \"incomplete\"\n            ? false\n            : null\n    },\n\n    // Preserve all original facts.\n    // Full records are expected in facts.rows.\n    facts: facts ?? parsedFacts,\n\n    executed_query: executedQuery,\n\n    display_reference: {\n      table_markdown: item.tableMarkdown ?? \"\"\n    }\n  };\n});\n\n// Calculate context-level statistics.\nconst recognizedPlans = results.filter(\n  result => result.plan_status.recognized\n).length;\n\nconst successfulExecutions = results.filter(\n  result => result.plan_status.execution_status === \"success\"\n).length;\n\nconst failedExecutions = results.filter(\n  result => result.plan_status.execution_status === \"failure\"\n).length;\n\nconst unknownExecutions = results.filter(\n  result => result.plan_status.execution_status === \"unknown\"\n).length;\n\nconst completeResults = results.filter(\n  result => result.data_completeness.status === \"complete\"\n).length;\n\nconst incompleteResults = results.filter(\n  result =>\n    result.data_completeness.status === \"incomplete\" ||\n    result.data_completeness.status === \"sample_only\" ||\n    result.data_completeness.status === \"no_structured_rows\"\n).length;\n\n// Build unified analytical context.\nconst context = {\n  context_version: \"2.1\",\n\n  question,\n\n  metadata: {\n    total_plans: results.length,\n\n    recognized_plans: recognizedPlans,\n    unrecognized_plans: results.length - recognizedPlans,\n\n    successful_executions: successfulExecutions,\n    failed_executions: failedExecutions,\n    unknown_executions: unknownExecutions,\n\n    complete_results: completeResults,\n    incomplete_results: incompleteResults\n  },\n\n  analytical_instructions: {\n    source_of_truth: \"MCP tool results\",\n\n    rules: [\n      \"Use only the supplied MCP results.\",\n      \"Analyze all available plans.\",\n      \"Compare related results across tools when relevant to the user's question.\",\n      \"Distinguish observed facts from analytical inferences.\",\n      \"Do not invent missing values or records.\",\n      \"Do not treat unknown execution status as success.\",\n      \"Identify incomplete or failed results.\",\n      \"Use executed queries to understand result scope.\",\n      \"Use facts.rows as the authoritative structured record collection.\",\n      \"Never treat rows_sample as the complete dataset.\",\n      \"Check data_completeness before making claims about dataset coverage.\",\n      \"Do not infer that missing sample records do not exist.\",\n      \"Do not reproduce complete tables unless requested by the user.\"\n    ]\n  },\n\n  results\n};\n\n// Preserve downstream compatibility.\nconst serializedContext = JSON.stringify(context, null, 2);\n\nreturn [\n  {\n    json: {\n      question,\n\n      recognized:\n        recognizedPlans === results.length,\n\n      totalPlans: results.length,\n\n      successfulExecutions,\n      failedExecutions,\n      unknownExecutions,\n\n      factsJson: serializedContext,\n      contextJson: serializedContext\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -224
+      ],
+      "id": "05e66e8a-2035-40f5-a14c-d59864508a62",
+      "name": "Prepare LLM Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare MCP Session — Run Once for All Items\n// Collapse validated plans to one control item so MCP initialize happens once.\nconst plans = $input.all().map(item => item.json);\n\nif (plans.length === 0 || plans.some(plan => plan.valid !== true)) {\n  throw new Error(\"Cannot initialize MCP: validated plan items are missing or invalid.\");\n}\n\nconst first = plans[0];\nconst question = String(first.question ?? \"\").trim();\n\nif (!question) {\n  throw new Error(\"Cannot initialize MCP: original question is missing.\");\n}\n\nreturn [{\n  json: {\n    question,\n    planCount: plans.length,\n    planIds: plans.map((plan, index) => plan.planId ?? `plan_${index + 1}`)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        400
+      ],
+      "id": "0fc3fa2d-217d-4f8c-8ac8-304ecfc845fd",
+      "name": "Prepare MCP Session"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Planner Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Query Planner",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Planner": {
+      "main": [
+        [
+          {
+            "node": "Validate Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Initialize": {
+      "main": [
+        [
+          {
+            "node": "MCP Parse Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Answer Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Final": {
+      "main": [
+        []
+      ]
+    },
+    "In Scope?": {
+      "main": [
+        [
+          {
+            "node": "Query Planner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Out of Scope Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init OK?": {
+      "main": [
+        [
+          {
+            "node": "MCP Initialized Notify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Valid?": {
+      "main": [
+        [
+          {
+            "node": "Split Plans",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Can Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Can Retry?": {
+      "main": [
+        [
+          {
+            "node": "Build Retry Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Parse Init": {
+      "main": [
+        [
+          {
+            "node": "Init OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Initialized Notify": {
+      "main": [
+        [
+          {
+            "node": "Build Tool Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tool Call": {
+      "main": [
+        [
+          {
+            "node": "MCP Call Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Call Tool": {
+      "main": [
+        [
+          {
+            "node": "MCP Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Writer": {
+      "main": [
+        [
+          {
+            "node": "Compose Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Domain Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domain Gate": {
+      "main": [
+        [
+          {
+            "node": "In Scope?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Out of Scope Reply": {
+      "main": [
+        []
+      ]
+    },
+    "Validate Plan": {
+      "main": [
+        [
+          {
+            "node": "Plan Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Retry Input": {
+      "main": [
+        [
+          {
+            "node": "Query Planner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Plans": {
+      "main": [
+        [
+          {
+            "node": "Prepare MCP Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LLM Context": {
+      "main": [
+        [
+          {
+            "node": "Answer Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare MCP Session": {
+      "main": [
+        [
+          {
+            "node": "MCP Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "18e27b20-51c5-4478-bfd4-91f9daf350f7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfe9ee24ec4541891a893cba52796a37733ad3c5af8c72be65df1e6db7e23c3d"
+  },
+  "nodeGroups": [],
+  "id": "tful5Cg4acuqsUTJ",
+  "tags": []
+}
