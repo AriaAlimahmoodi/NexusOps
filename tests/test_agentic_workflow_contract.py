@@ -228,11 +228,11 @@ def test_workflow_has_deterministic_fallbacks_for_grouped_filter_and_ranked_anal
         '"career_relevance"',
         '"employment_months"',
         'plan("skill_mapping","select"',
-        'field:"market_demand",operator:item.operator',
-        'field:"market_gap",operator:item.operator',
-        "const demandThresholds=thresholds(",
-        "const gapThresholds=thresholds(",
-        'filter_logic:hasOr?"or":"and"',
+        '{field:"market_demand",labels:["market_demand","تقاضای بازار"]}',
+        '{field:"market_gap",labels:["market_gap","شکاف بازار"]}',
+        "const parsedThresholds=thresholds(thresholdFields)",
+        "const buildThresholdFilter=items=>",
+        'return {logic:"or",conditions:[],groups};',
         'plan("skill_mapping","aggregate"',
         '"average_market_gap",order:"desc"',
         "deterministicAnalyticsPlan(q) ?? extract(txt)",
@@ -397,17 +397,17 @@ def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_
     planner = _node(workflow, "Query Planner")["parameters"]["text"]
 
     for token in [
-        "const thresholds=(labels)=>",
-        "operator:item.operator",
+        "const thresholds=(fields)=>",
+        "found.push({field,operator,value:Number",
         'filter_logic:hasOr?"or":"and"',
-        "hasAnd&&hasOr",
+        "connectors.every(value=>value===connectors[0])",
         "comparisonOperator(reverse[2],true)",
     ]:
         assert token in validator
     for token in [
         "شرط‌های متعدد روی یک فیلد را حذف یا با هم ادغام نکن",
         "عبارت «یا/or» باید filter_logic=or",
-        "ترکیب AND و OR بدون گروه‌بندی روشن",
+        "تقدم استاندارد AND بر OR",
         "مقایسه معکوس",
     ]:
         assert token in planner
@@ -421,6 +421,6 @@ def test_n8n_mixed_boolean_skill_filters_use_nested_groups_and_reject_or_conditi
     assert "const buildThresholdFilter=items=>" in validator
     assert 'return {logic:"or",conditions:[],groups};' in validator
     assert 'field:"course_coverage",labels:["course_coverage","پوشش درس"]' in validator
-    assert "or_conditions" not in planner
+    assert "هرگز کلید or_conditions یا کلید خارج از قرارداد نساز" in planner
     assert "تقدم استاندارد AND بر OR" in planner
     assert "filters={logic,conditions,groups}" in planner
