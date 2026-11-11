@@ -652,7 +652,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     operator = {"gte": "lte", "lte": "gte", "gt": "lt", "lt": "gt"}[operator]
                 return operator
 
-            def append_comparison(field: str, token: str, raw_value: str, *, reverse: bool = False, start: int, end: int) -> None
+            def append_comparison(field: str, token: str, raw_value: str, *, reverse: bool = False, start: int, end: int) -> None:
                 normalized_raw = raw_value.replace(",", ".")
                 value = float(normalized_raw) if "." in normalized_raw else int(normalized_raw)
                 candidate = {
