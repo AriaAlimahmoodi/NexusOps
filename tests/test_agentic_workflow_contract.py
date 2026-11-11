@@ -375,6 +375,8 @@ def test_workflow_normalizes_metric_aliases_and_sanitizes_count_documents_fields
     assert "for(let metricIndex=0;metricIndex<ms.length;metricIndex++)" in validator
     assert 'Metric "+(metricIndex+1)' in validator
     assert "warnings.push(...args._validation_warnings)" in validator
+    planner = _node(workflow, "Query Planner")["parameters"]["text"]
+    assert "هرگز کلید field را برای آن نفرست، حتی field:null" in planner
 
 
 def test_workflow_scalar_metric_dataset_routing_ignores_document_count_metric():
