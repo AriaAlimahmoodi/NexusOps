@@ -5,7 +5,6 @@ It deliberately avoids cross-index joins and labels proxy measures explicitly.
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any
 
 from tools.analytics_tool import run_analytics_query
