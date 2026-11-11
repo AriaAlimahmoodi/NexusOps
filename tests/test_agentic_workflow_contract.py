@@ -356,3 +356,11 @@ def test_scalar_aggregate_planner_routes_metrics_to_their_registered_dataset():
     validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
     assert 'field==="credits"?"university_courses"' in validator
     assert 'datasets.length===1' in validator
+
+
+def test_workflow_bounds_filter_value_lists_and_normalizes_persian_zwnj():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    assert 'x.value.length>100' in validator
+    assert r'replace(/[\u200c\u200d\u200e\u200f\u0640]/g,"")' in validator
+    assert "digitValues[digitChars.indexOf(d)]" in validator
