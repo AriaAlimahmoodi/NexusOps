@@ -354,8 +354,10 @@ Do not fabricate records or analytical results.
 
 OPERATION SELECTION:
 SELECT retrieves matching records; COUNT returns only their number;
-AGGREGATE computes grouped metrics and comparisons. Filtering alone
-does not imply aggregation.
+AGGREGATE computes grouped or scalar metrics and comparisons. Use
+group_by only when grouping is requested; an empty group_by with metrics
+means one scalar result over all matching documents. Filtering alone does
+not imply aggregation.
 
 DATASET RESOLUTION:
 Use only registered datasets and their registered fields:
