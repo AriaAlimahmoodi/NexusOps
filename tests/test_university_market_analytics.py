@@ -237,3 +237,41 @@ def test_domain_tool_rejects_invalid_type_and_limit_without_querying(monkeypatch
 
     assert domain.analyze_university_market("unknown")["error"]["code"] == "UNSUPPORTED_ANALYSIS_TYPE"
     assert domain.analyze_university_market("skill_demand", 0)["error"]["code"] == "INVALID_LIMIT"
+
+
+def test_domain_tool_results_are_compatible_with_python_mcp_evidence_validation(monkeypatch):
+    from query_planner import QueryPlan, validate_mcp_result
+
+    def fake(arguments):
+        if arguments["group_by"] == ["course_id", "course_name"]:
+            return _success("course_graduate_records", [{
+                "group": {"course_id": "C013", "course_name": "رایانش ابری"},
+                "metrics": {"relationship_records": 5},
+            }])
+        return _success("course_graduate_records", [{
+            "group": {"course_id": "C013", "course_name": "رایانش ابری", "job_field": "DevOps"},
+            "metrics": {"job_field_relationship_records": 5},
+        }])
+
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("course_effectiveness", course_id="C013")
+    plan = QueryPlan(
+        tool_name="analyze_university_market",
+        arguments={"analysis_type": "course_effectiveness", "limit": 10, "course_id": "C013"},
+        requested_entities=[{"type": "course_id", "value": "C013"}],
+    )
+
+    valid, message = validate_mcp_result(plan, result)
+    assert valid, message
+    assert result["results"][0]["course_id"] == "C013"
+
+
+def test_aggregate_domain_sections_expose_results_alias_for_mcp_client(monkeypatch):
+    monkeypatch.setattr(domain, "run_analytics_query", lambda arguments: _success(
+        "labor_market", [{
+            "group": {"skill": "Python"},
+            "metrics": {"average_demand_score": 4.5, "total_frequency": 20},
+        }]
+    ))
+    result = domain.analyze_university_market("skill_demand")
+    assert result["results"] == result["rows"]
