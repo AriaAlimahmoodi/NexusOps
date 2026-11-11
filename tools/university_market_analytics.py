@@ -258,6 +258,7 @@ def _curriculum_recommendations(limit: int) -> dict[str, Any]:
         "title": "پیشنهادهای اولویت‌بندی‌شده برای بازبینی برنامه درسی",
         "sections": {"skill_gaps": gaps},
         "recommendations": recommendations,
+        "results": recommendations,
         "methodology": (
             "اولویت‌ها بر اساس ترتیب نزولی average_market_gap در داده‌های skill_mapping تعیین شده‌اند؛ "
             "پیشنهادها نیازمند ارزیابی تخصصی آموزشی پیش از تصویب تغییر برنامه درسی هستند."
@@ -316,6 +317,8 @@ def analyze_university_market(
             "analysis_type": "skill_trends",
             "title": "وضعیت مقطعی مهارت‌ها؛ روند زمانی قابل محاسبه نیست",
             "snapshot": snapshot,
+            "results": snapshot.get("rows", []),
+            "interpretation": snapshot.get("interpretation"),
             "trend_status": "unavailable",
             "limitations": [
                 "پروفایل فعلی labor_market فاقد فیلد تاریخ، بازه زمانی یا زمان ثبت داده است.",
