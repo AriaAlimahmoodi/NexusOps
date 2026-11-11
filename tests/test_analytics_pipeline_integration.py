@@ -481,3 +481,25 @@ def test_scalar_aggregate_executes_without_group_by(pipeline_environment):
     assert client.search_calls[0]["aggs"] == {
         "average_employment_months": {"avg": {"field": "employment_months"}}
     }
+
+
+def test_analytics_request_enforces_engine_resource_limits():
+    from tools.analytics_engine.models import AnalyticsModelError
+
+    with pytest.raises(AnalyticsModelError, match="between 1 and 1000"):
+        AnalyticsRequest(
+            dataset_id=DATASET_ID,
+            operation=AnalyticsOperation.SELECT,
+            limit=1001,
+        )
+
+    with pytest.raises(AnalyticsModelError, match="At most 3 group_by"):
+        AnalyticsRequest(
+            dataset_id=DATASET_ID,
+            operation=AnalyticsOperation.AGGREGATE,
+            group_by=("major", "major_2", "major_3", "major_4"),
+            metrics=(MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="documents"),),
+        )
+
+    with pytest.raises(AnalyticsModelError, match="Metric alias"):
+        MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="Bad Alias")

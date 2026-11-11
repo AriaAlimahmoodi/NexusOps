@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import re
 from typing import Any
 
 
@@ -117,6 +118,8 @@ class MetricSpec:
 
         if self.alias is not None:
             _require_string(self.alias, "alias")
+            if not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", self.alias):
+                raise AnalyticsModelError("Metric alias must match [a-z][a-z0-9_]{0,63}.")
 
         if self.function == MetricFunction.COUNT_DOCUMENTS:
             if self.field is not None:
@@ -308,6 +311,33 @@ class FilterGroup:
             ],
         }
 
+def _validate_filter_complexity(
+    group: FilterGroup | None,
+    *,
+    depth: int = 0,
+    state: dict[str, int] | None = None,
+) -> None:
+    if group is None:
+        return
+    if state is None:
+        state = {"groups": 0, "conditions": 0}
+    if depth > 5:
+        raise AnalyticsModelError("Filter nesting exceeds the maximum depth of 5.")
+    state["groups"] += 1
+    if state["groups"] > 16:
+        raise AnalyticsModelError("Filter tree exceeds 16 groups.")
+    for condition in group.conditions:
+        if isinstance(condition, FilterGroup):
+            _validate_filter_complexity(condition, depth=depth + 1, state=state)
+            continue
+        state["conditions"] += 1
+        if state["conditions"] > 32:
+            raise AnalyticsModelError("Filter tree exceeds 32 conditions.")
+        if condition.operator in (FilterOperator.IN, FilterOperator.NOT_IN):
+            if len(condition.value) > 100:
+                raise AnalyticsModelError("IN/NOT_IN filters support at most 100 values.")
+
+
 
 # ============================================================
 # 6. Sorting Specification
@@ -393,6 +423,16 @@ class AnalyticsRequest:
 
         if not isinstance(self.options, dict):
             raise AnalyticsModelError("'options' must be an object.")
+        if self.operation in (AnalyticsOperation.SELECT, AnalyticsOperation.AGGREGATE):
+            if isinstance(self.limit, bool) or not isinstance(self.limit, int) or not 1 <= self.limit <= 1000:
+                raise AnalyticsModelError("limit must be an integer between 1 and 1000.")
+        if len(self.group_by) > 3:
+            raise AnalyticsModelError("At most 3 group_by fields are supported.")
+        if len(self.metrics) > 12:
+            raise AnalyticsModelError("At most 12 metrics are supported.")
+        if len(self.sort) > 5:
+            raise AnalyticsModelError("At most 5 sort fields are supported.")
+        _validate_filter_complexity(self.filters)
 
         if self.filters is not None and not isinstance(
             self.filters, FilterGroup
