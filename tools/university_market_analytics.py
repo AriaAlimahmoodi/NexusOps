@@ -91,6 +91,7 @@ def _run_aggregate(
         "status": "success",
         "dataset_id": dataset_id,
         "rows": rows,
+        "results": rows,
         "metadata": response.get("metadata") or {},
         "warnings": response.get("warnings") or [],
     }
@@ -231,6 +232,7 @@ def _course_effectiveness(limit: int, course_id: str | None = None) -> dict[str,
         "analysis_type": "course_effectiveness",
         "dataset_id": "course_graduate_records",
         "rows": rows[:limit],
+        "results": rows[:limit],
         "metadata": totals.get("metadata", {}),
         "warnings": totals.get("warnings", []) + breakdown.get("warnings", []),
         "interpretation": (
