@@ -652,13 +652,15 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     operator = {"gte": "lte", "lte": "gte", "gt": "lt", "lt": "gt"}[operator]
                 return operator
 
-            def append_comparison(field: str, token: str, raw_value: str, *, reverse: bool = False) -> None:
+            def append_comparison(field: str, token: str, raw_value: str, *, reverse: bool = False, start: int, end: int) -> None
                 normalized_raw = raw_value.replace(",", ".")
                 value = float(normalized_raw) if "." in normalized_raw else int(normalized_raw)
                 candidate = {
                     "field": field,
                     "operator": comparison_operator(token, reverse=reverse),
                     "value": value,
+                    "_start": start,
+                    "_end": end,
                 }
                 if candidate not in conditions:
                     conditions.append(candidate)
@@ -675,28 +677,50 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                         flags=re.IGNORECASE,
                     )
                     for match in field_first.finditer(query):
-                        append_comparison(field, match.group(1), match.group(2))
+                        append_comparison(field, match.group(1), match.group(2), start=match.start(), end=match.end())
 
                     value_first = re.compile(
                         rf"{number_pattern}\s*({operator_pattern})\s*(?:برای\s*)?{escaped}",
                         flags=re.IGNORECASE,
                     )
                     for match in value_first.finditer(query):
-                        append_comparison(field, match.group(2), match.group(1), reverse=True)
+                        append_comparison(field, match.group(2), match.group(1), reverse=True, start=match.start(), end=match.end())
 
-            conditions.sort(key=lambda condition: _field_position(condition["field"]))
+            conditions.sort(key=lambda condition: condition["_start"])
 
-            def requested_filter_logic() -> str | None:
-                has_and = bool(re.search(r"(?:\sو\s|\band\b)", query))
-                has_or = bool(re.search(r"(?:\sیا\s|\bor\b)", query))
-                if has_and and has_or:
-                    # Mixed flat conjunctions are ambiguous without explicit grouping.
+            def requested_filter_tree() -> dict | None:
+                if not conditions:
                     return None
-                return "or" if has_or else "and"
+                clean = [
+                    {key: value for key, value in condition.items() if not key.startswith("_")}
+                    for condition in conditions
+                ]
+                connectors = []
+                for left, right in zip(conditions, conditions[1:]):
+                    between = query[left["_end"]:right["_start"]]
+                    tokens = re.findall(r"\b(and|or)\b|(?:\s(و|یا)\s)", between)
+                    if len(tokens) != 1:
+                        return None
+                    token = next((part for part in tokens[0] if part), "")
+                    connectors.append("or" if token in {"or", "یا"} else "and")
+                if not connectors:
+                    return {"logic": "and", "conditions": clean, "groups": []}
+                if len(set(connectors)) == 1:
+                    return {"logic": connectors[0], "conditions": clean, "groups": []}
+                and_groups = []
+                current = [clean[0]]
+                for connector, condition in zip(connectors, clean[1:]):
+                    if connector == "and":
+                        current.append(condition)
+                    else:
+                        and_groups.append({"logic": "and", "conditions": current, "groups": []})
+                        current = [condition]
+                and_groups.append({"logic": "and", "conditions": current, "groups": []})
+                return {"logic": "or", "conditions": [], "groups": and_groups}
 
             if aggregate_requested and (group_by or metric_fields):
-                filter_logic = requested_filter_logic() if conditions else "and"
-                if filter_logic is None:
+                filter_tree = requested_filter_tree()
+                if conditions and filter_tree is None:
                     return None
                 metrics = []
                 for field in metric_fields:
@@ -743,20 +767,20 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 return make_plan({
                     "dataset_id": dataset_id, "operation": "aggregate",
                     "group_by": group_by, "metrics": metrics,
-                    "filters": {"logic": filter_logic, "conditions": conditions, "groups": []} if conditions else None,
+                    "filters": filter_tree,
                     "sort": sort, "limit": requested_limit, "options": {},
                 }, "Profile-driven deterministic grouped analytics plan.")
 
             if conditions and not aggregate_requested:
-                filter_logic = requested_filter_logic()
-                if filter_logic is None:
+                filter_tree = requested_filter_tree()
+                if filter_tree is None:
                     return None
                 count_requested = has_any("تعداد", "چه تعداد", "چند", "count", "how many")
                 return make_plan({
                     "dataset_id": dataset_id,
                     "operation": "count" if count_requested else "select",
                     "group_by": [], "metrics": [],
-                    "filters": {"logic": filter_logic, "conditions": conditions, "groups": []},
+                    "filters": filter_tree,
                     "sort": [], "limit": 10 if count_requested else 100,
                     "options": {},
                 }, "Profile-driven deterministic filtered count/select plan.")

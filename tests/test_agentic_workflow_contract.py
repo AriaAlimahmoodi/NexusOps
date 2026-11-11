@@ -411,3 +411,16 @@ def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_
         "مقایسه معکوس",
     ]:
         assert token in planner
+
+
+def test_n8n_mixed_boolean_skill_filters_use_nested_groups_and_reject_or_conditions():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    planner = _node(workflow, "Query Planner")["parameters"]["text"]
+
+    assert "const buildThresholdFilter=items=>" in validator
+    assert 'return {logic:"or",conditions:[],groups};' in validator
+    assert 'field:"course_coverage",labels:["course_coverage","پوشش درس"]' in validator
+    assert "or_conditions" not in planner
+    assert "تقدم استاندارد AND بر OR" in planner
+    assert "filters={logic,conditions,groups}" in planner

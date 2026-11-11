@@ -332,3 +332,31 @@ def test_skill_threshold_planner_normalizes_persian_digits_and_decimal_commas():
         {"field": "market_demand", "operator": "gt", "value": 4.8},
         {"field": "market_gap", "operator": "lt", "value": 2.5},
     ]
+
+
+def test_skill_threshold_planner_builds_nested_boolean_groups_with_and_precedence():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_gap >= 2.5 or course_coverage < 2"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"] == {
+        "logic": "or",
+        "conditions": [],
+        "groups": [
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "market_demand", "operator": "gte", "value": 4.8},
+                    {"field": "market_gap", "operator": "gte", "value": 2.5},
+                ],
+                "groups": [],
+            },
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "course_coverage", "operator": "lt", "value": 2},
+                ],
+                "groups": [],
+            },
+        ],
+    }
