@@ -80,3 +80,23 @@ same output. Canonical examples define an unfiltered graduate count and a C002
 course lookup; simple single-objective requests must remain single plans. This
 prompt-level contract is covered by a static workflow contract test. It does not
 replace live Ollama acceptance testing.
+
+
+## Deterministic analytics planning and validation recovery
+
+The n8n workflow includes a deterministic pre-validation fallback for three
+well-defined analytical intents: grouped graduate outcome averages, compound
+skill-mapping thresholds, and full skill ranking by average market gap.
+When the request unambiguously matches one of these contracts, the validator
+uses a schema-checked canonical plan instead of forwarding malformed LLM
+output. The local planner prompt also contains canonical examples using the
+exact `analytics_query` argument schema (`group_by`, `metrics`,
+`filter_conditions`, and `sort`). This avoids model-invented fields such
+as `select_fields` and invalid metric shapes.
+
+An exhausted planner retry is classified separately from a genuinely
+unsupported request. Validation errors are reported as planner/contract
+failures; they must not be presented to the user as proof that Analytics lacks
+the requested capability. The deterministic fallback does not replace
+validation: every generated plan still passes the same dataset, field-role,
+metric, filter, alias, sort, and limit checks before MCP execution.

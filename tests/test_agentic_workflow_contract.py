@@ -216,3 +216,43 @@ def test_planner_prompt_contains_canonical_count_course_examples_and_retry_feedb
     ]:
         assert token in prompt
 
+
+
+
+def test_workflow_has_deterministic_fallbacks_for_grouped_filter_and_ranked_analytics():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    for token in [
+        "function deterministicAnalyticsPlan(question)",
+        'plan("university_graduates","aggregate"',
+        '"career_relevance"',
+        '"employment_months"',
+        'plan("skill_mapping","select"',
+        '"market_demand",operator:"gte"',
+        '"market_gap",operator:"gte"',
+        'plan("skill_mapping","aggregate"',
+        '"average_market_gap",order:"desc"',
+        "deterministicAnalyticsPlan(q) ?? extract(txt)",
+    ]:
+        assert token in validator
+
+
+def test_planner_prompt_documents_canonical_analytics_metric_contract():
+    workflow = _workflow()
+    prompt = _node(workflow, "Query Planner")["parameters"]["text"]
+    for token in [
+        "نمونه‌های قطعی برای سه تحلیل پرتکرار",
+        '"function":"avg","field":"career_relevance","alias":"average_career_relevance"',
+        '"function":"avg","field":"market_demand","alias":"average_market_demand"',
+        '"field":"average_market_gap","order":"desc"',
+        "هرگز select_fields یا fields اختراع نکن",
+        "نام ابزار تک‌هدفه همیشه دقیقاً analytics_query است",
+    ]:
+        assert token in prompt
+
+
+def test_error_reply_distinguishes_unsupported_requests_from_invalid_plans():
+    workflow = _workflow()
+    code = _node(workflow, "Error Reply")["parameters"]["jsCode"]
+    assert "j.unsupported === true" in code
+    assert "این به معنی پشتیبانی‌نشدن تحلیل نیست" in code
