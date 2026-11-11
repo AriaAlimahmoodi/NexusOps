@@ -399,7 +399,7 @@ def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_
     for token in [
         "const thresholds=(fields)=>",
         "found.push({field,operator,value:Number",
-        'filter_logic:hasOr?"or":"and"',
+        'connectors.push(token==="or"||token==="یا"?"or":"and")',
         "connectors.every(value=>value===connectors[0])",
         "comparisonOperator(reverse[2],true)",
     ]:
