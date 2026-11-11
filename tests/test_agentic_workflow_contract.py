@@ -314,3 +314,27 @@ def test_filtered_skill_mapping_select_uses_deterministic_scope_safe_analysis():
     assert 'q.dataset_id==="skill_mapping"' in compose
     assert 'تعداد کل اسناد شاخص skill_mapping را مشخص نمی‌کند' in compose
     assert 'COUNT مستقل و بدون فیلتر' in compose
+
+def test_grouped_graduate_aggregate_uses_deterministic_evidence_based_analysis():
+    workflow = _workflow()
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
+
+    assert 'q.dataset_id==="university_graduates"' in compose
+    assert 'q.group_by[0]==="major"' in compose
+    assert 'm.alias==="graduate_count"' in compose
+    assert 'm.alias==="average_career_relevance"' in compose
+    assert 'm.alias==="average_employment_months"' in compose
+    assert 'Number(row.average_career_relevance).toFixed(2)' in compose
+    assert 'تعداد گروه‌های بازگشتی به‌تنهایی تعداد رشته‌های کل دیتاست را اثبات نمی‌کند' in compose
+    assert 'value==="Computer Engineering"?"مهندسی کامپیوتر"' in compose
+    assert 'column === "major" && value === "Computer Engineering" ? "مهندسی کامپیوتر"' in formatter
+
+
+def test_grouped_graduate_analysis_does_not_claim_unreturned_majors_are_absent():
+    workflow = _workflow()
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert "رشته‌های دیگر در داده‌های موجود یافت نشده‌اند" not in compose
+    assert "تعداد گروه‌های بازگشتی به‌تنهایی تعداد رشته‌های کل دیتاست را اثبات نمی‌کند" in compose
+

@@ -134,3 +134,8 @@ LLM-generated scope commentary with a deterministic statement derived from the a
 structured row count. It explicitly identifies the number of matching rows and states
 that this does not establish the full index size; a separate unfiltered COUNT is required.
 Two regression tests cover these behaviors.
+
+## Deterministic grouped graduate interpretation
+
+Grouped graduate aggregates by `major` are interpreted in the final composition layer from the structured aggregate rows, not from free-form LLM commentary. The composer validates the graduate count and both requested averages before producing the summary. It formats the averages to two decimal places and localizes the known dataset value `Computer Engineering` as «مهندسی کامپیوتر» for display while preserving the original structured value. The explanation explicitly limits its claim to returned aggregation groups; it does not infer that unreturned majors are absent from the entire dataset.
+
