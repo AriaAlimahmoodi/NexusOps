@@ -616,7 +616,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
 
             conditions = []
             operator_pattern = (
-                r"(>=|=>|<=|=<|>|<|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|"
+                r"(?:>=|=>|<=|=<|>|<|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|"
                 r"greater\s+than\s+or\s+equal\s+to|at\s+least|minimum(?:\s+of)?|"
                 r"بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than|"
                 r"حداکثر|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than|"
