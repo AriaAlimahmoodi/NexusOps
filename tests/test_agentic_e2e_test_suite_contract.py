@@ -78,13 +78,13 @@ def test_agent_requests_are_serialized_and_loop_back_before_evaluation():
     connections = suite["connections"]
 
     assert loop["parameters"]["batchSize"] == 1
-    assert connections["Loop Over Agent Cases"]["main"][0][0]["node"] == (
+    assert connections["Loop Over Agent Cases"]["main"][1][0]["node"] == (
         "Invoke Production Chat Trigger"
     )
     assert connections["Invoke Production Chat Trigger"]["main"][0][0]["node"] == (
         "Loop Over Agent Cases"
     )
-    assert connections["Loop Over Agent Cases"]["main"][1][0]["node"] == (
+    assert connections["Loop Over Agent Cases"]["main"][0][0]["node"] == (
         "Evaluate Agent E2E Results"
     )
 
@@ -96,7 +96,7 @@ def test_agent_evaluator_checks_real_response_content_and_reports_scope_limits()
     for token in [
         "function normalizeDigits", "function responseText",
         "expectedCount", "expectedCourseName", "partial_failure",
-        "Response correlation failed", 'overall:failed===0',
+        "Response correlation failed", "items.length===cases.length", 'overall:failed===0',
         "does not inject MCP faults or claim concurrency coverage",
     ]:
         assert token in code
