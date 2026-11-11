@@ -432,14 +432,13 @@ class AnalyticsRequest:
             raise AnalyticsModelError("At most 12 metrics are supported.")
         if len(self.sort) > 5:
             raise AnalyticsModelError("At most 5 sort fields are supported.")
-        _validate_filter_complexity(self.filters)
-
         if self.filters is not None and not isinstance(
             self.filters, FilterGroup
         ):
             raise AnalyticsModelError(
                 "'filters' must be a FilterGroup or None."
             )
+        _validate_filter_complexity(self.filters)
 
         if len(set(self.group_by)) != len(self.group_by):
             raise AnalyticsModelError(
