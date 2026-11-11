@@ -615,43 +615,89 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             )
 
             conditions = []
-            comparison_ops = (
-                (r"(?:>=|=>|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:[.,]\d+)?)", "gte"),
-                (r"(?:>|بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(-?\d+(?:\.\d+)?)", "gt"),
-                (r"(?:<=|=<|حداکثر|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than)\s*(-?\d+(?:\.\d+)?)", "lte"),
-                (r"(?:<|کمتر\s+از|پایین.?تر\s+از|less\s+than|below)\s*(-?\d+(?:\.\d+)?)", "lt"),
+            operator_pattern = (
+                r"(>=|=>|<=|=<|>|<|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|"
+                r"greater\s+than\s+or\s+equal\s+to|at\s+least|minimum(?:\s+of)?|"
+                r"بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than|"
+                r"حداکثر|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than|"
+                r"کمتر\s+از|پایین.?تر\s+از|less\s+than|below)"
             )
+            number_pattern = r"(-?\d+(?:[.,]\d+)?)"
+
+            def comparison_operator(token: str, *, reverse: bool = False) -> str:
+                normalized_token = normalize_analytics_text(token)
+                if normalized_token in {">=", "=>"} or any(
+                    term in normalized_token
+                    for term in ("حداقل", "دست کم", "بیشتر یا مساوی", "greater than or equal to", "at least", "minimum")
+                ):
+                    operator = "gte"
+                elif normalized_token in {"<=", "=<"} or any(
+                    term in normalized_token
+                    for term in ("حداکثر", "کمتر یا مساوی", "at most", "no more than")
+                ):
+                    operator = "lte"
+                elif normalized_token == ">" or any(
+                    term in normalized_token
+                    for term in ("بیشتر از", "بیش از", "greater than", "more than")
+                ):
+                    operator = "gt"
+                elif normalized_token == "<" or any(
+                    term in normalized_token
+                    for term in ("کمتر از", "پایین تر از", "less than", "below")
+                ):
+                    operator = "lt"
+                else:
+                    raise AnalyticsPlanningError(f"Unsupported comparison operator: {token!r}.")
+                if reverse:
+                    operator = {"gte": "lte", "lte": "gte", "gt": "lt", "lt": "gt"}[operator]
+                return operator
+
+            def append_comparison(field: str, token: str, raw_value: str, *, reverse: bool = False) -> None:
+                normalized_raw = raw_value.replace(",", ".")
+                value = float(normalized_raw) if "." in normalized_raw else int(normalized_raw)
+                candidate = {
+                    "field": field,
+                    "operator": comparison_operator(token, reverse=reverse),
+                    "value": value,
+                }
+                if candidate not in conditions:
+                    conditions.append(candidate)
+
             for field, aliases in field_aliases.items():
                 definition = profile.get("fields", {}).get(field)
                 if not definition or "filter" not in definition.get("roles", []):
                     continue
                 for alias in aliases:
-                    alias = normalize_analytics_text(alias)
-                    escaped = re.escape(alias)
-                    for pattern, operator in comparison_ops:
-                        match = re.search(
-                            rf"(?:{escaped})\s*(?:با\s*)?{pattern}",
-                            query,
-                        )
-                        if not match:
-                            match = re.search(
-                                rf"{pattern}\s*(?:برای\s*)?(?:{escaped})",
-                                query,
-                            )
-                        if match:
-                            raw = match.group(1)
-                            normalized_raw = raw.replace(",", ".")
-                            value = float(normalized_raw) if "." in normalized_raw else int(normalized_raw)
-                            conditions.append({
-                                "field": field, "operator": operator, "value": value,
-                            })
-                            break
-                    if any(item["field"] == field for item in conditions):
-                        break
+                    normalized_alias = normalize_analytics_text(alias)
+                    escaped = re.escape(normalized_alias)
+                    field_first = re.compile(
+                        rf"{escaped}\s*(?:با\s*)?({operator_pattern})\s*{number_pattern}",
+                        flags=re.IGNORECASE,
+                    )
+                    for match in field_first.finditer(query):
+                        append_comparison(field, match.group(1), match.group(2))
+
+                    value_first = re.compile(
+                        rf"{number_pattern}\s*({operator_pattern})\s*(?:برای\s*)?{escaped}",
+                        flags=re.IGNORECASE,
+                    )
+                    for match in value_first.finditer(query):
+                        append_comparison(field, match.group(2), match.group(1), reverse=True)
 
             conditions.sort(key=lambda condition: _field_position(condition["field"]))
 
+            def requested_filter_logic() -> str | None:
+                has_and = bool(re.search(r"(?:\sو\s|\band\b)", query))
+                has_or = bool(re.search(r"(?:\sیا\s|\bor\b)", query))
+                if has_and and has_or:
+                    # Mixed flat conjunctions are ambiguous without explicit grouping.
+                    return None
+                return "or" if has_or else "and"
+
             if aggregate_requested and (group_by or metric_fields):
+                filter_logic = requested_filter_logic() if conditions else "and"
+                if filter_logic is None:
+                    return None
                 metrics = []
                 for field in metric_fields:
                     allowed_aggregations = profile["fields"][field].get("aggregations", [])
@@ -697,17 +743,20 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 return make_plan({
                     "dataset_id": dataset_id, "operation": "aggregate",
                     "group_by": group_by, "metrics": metrics,
-                    "filters": {"logic": "and", "conditions": conditions, "groups": []} if conditions else None,
+                    "filters": {"logic": filter_logic, "conditions": conditions, "groups": []} if conditions else None,
                     "sort": sort, "limit": requested_limit, "options": {},
                 }, "Profile-driven deterministic grouped analytics plan.")
 
             if conditions and not aggregate_requested:
+                filter_logic = requested_filter_logic()
+                if filter_logic is None:
+                    return None
                 count_requested = has_any("تعداد", "چه تعداد", "چند", "count", "how many")
                 return make_plan({
                     "dataset_id": dataset_id,
                     "operation": "count" if count_requested else "select",
                     "group_by": [], "metrics": [],
-                    "filters": {"logic": "and", "conditions": conditions, "groups": []},
+                    "filters": {"logic": filter_logic, "conditions": conditions, "groups": []},
                     "sort": [], "limit": 10 if count_requested else 100,
                     "options": {},
                 }, "Profile-driven deterministic filtered count/select plan.")

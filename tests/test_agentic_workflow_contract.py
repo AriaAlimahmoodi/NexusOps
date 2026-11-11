@@ -386,3 +386,25 @@ def test_workflow_scalar_metric_dataset_routing_ignores_document_count_metric():
     assert 'metrics.filter(metric=>metric.function!=="count_documents")' in validator
     assert 'graduate_count' in validator
     assert 'average_employment_months' in validator
+
+
+def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_logic():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    planner = _node(workflow, "Query Planner")["parameters"]["text"]
+
+    for token in [
+        "const thresholds=(labels)=>",
+        "operator:item.operator",
+        'filter_logic:hasOr?"or":"and"',
+        "hasAnd&&hasOr",
+        "comparisonOperator(reverse)",
+    ]:
+        assert token in validator
+    for token in [
+        "شرط‌های متعدد روی یک فیلد را حذف یا با هم ادغام نکن",
+        "عبارت «یا/or» باید filter_logic=or",
+        "ترکیب AND و OR بدون گروه‌بندی روشن",
+        "مقایسه معکوس",
+    ]:
+        assert token in planner
