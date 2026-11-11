@@ -256,3 +256,15 @@ def test_global_graduate_average_uses_scalar_aggregate_without_grouping():
     assert plan.arguments["metrics"] == [
         {"function": "avg", "field": "employment_months", "alias": "average_employment_months"}
     ]
+
+
+def test_numeric_thresholds_on_metric_fields_remain_select_not_aggregate():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_gap >= 2.5"
+    )
+    assert plan is not None
+    assert plan.arguments["operation"] == "select"
+    assert plan.arguments["filters"]["conditions"] == [
+        {"field": "market_demand", "operator": "gte", "value": 4.8},
+        {"field": "market_gap", "operator": "gte", "value": 2.5},
+    ]

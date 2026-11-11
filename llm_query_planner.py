@@ -586,7 +586,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 field for field, aliases in field_aliases.items()
                 if field in profile.get("fields", {})
                 and "metric" in profile["fields"][field].get("roles", [])
-                and any(alias in query for alias in aliases)
+                and any(normalize_analytics_text(alias) in query for alias in aliases)
             ]
             def _field_position(field_name: str) -> int:
                 positions = [
@@ -606,7 +606,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     if definition.get("field") in profile.get("fields", {})
                     and "metric" in profile["fields"][definition["field"]].get("roles", [])
                 ]
-            aggregate_requested = bool(group_by) or bool(metric_fields) or has_any(
+            aggregate_requested = bool(group_by) or has_any(
                 "میانگین", "متوسط", "average", "mean", "مجموع", "جمع", "sum",
                 "بیشترین", "کمترین", "رتبه بندی", "رتبه‌بندی",
                 "ranking", "rank", "highest", "lowest",
@@ -614,7 +614,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
 
             conditions = []
             comparison_ops = (
-                (r"(?:>=|=>|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:\.\d+)?)", "gte"),
+                (r"(?:>=|=>|حداقل|دست.?کم|بیشتر\s+یا\s+مساوی|at\s+least|minimum(?:\s+of)?)\s*(-?\d+(?:[.,]\d+)?)", "gte"),
                 (r"(?:>|بیشتر\s+از|بیش\s+از|greater\s+than|more\s+than)\s*(-?\d+(?:\.\d+)?)", "gt"),
                 (r"(?:<=|=<|حداکثر|کمتر\s+یا\s+مساوی|at\s+most|no\s+more\s+than)\s*(-?\d+(?:\.\d+)?)", "lte"),
                 (r"(?:<|کمتر\s+از|پایین.?تر\s+از|less\s+than|below)\s*(-?\d+(?:\.\d+)?)", "lt"),
@@ -638,7 +638,8 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                             )
                         if match:
                             raw = match.group(1)
-                            value = float(raw) if "." in raw else int(raw)
+                            normalized_raw = raw.replace(",", ".")
+                            value = float(normalized_raw) if "." in normalized_raw else int(normalized_raw)
                             conditions.append({
                                 "field": field, "operator": operator, "value": value,
                             })
