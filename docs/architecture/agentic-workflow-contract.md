@@ -58,3 +58,11 @@ accept requests. The suite uses the Chat Trigger webhook ID stored in the
 exported workflow; if n8n regenerates that ID during import, update the suite
 endpoint to the Chat URL displayed by the active Chat Trigger.
 
+## Planner retry contract
+
+The Query Planner receives the previous validation errors and raw invalid plan on
+retry. It must use those diagnostics to repair the plan rather than repeating the
+same output. Canonical examples define an unfiltered graduate count and a C002
+course lookup; simple single-objective requests must remain single plans. This
+prompt-level contract is covered by a static workflow contract test. It does not
+replace live Ollama acceptance testing.
