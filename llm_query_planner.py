@@ -396,16 +396,18 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             metrics.append({"function": "avg", "field": "career_relevance", "alias": "average_career_relevance"})
         if has_any("مدت اشتغال", "مدت استخدام", "ماه اشتغال", "employment duration", "employment months"):
             metrics.append({"function": "avg", "field": "employment_months", "alias": "average_employment_months"})
+        if has_any("تعداد فارغ التحصیلان", "تعداد فارغ‌التحصیلان", "graduate count", "number of graduates", "count of graduates"):
+            metrics.insert(0, {"function": "count_documents", "alias": "graduate_count"})
         if metrics:
             return make_plan({
                 "dataset_id": "university_graduates", "operation": "aggregate",
                 "group_by": ["major"], "metrics": metrics, "filters": None,
                 "sort": [], "limit": 100, "options": {},
-            }, "Deterministic fallback: grouped graduate averages by major.")
+            }, "Deterministic fallback: grouped graduate counts and averages by major.")
 
     if has_any(*graduate_terms) and has_any(
         "تعداد", "چند نفر", "چندتا", "چه تعداد", "count", "how many", "number of"
-    ):
+    ) and not has_any("میانگین", "متوسط", "average", "avg", "mean", "مجموع", "جمع", "sum"):
         filters = None
         year_match = re.search(r"(?:در\s*)?سال\s*(?:فارغ.?التحصیلی\s*)?(14\d{2}|20\d{2})", query)
         if year_match:
@@ -668,6 +670,8 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                         "field": field,
                         "alias": metric_aliases.get(field, f"{function}_{field}"),
                     })
+                if has_any("تعداد فارغ التحصیلان", "تعداد فارغ‌التحصیلان", "graduate count", "number of graduates", "count of graduates", "تعداد اسناد", "تعداد رکورد", "document count"):
+                    metrics.insert(0, {"function": "count_documents", "alias": "graduate_count" if dataset_id == "university_graduates" else "document_count"})
                 if not metrics:
                     metrics = [{"function": "count_documents", "alias": "document_count"}]
                 sort = []

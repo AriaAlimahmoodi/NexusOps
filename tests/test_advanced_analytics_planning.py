@@ -268,3 +268,16 @@ def test_numeric_thresholds_on_metric_fields_remain_select_not_aggregate():
         {"field": "market_demand", "operator": "gte", "value": 4.8},
         {"field": "market_gap", "operator": "gte", "value": 2.5},
     ]
+
+
+def test_global_graduate_count_and_average_share_one_scalar_aggregate():
+    plan = build_deterministic_analytics_query_plan(
+        "تعداد فارغ التحصیلان و میانگین مدت اشتغال را محاسبه کن"
+    )
+    assert plan is not None
+    assert plan.arguments["operation"] == "aggregate"
+    assert plan.arguments["group_by"] == []
+    assert plan.arguments["metrics"] == [
+        {"function": "count_documents", "alias": "graduate_count"},
+        {"function": "avg", "field": "employment_months", "alias": "average_employment_months"},
+    ]
