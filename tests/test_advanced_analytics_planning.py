@@ -305,11 +305,32 @@ def test_skill_threshold_planner_preserves_explicit_or_semantics():
     assert len(plan.arguments["filters"]["conditions"]) == 2
 
 
-def test_skill_threshold_planner_rejects_ambiguous_mixed_flat_boolean_connectors():
+def test_skill_threshold_planner_applies_and_precedence_to_mixed_boolean_connectors():
     plan = build_deterministic_analytics_query_plan(
         "List skills with market_demand >= 4.8 and market_gap >= 2.5 or course_coverage < 2"
     )
-    assert plan is None
+    assert plan is not None
+    assert plan.arguments["filters"] == {
+        "logic": "or",
+        "conditions": [],
+        "groups": [
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "market_demand", "operator": "gte", "value": 4.8},
+                    {"field": "market_gap", "operator": "gte", "value": 2.5},
+                ],
+                "groups": [],
+            },
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "course_coverage", "operator": "lt", "value": 2},
+                ],
+                "groups": [],
+            },
+        ],
+    }
 
 
 def test_skill_threshold_planner_inverts_reversed_numeric_comparisons():
