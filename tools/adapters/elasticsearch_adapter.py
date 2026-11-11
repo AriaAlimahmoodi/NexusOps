@@ -508,12 +508,19 @@ class ElasticsearchAdapter:
 
         aggregations = self._build_aggregations(aggregation_plan)
 
-        response = self.client.search(
-            index=index,
-            query=query,
-            size=0,
-            aggs=aggregations,
-        )
+        search_kwargs = {
+            "index": index,
+            "query": query,
+            "size": 0,
+            "aggs": aggregations,
+        }
+        # Global count_documents reads hits.total; request an exact total.
+        if (
+            not aggregation_plan.get("group_by")
+            and any(metric.get("function") == "count_documents" for metric in aggregation_plan.get("metrics", []))
+        ):
+            search_kwargs["track_total_hits"] = True
+        response = self.client.search(**search_kwargs)
 
         return self._response_body(response)
 

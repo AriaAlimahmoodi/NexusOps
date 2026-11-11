@@ -338,3 +338,14 @@ def test_grouped_graduate_analysis_does_not_claim_unreturned_majors_are_absent()
     assert "رشته‌های دیگر در داده‌های موجود یافت نشده‌اند" not in compose
     assert "تعداد گروه‌های بازگشتی به‌تنهایی تعداد رشته‌های کل دیتاست را اثبات نمی‌کند" in compose
 
+
+
+def test_workflow_supports_scalar_aggregates_and_bounds_filter_complexity():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    planner = _node(workflow, "Query Planner")["parameters"]["text"]
+    assert 'if(op==="aggregate"&&!metrics.length)' in validator
+    assert "group_by برای آمار کلی اختیاری است" in validator
+    assert "state.conditions>32" in validator
+    assert "depth>5" in validator
+    assert "group_by را آرایه خالی" in planner

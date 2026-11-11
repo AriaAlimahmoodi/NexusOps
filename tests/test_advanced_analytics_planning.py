@@ -243,3 +243,16 @@ def test_explicit_multi_metric_skill_comparison_overrides_single_metric_ranking_
     assert plan.arguments["sort"] == [
         {"field": "average_market_gap", "order": "desc"}
     ]
+
+
+def test_global_graduate_average_uses_scalar_aggregate_without_grouping():
+    plan = build_deterministic_analytics_query_plan(
+        "میانگین مدت اشتغال فارغ التحصیلان را محاسبه کن"
+    )
+    assert plan is not None
+    assert plan.arguments["dataset_id"] == "university_graduates"
+    assert plan.arguments["operation"] == "aggregate"
+    assert plan.arguments["group_by"] == []
+    assert plan.arguments["metrics"] == [
+        {"function": "avg", "field": "employment_months", "alias": "average_employment_months"}
+    ]

@@ -107,9 +107,11 @@ class AggregationPlanBuilder:
         group_by: Any,
     ) -> list[dict[str, Any]]:
 
-        if not isinstance(group_by, list) or not group_by:
+        if group_by is None:
+            return []
+        if not isinstance(group_by, list):
             raise AggregationPlanError(
-                "Aggregate operation requires a non-empty group_by list."
+                "group_by must be a list; use an empty list for scalar aggregation."
             )
 
         result = []

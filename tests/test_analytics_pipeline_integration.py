@@ -449,3 +449,35 @@ def test_real_elasticsearch_adapter_select_preserves_hit_totals_and_sort(pipelin
         "career_relevance": {"order": "desc"},
     }]
     assert client.search_calls[0]["size"] == 2
+
+
+def test_scalar_aggregate_executes_without_group_by(pipeline_environment):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    client = FakeElasticsearchClient(search_response={
+        "hits": {"total": {"value": 30, "relation": "eq"}},
+        "aggregations": {"average_employment_months": {"value": 6.93}},
+        "_shards": {"failed": 0},
+        "timed_out": False,
+    })
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=(),
+        metrics=(
+            MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="graduate_count"),
+            MetricSpec(MetricFunction.AVG, "employment_months", "average_employment_months"),
+        ),
+        limit=1,
+    )
+    response = AnalyticsService(adapter=ElasticsearchAdapter(client=client)).analyze(request)
+    assert response["status"] == "success"
+    assert response["result"]["buckets"] == [{
+        "group": {},
+        "metrics": {"graduate_count": 30, "average_employment_months": 6.93},
+        "document_count": 30,
+    }]
+    assert client.search_calls[0]["track_total_hits"] is True
+    assert client.search_calls[0]["aggs"] == {
+        "average_employment_months": {"avg": {"field": "employment_months"}}
+    }

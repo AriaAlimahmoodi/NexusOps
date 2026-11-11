@@ -457,3 +457,42 @@ def test_analytics_response_rejects_malformed_warnings_and_execution_time():
     valid, message = validate_mcp_result(plan, data)
     assert not valid
     assert "warnings must be a list" in message
+
+
+def test_scalar_aggregate_plan_is_valid_without_group_by():
+    payload = {
+        "dataset_id": "university_graduates",
+        "operation": "aggregate",
+        "group_by": [],
+        "metrics": [{"function": "avg", "field": "employment_months", "alias": "average_employment_months"}],
+        "filters": None,
+        "sort": [],
+        "limit": 1,
+        "options": {},
+    }
+    plan = _validate_plan(payload)
+    assert plan["group_by"] == []
+    assert plan["metrics"][0]["alias"] == "average_employment_months"
+
+
+def test_plan_rejects_unknown_top_level_fields():
+    payload = valid_aggregate_payload()
+    payload["select_fields"] = ["course_name"]
+    with pytest.raises(AnalyticsPlanningError, match="Unsupported plan field"):
+        _validate_plan(payload)
+
+
+def test_plan_rejects_excessively_deep_filter_tree():
+    payload = valid_aggregate_payload()
+    node = {"logic": "and", "conditions": [{"field": "credits", "operator": "gte", "value": 2}], "groups": []}
+    for _ in range(7):
+        node = {"logic": "and", "conditions": [], "groups": [node]}
+    payload["filters"] = node
+    with pytest.raises(AnalyticsPlanningError, match="maximum depth"):
+        _validate_plan(payload)
+
+
+def test_persian_text_normalization_handles_arabic_letters_zwnj_and_digits():
+    from llm_query_planner import normalize_analytics_text
+
+    assert normalize_analytics_text("فارغ‌التحصیلان ۱۴۰۲ ك") == "فارغالتحصیلان 1402 ک"

@@ -139,3 +139,8 @@ Two regression tests cover these behaviors.
 
 Grouped graduate aggregates by `major` are interpreted in the final composition layer from the structured aggregate rows, not from free-form LLM commentary. The composer validates the graduate count and both requested averages before producing the summary. It formats the averages to two decimal places and localizes the known dataset value `Computer Engineering` as «مهندسی کامپیوتر» for display while preserving the original structured value. The explanation explicitly limits its claim to returned aggregation groups; it does not infer that unreturned majors are absent from the entire dataset.
 
+
+
+## Scalar aggregation
+
+The analytics contract supports both grouped and scalar aggregation. A grouped aggregate supplies one or more registered group_by fields. A scalar aggregate supplies an empty group_by array and at least one metric; the result is normalized as one bucket with an empty group key. When scalar aggregation requests count_documents, the Elasticsearch adapter enables exact hit tracking.

@@ -1,6 +1,9 @@
 from __future__ import annotations
 import json
+import math
+import os
 import re
+import unicodedata
 from typing import Any
 from query_planner import QueryPlan
 from tools.analytics_engine.models import AnalyticsRequest
@@ -9,6 +12,13 @@ from tools.dataset_registry import get_dataset_profile, list_registered_datasets
 ALLOWED_OPERATIONS = {"select", "count", "aggregate"}
 ALLOWED_METRICS = {"count_documents", "value_count", "sum", "avg", "min", "max", "cardinality"}
 ALLOWED_OPERATORS = {"eq", "neq", "in", "not_in", "gt", "gte", "lt", "lte", "between", "exists", "not_exists"}
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen3:4b")
+MAX_FILTER_DEPTH = 5
+MAX_FILTER_CONDITIONS = 32
+MAX_FILTER_GROUPS = 16
+MAX_GROUP_BY_FIELDS = 3
+MAX_METRICS = 12
+MAX_SORT_FIELDS = 5
 
 class AnalyticsPlanningError(ValueError):
     """Generated analytics plan violates the MCP contract."""
@@ -56,18 +66,35 @@ def _extract_json_object(content: str) -> dict[str, Any]:
         raise AnalyticsPlanningError("The generated plan must be a JSON object.")
     return value
 
-def _normalize_filter_tree(node: Any) -> Any:
+def normalize_analytics_text(value: str) -> str:
+    """Normalize Persian/Arabic text consistently before intent parsing."""
+    if not isinstance(value, str):
+        return ""
+    digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    text = unicodedata.normalize("NFKC", value).translate(digits)
+    text = text.replace("ي", "ی").replace("ك", "ک")
+    text = re.sub(r"[\u200c\u200d\u200e\u200f\u0640]", "", text)
+    text = re.sub(r"[\u064b-\u065f\u0670]", "", text)
+    return re.sub(r"\s+", " ", text).strip().casefold()
+
+
+def _normalize_filter_tree(node: Any, *, depth: int = 0, budget: dict[str, int] | None = None) -> Any:
     if node is None:
         return None
+    if budget is None:
+        budget = {"conditions": 0, "groups": 0}
+    if depth > MAX_FILTER_DEPTH:
+        raise AnalyticsPlanningError(f"Filter nesting exceeds the maximum depth of {MAX_FILTER_DEPTH}.")
     if not isinstance(node, dict):
         raise AnalyticsPlanningError("filters must be an object.")
+    budget["groups"] += 1
+    if budget["groups"] > MAX_FILTER_GROUPS:
+        raise AnalyticsPlanningError(f"Filter tree exceeds {MAX_FILTER_GROUPS} groups.")
     logic = node.get("logic", "and")
     if logic is None:
         logic = "and"
     conditions = node.get("conditions", [])
     groups = node.get("groups", [])
-    # Ollama models sometimes serialize optional arrays as JSON null.
-    # Normalize null only; reject all other malformed container types.
     if conditions is None:
         conditions = []
     if groups is None:
@@ -76,27 +103,43 @@ def _normalize_filter_tree(node: Any) -> Any:
         raise AnalyticsPlanningError("Filter logic must be 'and' or 'or'.")
     if not isinstance(conditions, list) or not isinstance(groups, list):
         raise AnalyticsPlanningError("Filter conditions and groups must be lists.")
+    if not conditions and not groups:
+        raise AnalyticsPlanningError("A supplied filter group cannot be empty.")
     normalized_conditions = []
     for condition in conditions:
+        budget["conditions"] += 1
+        if budget["conditions"] > MAX_FILTER_CONDITIONS:
+            raise AnalyticsPlanningError(f"Filter tree exceeds {MAX_FILTER_CONDITIONS} conditions.")
         if not isinstance(condition, dict):
             raise AnalyticsPlanningError("Every filter condition must be an object.")
         field_name, operator = condition.get("field"), condition.get("operator")
         if not isinstance(field_name, str) or not field_name.strip():
             raise AnalyticsPlanningError("Every filter condition requires a field.")
-        if operator not in ALLOWED_OPERATORS:
+        if not isinstance(operator, str) or operator not in ALLOWED_OPERATORS:
             raise AnalyticsPlanningError(f"Unsupported filter operator: {operator!r}.")
         normalized = {"field": field_name.strip(), "operator": operator}
         if operator not in {"exists", "not_exists"}:
             if "value" not in condition or condition["value"] is None:
                 raise AnalyticsPlanningError(f"Filter operator '{operator}' requires a value.")
-            normalized["value"] = condition["value"]
+            value = condition["value"]
+            if operator in {"in", "not_in"}:
+                if not isinstance(value, list) or not value or len(value) > 100:
+                    raise AnalyticsPlanningError(f"Filter operator '{operator}' requires a list of 1..100 values.")
+            elif operator == "between":
+                if not isinstance(value, list) or len(value) != 2:
+                    raise AnalyticsPlanningError("Filter operator 'between' requires exactly two values.")
+            elif isinstance(value, (list, dict)):
+                raise AnalyticsPlanningError(f"Filter operator '{operator}' requires a scalar value.")
+            normalized["value"] = value
         elif condition.get("value") is not None:
             raise AnalyticsPlanningError(f"Filter operator '{operator}' does not accept a value.")
         normalized_conditions.append(normalized)
-    normalized_groups = [_normalize_filter_tree(group) for group in groups]
-    if not normalized_conditions and not normalized_groups:
-        raise AnalyticsPlanningError("A supplied filter group cannot be empty.")
+    normalized_groups = [
+        _normalize_filter_tree(group, depth=depth + 1, budget=budget)
+        for group in groups
+    ]
     return {"logic": logic, "conditions": normalized_conditions, "groups": normalized_groups}
+
 
 def _walk_filter_fields(node: dict[str, Any] | None):
     if node is None:
@@ -106,7 +149,22 @@ def _walk_filter_fields(node: dict[str, Any] | None):
     for group in node.get("groups", []):
         yield from _walk_filter_fields(group)
 
+
+def _walk_filter_conditions(node: dict[str, Any] | None):
+    if node is None:
+        return
+    yield from node.get("conditions", [])
+    for group in node.get("groups", []):
+        yield from _walk_filter_conditions(group)
+
+
 def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise AnalyticsPlanningError("The analytics plan must be an object.")
+    allowed_keys = {"dataset_id", "operation", "group_by", "metrics", "filters", "sort", "limit", "options"}
+    unknown_keys = sorted(set(payload) - allowed_keys)
+    if unknown_keys:
+        raise AnalyticsPlanningError("Unsupported plan field(s): " + ", ".join(unknown_keys))
     dataset_id, operation = payload.get("dataset_id"), payload.get("operation")
     if not isinstance(dataset_id, str) or not dataset_id.strip():
         raise AnalyticsPlanningError("The plan must identify a dataset_id.")
@@ -141,6 +199,16 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         raise AnalyticsPlanningError("group_by and metrics must be lists.")
     if not isinstance(sort, list):
         raise AnalyticsPlanningError("sort must be a list.")
+    if any(not isinstance(item, str) for item in group_by):
+        raise AnalyticsPlanningError("Every group_by field must be a string.")
+    if len(group_by) > MAX_GROUP_BY_FIELDS:
+        raise AnalyticsPlanningError(f"group_by supports at most {MAX_GROUP_BY_FIELDS} fields.")
+    if len(metrics) > MAX_METRICS:
+        raise AnalyticsPlanningError(f"metrics supports at most {MAX_METRICS} entries.")
+    if len(sort) > MAX_SORT_FIELDS:
+        raise AnalyticsPlanningError(f"sort supports at most {MAX_SORT_FIELDS} entries.")
+    if len(set(group_by)) != len(group_by):
+        raise AnalyticsPlanningError("group_by cannot contain duplicate fields.")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
         raise AnalyticsPlanningError("limit must be an integer between 1 and 1000.")
     if not isinstance(options, dict):
@@ -165,8 +233,8 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         if group_by or metrics or sort:
             raise AnalyticsPlanningError("COUNT does not accept group_by, metrics, or sort.")
     else:
-        if not group_by or not metrics:
-            raise AnalyticsPlanningError("AGGREGATE requires group_by and metrics.")
+        if not metrics:
+            raise AnalyticsPlanningError("AGGREGATE requires at least one metric; group_by is optional for scalar aggregation.")
         for field_name in group_by:
             require_role(field_name, "group_by")
 
@@ -185,10 +253,11 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
             allowed = fields[field_name].get("aggregations", [])
             if allowed and function not in allowed and function not in {"value_count", "cardinality"}:
                 raise AnalyticsPlanningError(f"Metric '{function}' is not declared for field '{field_name}'.")
-        if alias is not None:
-            if not isinstance(alias, str) or not alias.strip() or alias in aliases:
-                raise AnalyticsPlanningError("Metric aliases must be non-empty and unique.")
-            aliases.add(alias)
+        if alias is None:
+            alias = "document_count" if function == "count_documents" else f"{function}_{field_name}"
+        if not isinstance(alias, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", alias) or alias in aliases:
+            raise AnalyticsPlanningError("Metric aliases must be valid, non-empty, and unique.")
+        aliases.add(alias)
         normalized = {"function": function}
         if field_name is not None:
             normalized["field"] = field_name
@@ -201,6 +270,8 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(item, dict):
             raise AnalyticsPlanningError("Each sort item must be an object.")
         field_name, order = item.get("field"), item.get("order", "desc")
+        if not isinstance(field_name, str) or not field_name.strip():
+            raise AnalyticsPlanningError("Each sort item requires a valid field.")
         if order not in {"asc", "desc"}:
             raise AnalyticsPlanningError("Sort order must be 'asc' or 'desc'.")
         if operation == "select":
@@ -217,6 +288,28 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
                 "conditions": [*group["conditions"], *[to_model_group(child) for child in group["groups"]]],
             }
         model_filters = to_model_group(filters)
+    for condition in _walk_filter_conditions(filters):
+        definition = fields[condition["field"]]
+        if condition["operator"] in {"exists", "not_exists"}:
+            continue
+        value = condition.get("value")
+        values = value if condition["operator"] in {"in", "not_in", "between"} else [value]
+        field_type = definition.get("type")
+        for item in values:
+            if field_type in {"integer", "long", "short", "byte", "unsigned_long", "float", "double", "half_float", "scaled_float"}:
+                if isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(item):
+                    raise AnalyticsPlanningError(f"Filter value for numeric field '{condition['field']}' must be finite numeric.")
+                if field_type in {"integer", "long", "short", "byte", "unsigned_long"} and not float(item).is_integer():
+                    raise AnalyticsPlanningError(f"Filter value for integer field '{condition['field']}' must be an integer.")
+            elif field_type == "boolean":
+                if not isinstance(item, bool):
+                    raise AnalyticsPlanningError(f"Filter value for boolean field '{condition['field']}' must be boolean.")
+            elif field_type in {"keyword", "text", "constant_keyword", "wildcard"}:
+                if not isinstance(item, str) or not item.strip():
+                    raise AnalyticsPlanningError(f"Filter value for keyword field '{condition['field']}' must be non-empty text.")
+        if condition["operator"] == "between" and values[0] > values[1]:
+            raise AnalyticsPlanningError(f"Filter range for '{condition['field']}' has its lower bound above its upper bound.")
+
     try:
         AnalyticsRequest.from_dict({
             "dataset_id": dataset_id, "operation": operation,
@@ -255,7 +348,7 @@ Allowed metrics: count_documents, value_count, sum, avg, min, max, cardinality.
 Allowed filters: eq, neq, in, not_in, gt, gte, lt, lte, between, exists, not_exists.
 Filter shape: {{"logic":"and|or","conditions":[{{"field":"...","operator":"...","value":...}}],"groups":[{{...nested group...}}]}}.
 Use filters=null when no filtering is needed.
-COUNT requires empty group_by, metrics, and sort. SELECT requires empty group_by and metrics. AGGREGATE requires non-empty group_by and metrics.
+COUNT requires empty group_by, metrics, and sort. SELECT requires empty group_by and metrics. AGGREGATE requires at least one metric; group_by is optional for scalar aggregation.
 Aggregate metrics require unique meaningful aliases. Aggregate sort targets a group_by field or metric alias. Select sorting uses a registered field with the sort role.
 Use count only when the user wants only a total. Use select to retrieve records. Use aggregate for averages, sums, grouped comparisons, rankings, and calculated summaries.
 Do not invent filters, values, units, joins, or relationships. One call queries exactly one dataset.
@@ -274,10 +367,10 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
     if not isinstance(question, str) or not question.strip():
         return None
     digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
-    query = question.translate(digits).casefold().replace("ي", "ی").replace("ك", "ک")
+    query = normalize_analytics_text(question)
 
     def has_any(*terms: str) -> bool:
-        return any(term in query for term in terms)
+        return any(normalize_analytics_text(term) in query for term in terms)
 
     def make_plan(payload: dict[str, Any], reason: str) -> QueryPlan | None:
         try:
@@ -294,7 +387,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             memory_allowed=True, fresh_mcp_required=True, reason=reason,
         )
 
-    graduate_terms = ("فارغ التحصیل", "فارغ‌التحصیل", "graduate")
+    graduate_terms = ("فارغ التحصیل", "فارغ‌التحصیل", "فارغالتحصیل", "graduate")
     if (has_any("برای هر رشته", "به تفکیک رشته", "بر اساس رشته",
                  "گروه بندی بر اساس رشته", "group by major", "by major", "per major")
             and has_any("میانگین", "average", "avg", "mean")):
@@ -430,12 +523,15 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 "study_level": ("مقطع تحصیلی", "مقطع", "study level"),
                 "job_title": ("عنوان شغلی", "job title"),
                 "job_field": ("حوزه شغلی", "زمینه شغلی", "job field"),
-                "employment_months": ("مدت اشتغال", "ماه اشتغال", "employment months"),
-                "career_relevance": ("ارتباط شغلی", "ارتباط با شغل", "career relevance"),
+                "employment_months": ("مدت اشتغال", "مدت استخدام", "ماه اشتغال", "ماه های اشتغال", "ماههای اشتغال", "employment duration", "employment months"),
+                "career_relevance": ("ارتباط شغلی", "ارتباط با شغل", "ارتباط شغل با رشته", "career relevance"),
                 "course_category": ("دسته درس", "دسته‌بندی درس", "course category"),
                 "course_name": ("نام درس", "course name"),
                 "credits": ("واحد", "اعتبار", "credit", "credits"),
                 "experience_level": ("سطح تجربه", "experience level"),
+                "additional_training": ("آموزش تکمیلی", "دوره آموزشی", "additional training"),
+                "related_skills": ("مهارت مرتبط", "مهارت های مرتبط", "related skills"),
+                "course_id": ("شناسه درس", "کد درس", "course id", "course_id"),
             }
             grouping_intent = has_any(
                 "به تفکیک", "برای هر", "بر اساس", "گروه بندی",
@@ -445,12 +541,12 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             dimension_candidates = {
                 "skill", "major", "graduation_year", "study_level",
                 "job_title", "job_field", "course_category", "course_name",
-                "experience_level", "additional_training", "additional_skills",
+                "experience_level", "additional_training", "additional_skills", "related_skills",
             }
             explicit_dimensions = [
                 field for field, aliases in field_aliases.items()
                 if field in dimension_candidates
-                and any(alias in query for alias in aliases)
+                and any(normalize_analytics_text(alias) in query for alias in aliases)
             ]
             if grouping_intent and any(
                 field not in profile.get("fields", {})
@@ -494,9 +590,9 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
             ]
             def _field_position(field_name: str) -> int:
                 positions = [
-                    query.find(alias)
+                    query.find(normalize_analytics_text(alias))
                     for alias in field_aliases.get(field_name, ())
-                    if query.find(alias) >= 0
+                    if normalize_analytics_text(alias) in query
                 ]
                 return min(positions) if positions else len(query)
 
@@ -510,7 +606,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                     if definition.get("field") in profile.get("fields", {})
                     and "metric" in profile["fields"][definition["field"]].get("roles", [])
                 ]
-            aggregate_requested = bool(group_by) or has_any(
+            aggregate_requested = bool(group_by) or bool(metric_fields) or has_any(
                 "میانگین", "متوسط", "average", "mean", "مجموع", "جمع", "sum",
                 "بیشترین", "کمترین", "رتبه بندی", "رتبه‌بندی",
                 "ranking", "rank", "highest", "lowest",
@@ -528,6 +624,7 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 if not definition or "filter" not in definition.get("roles", []):
                     continue
                 for alias in aliases:
+                    alias = normalize_analytics_text(alias)
                     escaped = re.escape(alias)
                     for pattern, operator in comparison_ops:
                         match = re.search(
@@ -551,12 +648,20 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
 
             conditions.sort(key=lambda condition: _field_position(condition["field"]))
 
-            if aggregate_requested and group_by:
+            if aggregate_requested and (group_by or metric_fields):
                 metrics = []
                 for field in metric_fields:
-                    function = "sum" if field == "frequency" or (
-                        field == "credits" and has_any("مجموع", "جمع", "sum", "total")
-                    ) else "avg"
+                    allowed_aggregations = profile["fields"][field].get("aggregations", [])
+                    if has_any("تعداد مقادیر متمایز", "تعداد یکتای", "distinct", "unique count", "cardinality"):
+                        function = "cardinality"
+                    elif has_any("حداقل مقدار", "minimum", "min ") and "min" in allowed_aggregations:
+                        function = "min"
+                    elif has_any("حداکثر مقدار", "maximum", "max ") and "max" in allowed_aggregations:
+                        function = "max"
+                    elif has_any("مجموع", "جمع", "sum", "total") and "sum" in allowed_aggregations:
+                        function = "sum"
+                    else:
+                        function = "avg"
                     metrics.append({
                         "function": function,
                         "field": field,
@@ -565,14 +670,15 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                 if not metrics:
                     metrics = [{"function": "count_documents", "alias": "document_count"}]
                 sort = []
-                if has_any("بیشترین", "بالاترین", "highest", "most", "رتبه بندی", "رتبه‌بندی", "ranking", "rank"):
+                if has_any("بیشترین", "بالاترین", "highest", "most", "رتبه بندی", "رتبه‌بندی", "ranking", "rank", "مرتب کن", "مرتب سازی", "sort by") or has_any("کمترین", "پایین‌ترین", "lowest", "ascending", "صعودی"):
+                    ascending = has_any("کمترین", "پایین‌ترین", "lowest", "ascending", "صعودی")
                     target_metric = metrics[0]
                     if has_any("شکاف بازار", "market gap", "market_gap"):
                         target_metric = next((metric for metric in metrics if metric.get("field") == "market_gap"), target_metric)
                     elif has_any("تقاضای بازار", "market demand", "market_demand", "demand score"):
                         target_metric = next((metric for metric in metrics if metric.get("field") in {"market_demand", "demand_score"}), target_metric)
                     target = target_metric["alias"]
-                    sort = [{"field": target, "order": "desc"}]
+                    sort = [{"field": target, "order": "asc" if ascending else "desc"}]
                 elif has_any("کمترین", "پایین‌ترین", "lowest"):
                     target_metric = metrics[0]
                     if has_any("شکاف بازار", "market gap", "market_gap"):
@@ -581,11 +687,13 @@ def build_deterministic_analytics_query_plan(question: str) -> QueryPlan | None:
                         target_metric = next((metric for metric in metrics if metric.get("field") in {"market_demand", "demand_score"}), target_metric)
                     target = target_metric["alias"]
                     sort = [{"field": target, "order": "asc"}]
+                top_match = re.search(r"\b(?:top|first|show|list)\s+(\d{1,3})\b|(?:\b(\d{1,3})\s+(?:مورد|مهارت|رکورد|نتیجه)\b)", query)
+                requested_limit = int(next((value for value in (top_match.groups() if top_match else ()) if value), 100))
                 return make_plan({
                     "dataset_id": dataset_id, "operation": "aggregate",
                     "group_by": group_by, "metrics": metrics,
                     "filters": {"logic": "and", "conditions": conditions, "groups": []} if conditions else None,
-                    "sort": sort, "limit": 100, "options": {},
+                    "sort": sort, "limit": requested_limit, "options": {},
                 }, "Profile-driven deterministic grouped analytics plan.")
 
             if conditions and not aggregate_requested:
@@ -606,7 +714,7 @@ async def build_analytics_query_plan(client: Any, question: str, conversation_co
     """Generate a local-LLM plan and validate it before MCP execution."""
     try:
         response = await client.chat.completions.create(
-            model="qwen3:4b",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": _planner_prompt(question, conversation_context)},
                 {"role": "user", "content": question},

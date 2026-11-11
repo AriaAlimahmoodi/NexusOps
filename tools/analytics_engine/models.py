@@ -379,11 +379,7 @@ class AnalyticsRequest:
                 )
 
         if self.operation == AnalyticsOperation.AGGREGATE:
-            if not self.group_by:
-                raise AnalyticsModelError(
-                    "'aggregate' operation requires at least one group_by field."
-                )
-
+            # Empty group_by represents a scalar aggregation over all matching documents.
             if not self.metrics:
                 raise AnalyticsModelError(
                     "'aggregate' operation requires at least one metric."
