@@ -295,3 +295,22 @@ def test_numeric_presentation_rounds_float_artifacts_without_changing_structured
 
     assert "Number(value.toFixed(2))" in formatter
     assert "Number(v.toFixed(2))" in compose
+
+
+def test_numeric_string_float_artifacts_are_rounded_in_all_presentation_paths():
+    workflow = _workflow()
+    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert 'typeof value === "string"' in formatter
+    assert 'typeof v==="string"' in compose
+    assert 'Number(n.toFixed(2))' in compose
+
+
+def test_filtered_skill_mapping_select_uses_deterministic_scope_safe_analysis():
+    workflow = _workflow()
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert 'q.dataset_id==="skill_mapping"' in compose
+    assert 'تعداد کل اسناد شاخص skill_mapping را مشخص نمی‌کند' in compose
+    assert 'COUNT مستقل و بدون فیلتر' in compose

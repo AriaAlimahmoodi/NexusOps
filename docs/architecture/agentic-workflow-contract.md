@@ -120,3 +120,17 @@ now addresses them:
 The exact Persian grouped-graduate request is covered by a workflow contract regression
 test. Live acceptance still requires rerunning all three Chat Trigger scenarios after
 importing the updated workflow into n8n.
+
+
+## Deterministic output-scope and numeric presentation guard
+
+A subsequent live run showed that some Elasticsearch floating-point values arrive at the
+presentation layer as numeric strings, so number-only rounding was insufficient. Both
+the result table renderer and final composer now round decimal numeric strings to two
+places while preserving nonnumeric strings and integer identifiers.
+
+For filtered SELECT operations on `skill_mapping`, the final composer now replaces
+LLM-generated scope commentary with a deterministic statement derived from the actual
+structured row count. It explicitly identifies the number of matching rows and states
+that this does not establish the full index size; a separate unfiltered COUNT is required.
+Two regression tests cover these behaviors.
