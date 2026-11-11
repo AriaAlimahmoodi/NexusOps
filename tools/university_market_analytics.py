@@ -386,6 +386,7 @@ def analyze_university_market(
         "status": status,
         "analysis_type": "management_report",
         "title": "گزارش مدیریتی تحلیل دانشگاه و بازار کار",
+        "limit_per_section": limit,
         "results": summary_rows,
         "sections": sections,
         "recommendations": recommendations,
