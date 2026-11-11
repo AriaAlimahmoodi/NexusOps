@@ -1,0 +1,160 @@
+{
+  "name": "NexusOps Agentic E2E Acceptance Suite",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        160
+      ],
+      "id": "b92d12d0-3f0d-4f7a-9a2e-1c2d9f3b0001",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const executionId=String($execution?.id??\"manual\");\nconst definitions=[\n {testId:\"A01\",name:\"Graduate count numeric integrity\",kind:\"numeric_count\",chatInput:\"فقط عدد: تعداد کل فارغ‌التحصیلان دانشگاه چند نفر است؟\",expectedCount:30},\n {testId:\"A02\",name:\"Course C002 retrieval\",kind:\"course_lookup\",chatInput:\"نام درس با شناسه C002 چیست؟\",expectedCourseId:\"C002\",expectedCourseName:\"ساختمان داده\"},\n {testId:\"A03\",name:\"Independent multi-plan analysis\",kind:\"multi_plan\",chatInput:\"تعداد کل فارغ‌التحصیلان دانشگاه را گزارش کن و به‌صورت مستقل پنج مهارت با بیشترین شکاف مهارتی بازار را نیز رتبه‌بندی کن.\",expectedCount:30},\n {testId:\"A04\",name:\"Out-of-domain rejection\",kind:\"out_of_scope\",chatInput:\"قیمت روز بیت‌کوین چقدر است؟\"}\n];\nreturn definitions.map(test=>{\n const sessionId=\"nexusops-e2e-\"+executionId+\"-\"+test.testId;\n return {json:{...test,sessionId,requestBody:{action:\"sendMessage\",sessionId,chatInput:test.chatInput}}};\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        160
+      ],
+      "id": "b92d12d0-3f0d-4f7a-9a2e-1c2d9f3b0002",
+      "name": "Build Agent Test Cases"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        160
+      ],
+      "id": "b92d12d0-3f0d-4f7a-9a2e-1c2d9f3b0003",
+      "name": "Loop Over Agent Cases"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/webhook/bb04e460-7b14-4e42-aab0-a907c8d614c6/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 180000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        64
+      ],
+      "id": "b92d12d0-3f0d-4f7a-9a2e-1c2d9f3b0004",
+      "name": "Invoke Production Chat Trigger",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function parseBody(value){\n if(value&&typeof value===\"object\")return value;\n const source=String(value??\"\").trim();\n if(!source)return null;\n try{return JSON.parse(source)}catch{return {output:source}}\n}\nfunction normalizeDigits(value){\n return String(value??\"\").replace(/[۰-۹]/g,d=>\"۰۱۲۳۴۵۶۷۸۹\".indexOf(d)).replace(/[٠-٩]/g,d=>\"٠١٢٣٤٥٦٧٨٩\".indexOf(d));\n}\nfunction responseText(body){\n if(Array.isArray(body))body=body[0];\n if(typeof body===\"string\")return body;\n if(!body||typeof body!==\"object\")return String(body??\"\");\n for(const key of [\"output\",\"text\",\"message\"])if(typeof body[key]===\"string\")return body[key];\n if(body.data&&typeof body.data===\"object\")return responseText(body.data);\n return JSON.stringify(body);\n}\nconst cases=$(\"Build Agent Test Cases\").all().map(x=>x.json);\nconst items=$input.all();\nconst correlated=items.map((item,index)=>({item,index,paired:Array.isArray(item.pairedItem)?item.pairedItem[0]?.item:item.pairedItem?.item}));\nconst results=[];\nfor(let i=0;i<cases.length;i++){\n const test=cases[i],entry=correlated.find(x=>x.paired===i)??(items.length===cases.length?correlated[i]:null);\n const response=entry?.item?.json??{},body=parseBody(response.body??response.data),text=responseText(body),normalized=normalizeDigits(text);\n const statusCode=Number(response.statusCode??0);\n let passed=false,detail=\"\";\n if(!entry)detail=\"Response correlation failed: no unique response item for this test.\";\n else if(response.error)detail=\"Transport error: \"+String(response.error.message??response.error).slice(0,500);\n else if(statusCode&& (statusCode<200||statusCode>=300))detail=\"Chat Trigger returned HTTP \"+statusCode+\": \"+text.slice(0,500);\n else if(!text.trim())detail=\"Chat Trigger returned an empty response.\";\n else if(test.kind===\"numeric_count\"){\n  passed=new RegExp(\"(?:^|\\\\D)\"+test.expectedCount+\"(?:\\\\D|$)\").test(normalized);\n  detail=passed?\"Expected graduate count \"+test.expectedCount+\" appears in the actual Agent response.\":\"Expected exact count token \"+test.expectedCount+\" was not found: \"+text.slice(0,700);\n }else if(test.kind===\"course_lookup\"){\n  passed=text.includes(test.expectedCourseId)&&text.includes(test.expectedCourseName);\n  detail=passed?\"Course identifier and expected Persian course name are present.\":\"Expected course identifier/name not both present: \"+text.slice(0,700);\n }else if(test.kind===\"multi_plan\"){\n  const hasCount=new RegExp(\"(?:^|\\\\D)\"+test.expectedCount+\"(?:\\\\D|$)\").test(normalized);\n  const hasGap=/شکاف مهارتی|شکاف بازار/.test(text);\n  const hasFailure=/partial_failure|incomplete|وضعیت اجرای چندبرنامه‌ای.*(?:partial_failure|incomplete|unknown)/i.test(text);\n  passed=hasCount&&hasGap&&!hasFailure;\n  detail=passed?\"The response contains the graduate-count evidence and a separate skill-gap result without an explicit incomplete/partial-failure warning.\":\"Multi-objective response did not satisfy all text-level assertions: \"+text.slice(0,1000);\n }else if(test.kind===\"out_of_scope\"){\n  passed=/محدوده/.test(text)&&/دانشگاهی|بازار کار/.test(text);\n  detail=passed?\"Out-of-domain request was rejected by the domain gate.\":\"Expected domain rejection was not found: \"+text.slice(0,700);\n }\n results.push({testId:test.testId,name:test.name,status:passed?\"PASS\":\"FAIL\",httpStatus:statusCode||null,detail});\n}\nconst passed=results.filter(x=>x.status===\"PASS\").length,failed=results.length-passed;\nreturn [{json:{suite:\"NexusOps Agentic E2E Acceptance Suite\",executedAt:new Date().toISOString(),summary:{total:results.length,passed,failed,overall:failed===0&&items.length===cases.length?\"PASS\":\"FAIL\"},results,scope:\"Exercises the active n8n Chat Trigger, local Ollama planner/answer writer, MCP, Elasticsearch and final response path. It does not inject MCP faults or claim concurrency coverage.\"}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        240
+      ],
+      "id": "b92d12d0-3f0d-4f7a-9a2e-1c2d9f3b0005",
+      "name": "Evaluate Agent E2E Results"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Test Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Test Cases": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Agent Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Agent Cases": {
+      "main": [
+        [
+          {
+            "node": "Invoke Production Chat Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Evaluate Agent E2E Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoke Production Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Agent Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
