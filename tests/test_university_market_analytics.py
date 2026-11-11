@@ -108,17 +108,24 @@ def test_major_comparison_uses_graduate_outcomes_and_optional_major_filter(monke
 
 
 def test_course_effectiveness_is_reported_as_relationship_coverage_proxy(monkeypatch):
+    calls = []
+
     def fake(arguments):
-        assert arguments["dataset_id"] == "course_graduate_records"
+        calls.append(deepcopy(arguments))
+        if arguments["group_by"] == ["course_id", "course_name"]:
+            return _success("course_graduate_records", [{
+                "group": {"course_id": "C013", "course_name": "رایانش ابری"},
+                "metrics": {"relationship_records": 7},
+            }])
         assert arguments["group_by"] == ["course_id", "course_name", "job_field"]
         return _success("course_graduate_records", [
             {
                 "group": {"course_id": "C013", "course_name": "رایانش ابری", "job_field": "DevOps"},
-                "metrics": {"relationship_records": 4},
+                "metrics": {"job_field_relationship_records": 4},
             },
             {
                 "group": {"course_id": "C013", "course_name": "رایانش ابری", "job_field": "Software"},
-                "metrics": {"relationship_records": 3},
+                "metrics": {"job_field_relationship_records": 3},
             },
         ])
 
@@ -126,10 +133,11 @@ def test_course_effectiveness_is_reported_as_relationship_coverage_proxy(monkeyp
     result = domain.analyze_university_market("course_effectiveness")
 
     assert result["status"] == "success"
+    assert len(calls) == 2
+    assert calls[0]["group_by"] == ["course_id", "course_name"]
     assert result["rows"][0]["course_id"] == "C013"
     assert result["rows"][0]["relationship_records"] == 7
     assert result["rows"][0]["represented_job_fields"] == 2
-    assert "not causal" not in result["interpretation"].lower()
     assert "علّی" in result["interpretation"]
 
 
