@@ -262,7 +262,7 @@ def test_live_persian_grouped_graduate_prompt_has_count_and_both_averages():
     workflow = _workflow()
     validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
 
-    assert 'replace(/[\\u200c\\u200f]/g," ")' in validator
+    assert r'replace(/[\u200c\u200d\u200e\u200f\u0640]/g,"")' in validator
     assert '"ماه های اشتغال"' in validator
     assert '{function:"count_documents",alias:"graduate_count"}' in validator
     assert '"career_relevance"' in validator
