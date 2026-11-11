@@ -51,8 +51,8 @@ MAX_CONVERSATION_STATES = 128
 
 if MCP_REQUEST_TIMEOUT_SECONDS <= 0 or OLLAMA_TIMEOUT_SECONDS <= 0:
     raise ValueError("Runtime request timeouts must be positive.")
-if MCP_MAX_ATTEMPTS < 1:
-    raise ValueError("NEXUSOPS_MCP_MAX_ATTEMPTS must be at least 1.")
+if not 1 <= MCP_MAX_ATTEMPTS <= 5:
+    raise ValueError("NEXUSOPS_MCP_MAX_ATTEMPTS must be between 1 and 5.")
 if MCP_RETRY_BASE_DELAY_SECONDS < 0:
     raise ValueError("MCP retry delay cannot be negative.")
 

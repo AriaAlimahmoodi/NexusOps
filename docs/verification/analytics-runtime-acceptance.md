@@ -243,3 +243,38 @@ The MCP tool descriptions now define explicit precedence:
 - `search_elasticsearch` handles document retrieval, not analytics.
 
 This prevents a field-name mention such as `market_gap` or `market_demand` from overriding the shape of the requested operation. The regression test `tests/test_mcp_tool_routing_contract.py` protects the precedence language from reverting to broad, overlapping mandatory instructions.
+
+
+## 9. Unified reliability release gate
+
+Run from the repository root:
+
+~~~powershell
+python scripts/release_gate.py
+~~~
+
+This parses the Python source tree and runs the complete pytest suite. To include live service readiness:
+
+~~~powershell
+python scripts/release_gate.py --with-runtime-preflight
+~~~
+
+To include three simultaneous requests against the active production Chat Trigger (and automatically run preflight first):
+
+~~~powershell
+python scripts/release_gate.py --with-live-concurrency
+~~~
+
+The live concurrency harness reads the production Chat Trigger webhook ID from the canonical workflow JSON and submits independent graduate-count, C002 lookup, and skill-gap requests with distinct session IDs. It reports each HTTP response separately. This is a cross-session isolation check; Python-client conversation-lock ordering is covered by automated concurrency tests; this harness does not claim n8n same-session ordering.
+
+The release report uses NOT_RUN for any live gate that was not requested. A static-only PASS must not be described as a complete live release acceptance.
+
+## 10. Numerical integrity rules
+
+The analytics formatter rejects:
+- boolean, floating-point, or negative COUNT values;
+- SELECT metadata where returned_records differs from the actual records list;
+- SELECT total_records smaller than returned_records;
+- non-finite or non-numeric aggregate metric values.
+
+Use the independent Kibana Dev Tools queries in sections 4A–4E to compare live values. Do not treat successful HTTP status, a passing text assertion, or a passing unit suite as proof that all live aggregate values match Elasticsearch.
