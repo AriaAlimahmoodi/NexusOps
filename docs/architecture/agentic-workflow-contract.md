@@ -100,3 +100,23 @@ failures; they must not be presented to the user as proof that Analytics lacks
 the requested capability. The deterministic fallback does not replace
 validation: every generated plan still passes the same dataset, field-role,
 metric, filter, alias, sort, and limit checks before MCP execution.
+
+
+## Live analytics acceptance follow-up
+
+The live n8n run exposed three presentation/planning edge cases and the workflow contract
+now addresses them:
+
+- Persian ZWNJ and spacing variants such as «ماه‌های اشتغال» are normalized before
+  deterministic intent matching. Grouped graduate outcomes include a document-count
+  metric as well as both requested averages.
+- Planner envelope metadata (`unsupported_reason` and `response_mode`) is removed only
+  from the nested argument object after validating its values. All other unknown
+  analytics arguments remain rejected by the strict schema.
+- Filtered SELECT counts are explicitly scoped to matching records and must not be
+  described as the size of the entire Elasticsearch index. Floating-point artifacts
+  are rounded to two decimal places for display while structured facts retain precision.
+
+The exact Persian grouped-graduate request is covered by a workflow contract regression
+test. Live acceptance still requires rerunning all three Chat Trigger scenarios after
+importing the updated workflow into n8n.

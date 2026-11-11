@@ -256,3 +256,42 @@ def test_error_reply_distinguishes_unsupported_requests_from_invalid_plans():
     code = _node(workflow, "Error Reply")["parameters"]["jsCode"]
     assert "j.unsupported === true" in code
     assert "این به معنی پشتیبانی‌نشدن تحلیل نیست" in code
+
+
+def test_live_persian_grouped_graduate_prompt_has_count_and_both_averages():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+
+    assert 'replace(/[\\u200c\\u200f]/g," ")' in validator
+    assert '"ماه های اشتغال"' in validator
+    assert '{function:"count_documents",alias:"graduate_count"}' in validator
+    assert '"career_relevance"' in validator
+    assert '"employment_months"' in validator
+
+
+def test_planner_metadata_nested_in_arguments_is_normalized_without_weakening_schema():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+
+    assert "rawArgs=x.arguments??{}" in validator
+    assert "delete a.unsupported_reason" in validator
+    assert "delete a.response_mode" in validator
+    assert 'const extra=Object.keys(a).filter(k=>!allowed.includes(k))' in validator
+
+
+def test_filtered_result_counts_are_not_described_as_full_dataset_counts():
+    workflow = _workflow()
+    prompt = _node(workflow, "Answer Writer")["parameters"]["text"]
+
+    assert "تعداد کل اسناد ایندکس یا دیتاست معرفی نکن" in prompt
+    assert "بدون فیلتر روی کل دیتاست" in prompt
+    assert "complete بودن نتایج فیلترشده" in prompt
+
+
+def test_numeric_presentation_rounds_float_artifacts_without_changing_structured_facts():
+    workflow = _workflow()
+    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert "Number(value.toFixed(2))" in formatter
+    assert "Number(v.toFixed(2))" in compose
