@@ -398,7 +398,7 @@ def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_
         "operator:item.operator",
         'filter_logic:hasOr?"or":"and"',
         "hasAnd&&hasOr",
-        "comparisonOperator(reverse)",
+        "comparisonOperator(reverse[2],true)",
     ]:
         assert token in validator
     for token in [
