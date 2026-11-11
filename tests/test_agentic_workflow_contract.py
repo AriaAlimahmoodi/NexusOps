@@ -180,6 +180,27 @@ def test_final_gate_rejects_incomplete_duplicate_and_unrecognized_plan_sets():
     assert 'if(mode==="analysis")' in compose
     assert 'وضعیت اعتبار پاسخ' in compose
 
+
+def test_top_skill_gap_renderer_supports_tool_schema_and_nested_mcp_result_envelope():
+    workflow = _workflow()
+    code = _node(workflow, "Format Result")["parameters"]["jsCode"]
+
+    assert "function renderTopSkillGaps(data)" in code
+    assert 'data.result.analysis === "top_skill_gaps"' in code
+    assert 'selectedTool === "get_top_skill_gaps"' in code
+    for field in [
+        "ranked_skill",
+        "associated_course_id",
+        "associated_course_name",
+        "course_coverage",
+        "market_demand",
+        "market_gap",
+    ]:
+        assert field in code
+    assert 'ranking_unit: payload.ranking_unit ?? "skill"' in code
+    assert "safeNumber(row.market_gap) !== null" in code
+
+
 def test_planner_prompt_contains_canonical_count_course_examples_and_retry_feedback():
     workflow = _workflow()
     prompt = _node(workflow, "Query Planner")["parameters"]["text"]
