@@ -66,7 +66,7 @@ def test_agent_cases_cover_numeric_course_multi_objective_and_domain_paths():
         "A01", "numeric_count", "expectedCount:30",
         "A05", "scalar_aggregate", "expectedAverage:6.93",
         "تعداد فارغ التحصیلان و میانگین مدت اشتغال را محاسبه کن",
-        "averageToken", "hasAverage",
+        "numericTokens", "hasAverage",
         "A02", "course_lookup", "C002", "ساختمان داده",
         "A03", "multi_plan", "شکاف مهارتی",
         "A04", "out_of_scope", "بیت‌کوین",
