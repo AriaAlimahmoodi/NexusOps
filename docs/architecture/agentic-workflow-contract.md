@@ -35,3 +35,26 @@ Run:
 python -m json.tool .\workflows\nexusops-agentic-workflow.json > $null
 pytest -q tests/test_n8n_workflow_contract.py
 ```
+
+## Agentic End-to-End acceptance
+
+The repository includes a separate n8n acceptance workflow at
+`workflows/nexusops-agentic-e2e-test-suite.json`. It calls the active production
+Chat Trigger endpoint of the main agent workflow, rather than calling MCP tools
+directly. Its four cases cover a numeric graduate count, course C002 retrieval,
+a multi-objective graduate-count/skill-gap request, and out-of-domain rejection.
+
+The suite serializes requests with a one-item Loop Over Items node. This is
+intentional for the local Ollama runtime and avoids creating accidental model
+concurrency during ordinary acceptance runs. The test suite checks observable
+HTTP response content; it does not introspect hidden planner state and therefore
+does not claim that a multi-objective prompt necessarily became two independent
+plans. It also does not inject an MCP transport failure or establish concurrent
+execution isolation. Those are separate resilience and concurrency acceptance
+gates.
+
+The main Chat Trigger workflow must be active for the production webhook to
+accept requests. The suite uses the Chat Trigger webhook ID stored in the
+exported workflow; if n8n regenerates that ID during import, update the suite
+endpoint to the Chat URL displayed by the active Chat Trigger.
+
