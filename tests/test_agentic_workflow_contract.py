@@ -349,3 +349,10 @@ def test_workflow_supports_scalar_aggregates_and_bounds_filter_complexity():
     assert "state.conditions>32" in validator
     assert "depth>5" in validator
     assert "group_by را آرایه خالی" in planner
+
+
+def test_scalar_aggregate_planner_routes_metrics_to_their_registered_dataset():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    assert 'field==="credits"?"university_courses"' in validator
+    assert 'datasets.length===1' in validator
