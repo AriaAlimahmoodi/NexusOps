@@ -379,11 +379,8 @@ class AnalyticsRequest:
                 )
 
         if self.operation == AnalyticsOperation.AGGREGATE:
-            if not self.group_by:
-                raise AnalyticsModelError(
-                    "'aggregate' operation requires at least one group_by field."
-                )
-
+            # Global aggregations (for example AVG over every matching
+            # graduate) are valid without a group_by dimension.
             if not self.metrics:
                 raise AnalyticsModelError(
                     "'aggregate' operation requires at least one metric."
