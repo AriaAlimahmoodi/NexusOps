@@ -830,6 +830,50 @@ def build_query_plan(
     count = extract_requested_count(query)
 
     comparison = is_comparison(query)
+    normalized_query = normalize_text(query)
+
+    # --------------------------------------------------------
+    # 0. Domain-specific university-market analytics
+    # --------------------------------------------------------
+    domain_intents = (
+        ("skill_trends", ("روند مهارت", "روند تقاضا", "تحلیل روند", "skill trend", "demand trend")),
+        ("management_report", ("گزارش مدیریتی", "گزارش جامع", "گزارش تحلیلی دانشگاه", "management report", "executive report")),
+        ("curriculum_recommendations", ("پیشنهاد اصلاح برنامه درسی", "اصلاح برنامه درسی", "پیشنهاد برنامه درسی", "بازنگری برنامه درسی", "curriculum recommendation", "curriculum improvement")),
+        ("course_effectiveness", ("اثربخشی درس", "اثربخشی دروس", "تحلیل اثربخشی", "course effectiveness", "course impact", "پوشش شغلی درس")),
+        ("major_comparison", ("مقایسه رشته", "مقایسه رشته‌ها", "مقایسه رشته ها", "رشته‌های مختلف", "رشته های مختلف", "compare majors", "major comparison")),
+        ("skill_gaps", ("تحلیل شکاف آموزشی", "شناسایی شکاف آموزشی", "تحلیل شکاف مهارتی", "skill gap analysis", "educational gap")),
+        ("skill_demand", ("تحلیل تقاضای مهارت", "تحلیل تقاضای بازار", "مهارت‌های پرتقاضا", "مهارت های پرتقاضا", "skill demand analysis", "market demand analysis")),
+    )
+    domain_type = next(
+        (
+            analysis_type
+            for analysis_type, phrases in domain_intents
+            if any(normalize_text(phrase) in normalized_query for phrase in phrases)
+        ),
+        None,
+    )
+    if domain_type is not None:
+        arguments: dict[str, Any] = {
+            "analysis_type": domain_type,
+            "limit": max(1, min(count or 10, 100)),
+        }
+        course_entity = next(
+            (item.get("value") for item in entities if item.get("type") == "course_id"),
+            None,
+        )
+        if course_entity and domain_type == "course_effectiveness":
+            arguments["course_id"] = course_entity
+        return QueryPlan(
+            tool_name="analyze_university_market",
+            arguments=arguments,
+            requested_entities=entities,
+            requested_fields=fields,
+            requested_count=arguments["limit"],
+            comparison_requested=comparison,
+            memory_allowed=False,
+            fresh_mcp_required=True,
+            reason=f"Detected university-market domain analysis: {domain_type}.",
+        )
 
     # --------------------------------------------------------
     # 1. Skill-gap ranking
