@@ -74,3 +74,18 @@ def test_runtime_test_suite_covers_protocol_analytics_and_error_contracts():
     assert calls["onError"] == "continueRegularOutput"
     assert calls["retryOnFail"] is True
     assert calls["maxTries"] == 2
+
+
+def test_runtime_evaluator_normalizes_nested_mcp_payloads_and_correlates_ids():
+    workflow = json.loads(RUNTIME_WORKFLOW_PATH.read_text(encoding="utf-8"))
+    evaluator = next(
+        node for node in workflow["nodes"]
+        if node["name"] == "Evaluate Runtime Results"
+    )["parameters"]["jsCode"]
+
+    assert "function normalizePayload(value)" in evaluator
+    assert "result.structuredContent" in evaluator
+    assert 'typeof current.result==="string"' in evaluator
+    assert "const byId=new Map()" in evaluator
+    assert "duplicates.has(id)" in evaluator
+    assert "pairedIndex" in evaluator
