@@ -501,3 +501,27 @@ def test_persian_text_normalization_handles_arabic_letters_zwnj_and_digits():
     from llm_query_planner import normalize_analytics_text
 
     assert normalize_analytics_text("فارغ‌التحصیلان ۱۴۰۲ ك") == "فارغالتحصیلان 1402 ک"
+
+
+@pytest.mark.parametrize("question,expected_type", [
+    ("روند مهارت‌های بازار کار را تحلیل کن", "skill_trends"),
+    ("گزارش مدیریتی جامع دانشگاه و بازار کار تولید کن", "management_report"),
+    ("پیشنهاد اصلاح برنامه درسی بر اساس شکاف مهارتی بده", "curriculum_recommendations"),
+    ("اثربخشی دروس را تحلیل کن", "course_effectiveness"),
+    ("مقایسه رشته‌های دانشگاه را انجام بده", "major_comparison"),
+    ("تحلیل شکاف مهارتی را ارائه کن", "skill_gaps"),
+    ("تحلیل تقاضای مهارت‌ها را ارائه کن", "skill_demand"),
+])
+def test_query_planner_routes_domain_analysis_to_university_market_tool(question, expected_type):
+    plan = build_query_plan(question)
+    assert plan.tool_name == "analyze_university_market"
+    assert plan.arguments["analysis_type"] == expected_type
+    assert plan.fresh_mcp_required is True
+    assert plan.memory_allowed is False
+
+
+def test_query_planner_preserves_course_id_for_course_effectiveness_analysis():
+    plan = build_query_plan("اثربخشی درس C013 را تحلیل کن")
+    assert plan.tool_name == "analyze_university_market"
+    assert plan.arguments["analysis_type"] == "course_effectiveness"
+    assert plan.arguments["course_id"] == "C013"
