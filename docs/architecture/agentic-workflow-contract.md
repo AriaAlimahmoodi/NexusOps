@@ -58,6 +58,20 @@ accept requests. The suite uses the Chat Trigger webhook ID stored in the
 exported workflow; if n8n regenerates that ID during import, update the suite
 endpoint to the Chat URL displayed by the active Chat Trigger.
 
+## Specialized skill-gap result normalization
+
+The `get_top_skill_gaps` MCP tool returns a ranked list of skills using
+`ranked_skill`, `associated_course_id`, `associated_course_name`,
+`course_coverage`, `market_demand`, and `market_gap`. The result normalizer
+must not reuse the market-demand tool's field contract (`skill`,
+`average_demand_score`, and `total_frequency`).
+
+The formatter handles both a direct tool payload and a nested MCP
+`result` envelope, validates the skill identity and numeric gap value,
+and renders the associated course and market fields without changing their
+meaning. The displayed rank is the one-based position in the tool's
+market-gap-descending result order; it is not a separately stored dataset field.
+
 ## Planner retry contract
 
 The Query Planner receives the previous validation errors and raw invalid plan on
