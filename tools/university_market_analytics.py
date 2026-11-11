@@ -173,68 +173,82 @@ def _course_effectiveness(limit: int, course_id: str | None = None) -> dict[str,
             "conditions": [{"field": "course_id", "operator": "eq", "value": course_id}],
             "groups": [],
         }
-    raw = _run_aggregate(
+
+    totals = _run_aggregate(
         "course_graduate_records",
-        ["course_id", "course_name", "job_field"],
+        ["course_id", "course_name"],
         [{"function": "count_documents", "alias": "relationship_records"}],
         limit=1000,
         sort=[{"field": "relationship_records", "order": "desc"}],
         filters=filters,
     )
-    if raw.get("status") != "success":
-        raw["analysis_type"] = "course_effectiveness"
-        return raw
+    if totals.get("status") != "success":
+        totals["analysis_type"] = "course_effectiveness"
+        return totals
+
+    breakdown = _run_aggregate(
+        "course_graduate_records",
+        ["course_id", "course_name", "job_field"],
+        [{"function": "count_documents", "alias": "job_field_relationship_records"}],
+        limit=1000,
+        sort=[{"field": "job_field_relationship_records", "order": "desc"}],
+        filters=filters,
+    )
 
     courses: dict[str, dict[str, Any]] = {}
-    for row in raw["rows"]:
+    for row in totals["rows"]:
         key = str(row.get("course_id") or "")
         if not key:
             continue
-        item = courses.setdefault(key, {
+        courses[key] = {
             "course_id": key,
             "course_name": row.get("course_name"),
-            "relationship_records": 0,
-            "job_fields": set(),
+            "relationship_records": row.get("relationship_records", 0),
+            "represented_job_fields": 0,
             "job_field_breakdown": [],
-        })
-        count = row.get("relationship_records")
-        count = count if isinstance(count, int) and not isinstance(count, bool) else 0
-        item["relationship_records"] += count
-        job_field = row.get("job_field")
-        if job_field is not None:
-            item["job_fields"].add(str(job_field))
-        item["job_field_breakdown"].append({
-            "job_field": job_field,
-            "relationship_records": count,
-        })
-
-    rows = []
-    for item in courses.values():
-        item["represented_job_fields"] = len(item.pop("job_fields"))
-        rows.append(item)
-    rows.sort(key=lambda item: (-item["relationship_records"], item["course_id"]))
-    raw["rows"] = rows[:limit]
-    raw["analysis_type"] = "course_effectiveness"
-    raw["interpretation"] = (
-        "این تحلیل یک نمایه پوشش/ارتباط درس با سوابق فارغ‌التحصیلان و حوزه‌های شغلی است. "
-        "تعداد رابطه‌ها و تنوع حوزه‌های شغلی شاخص جانشین هستند، نه سنجش علّی اثربخشی آموزشی؛ "
-        "داده فعلی نمره یادگیری، قبل/بعد آموزش یا گروه کنترل ارائه نمی‌کند."
-    )
-    raw["method"] = "grouped course_graduate_records by course_id, course_name, and job_field"
-    return raw
-
-
-def _curriculum_recommendations(limit: int) -> dict[str, Any]:
-    gaps = _skill_gaps(limit)
-    if gaps.get("status") != "success":
-        return {
-            "status": "error",
-            "analysis_type": "curriculum_recommendations",
-            "error": gaps.get("error"),
-            "sections": {"skill_gaps": gaps},
-            "recommendations": [],
         }
 
+    if breakdown.get("status") == "success":
+        for row in breakdown["rows"]:
+            key = str(row.get("course_id") or "")
+            if key not in courses or row.get("job_field") is None:
+                continue
+            courses[key]["job_field_breakdown"].append({
+                "job_field": row.get("job_field"),
+                "relationship_records": row.get("job_field_relationship_records"),
+            })
+        for item in courses.values():
+            item["represented_job_fields"] = len(item["job_field_breakdown"])
+
+    rows = sorted(
+        courses.values(),
+        key=lambda item: (
+            -(item["relationship_records"] if isinstance(item["relationship_records"], int) else 0),
+            item["course_id"],
+        ),
+    )
+    return {
+        "status": "success" if breakdown.get("status") == "success" else "partial_success",
+        "analysis_type": "course_effectiveness",
+        "dataset_id": "course_graduate_records",
+        "rows": rows[:limit],
+        "metadata": totals.get("metadata", {}),
+        "warnings": totals.get("warnings", []) + breakdown.get("warnings", []),
+        "interpretation": (
+            "این تحلیل یک نمایه پوشش/ارتباط درس با سوابق فارغ‌التحصیلان و حوزه‌های شغلی است. "
+            "تعداد رابطه‌های ثبت‌شده و تنوع حوزه‌های شغلی شاخص جانشین هستند، نه سنجش علّی اثربخشی آموزشی؛ "
+            "داده فعلی نمره یادگیری، قبل/بعد آموزش یا گروه کنترل ارائه نمی‌کند."
+        ),
+        "method": (
+            "دو aggregation مستقل روی course_graduate_records: شمارش رابطه‌ها به تفکیک درس، "
+            "و شمارش رابطه‌ها به تفکیک درس و job_field؛ بدون JOIN بین ایندکس‌ها."
+        ),
+        **({"limitations": ["تحلیل breakdown حوزه‌های شغلی کامل نشد؛ تعداد کل رابطه‌های درس از aggregation مستقل حفظ شده است."]}
+           if breakdown.get("status") != "success" else {}),
+    }
+
+
+def _build_curriculum_recommendations(gaps: dict[str, Any]) -> list[dict[str, Any]]:
     recommendations = []
     for rank, row in enumerate(gaps.get("rows", []), start=1):
         recommendations.append({
@@ -251,7 +265,22 @@ def _curriculum_recommendations(limit: int) -> dict[str, Any]:
             ),
             "evidence_basis": "skill_mapping: market_gap, market_demand, course_coverage, course_id, course_name",
         })
+    return recommendations
 
+
+def _curriculum_recommendations(limit: int) -> dict[str, Any]:
+    gaps = _skill_gaps(limit)
+    if gaps.get("status") != "success":
+        return {
+            "status": "error",
+            "analysis_type": "curriculum_recommendations",
+            "error": gaps.get("error"),
+            "sections": {"skill_gaps": gaps},
+            "recommendations": [],
+            "results": [],
+        }
+
+    recommendations = _build_curriculum_recommendations(gaps)
     return {
         "status": "success",
         "analysis_type": "curriculum_recommendations",
@@ -335,8 +364,13 @@ def analyze_university_market(
     }
     successes = sum(section.get("status") == "success" for section in sections.values())
     failures = len(sections) - successes
-    recommendations_result = _curriculum_recommendations(limit)
-    if recommendations_result.get("status") != "success":
+    gaps_for_recommendations = sections["skill_gaps"]
+    recommendations = (
+        _build_curriculum_recommendations(gaps_for_recommendations)
+        if gaps_for_recommendations.get("status") == "success"
+        else []
+    )
+    if gaps_for_recommendations.get("status") != "success":
         failures += 1
     status = "success" if failures == 0 else "partial_success" if successes else "error"
 
@@ -355,7 +389,7 @@ def analyze_university_market(
         "title": "گزارش مدیریتی تحلیل دانشگاه و بازار کار",
         "results": summary_rows,
         "sections": sections,
-        "recommendations": recommendations_result.get("recommendations", []),
+        "recommendations": recommendations,
         "limitations": [
             "روند زمانی مهارت‌ها در داده فعلی قابل محاسبه نیست؛ labor_market فاقد فیلد زمان است.",
             "تحلیل اثربخشی درس بر پایه روابط ثبت‌شده درس-فارغ‌التحصیل و تنوع حوزه‌های شغلی است، نه اثبات اثر علّی آموزش.",
