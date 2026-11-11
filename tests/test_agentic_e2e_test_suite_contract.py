@@ -60,19 +60,31 @@ def test_suite_calls_the_real_chat_trigger_and_not_the_mcp_test_endpoint():
 
 def test_agent_cases_cover_numeric_course_multi_objective_and_domain_paths():
     suite = _workflow(SUITE_PATH)
-    code = _node(suite, "Build Agent Test Cases")["parameters"]["jsCode"]
+    build_code = _node(suite, "Build Agent Test Cases")["parameters"]["jsCode"]
+    evaluator_code = _node(suite, "Evaluate Agent E2E Results")["parameters"]["jsCode"]
 
     for token in [
         "A01", "numeric_count", "expectedCount:30",
         "A05", "scalar_aggregate", "expectedAverage:6.93",
         "تعداد فارغ التحصیلان و میانگین مدت اشتغال را محاسبه کن",
-        "numericTokens", "hasAverage",
         "A02", "course_lookup", "C002", "ساختمان داده",
         "A03", "multi_plan", "شکاف مهارتی",
         "A04", "out_of_scope", "بیت‌کوین",
         'action:"sendMessage"', "sessionId", "chatInput",
     ]:
-        assert token in code
+        assert token in build_code
+
+    # Response-value extraction belongs to the evaluator, not the case builder.
+    for token in [
+        'test.kind==="scalar_aggregate"',
+        "numericTokens",
+        "test.expectedCount",
+        "test.expectedAverage",
+        "hasCount",
+        "hasAverage",
+        "passed=hasCount&&hasAverage",
+    ]:
+        assert token in evaluator_code
 
 
 def test_agent_requests_are_serialized_and_loop_back_before_evaluation():
