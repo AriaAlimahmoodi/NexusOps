@@ -179,3 +179,19 @@ def test_final_gate_rejects_incomplete_duplicate_and_unrecognized_plan_sets():
     assert 'overallStatus' in compose
     assert 'if(mode==="analysis")' in compose
     assert 'وضعیت اعتبار پاسخ' in compose
+
+def test_planner_prompt_contains_canonical_count_course_examples_and_retry_feedback():
+    workflow = _workflow()
+    prompt = _node(workflow, "Query Planner")["parameters"]["text"]
+
+    for token in [
+        "بازخورد اعتبارسنجی تلاش قبلی",
+        "{{ $json.lastError }}",
+        "{{ $json.lastRaw }}",
+        '"dataset_id":"university_graduates","operation":"count"',
+        '"dataset_id":"university_courses","operation":"select"',
+        '"field":"course_id","operator":"eq","value":"C002"',
+        "برای هر درخواست تک‌هدفه فقط قالب تک را برگردان",
+    ]:
+        assert token in prompt
+
