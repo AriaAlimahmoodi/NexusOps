@@ -28,6 +28,7 @@ from tools.analytics_tool import (
     build_analytics_request,
     run_analytics_query,
 )
+from tools.university_market_analytics import analyze_university_market
 class AnalyticsMetricInput(BaseModel):
     function: Literal[
         "count_documents",
@@ -228,6 +229,52 @@ async def top_market_skills_tool(limit: int = 10) -> str:
 )
 async def top_skill_gaps_tool(limit: int = 10) -> str:
     return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit)
+
+
+@server.tool(
+    name="analyze_university_market",
+    description=(
+        "DOMAIN ANALYTICS TOOL FOR UNIVERSITY-TO-LABOR-MARKET DECISION SUPPORT. "
+        "Use for skill demand analysis, skill gap analysis, major comparisons, "
+        "course-to-career coverage analysis, curriculum review recommendations, "
+        "and coordinated management reports. "
+        "analysis_type must be one of: skill_demand, skill_trends, skill_gaps, "
+        "major_comparison, course_effectiveness, curriculum_recommendations, "
+        "management_report. Optional major and course_id narrow their respective "
+        "graduate/course analysis. limit is 1..100. "
+        "IMPORTANT EVIDENCE LIMITS: skill_trends is explicitly unavailable as a "
+        "temporal trend until labor_market includes a time/period field; it returns "
+        "a cross-sectional snapshot and explains the missing data. "
+        "course_effectiveness is a descriptive proxy based on course-graduate "
+        "relationship records and represented job fields, not causal educational "
+        "effectiveness. The management report combines independent single-index "
+        "analyses and does not perform cross-index JOINs. "
+        "Use analytics_query for arbitrary user-defined filters, metrics, grouping, "
+        "or sorting; use this tool for the named domain-analysis products."
+    ),
+)
+async def university_market_analysis_tool(
+    analysis_type: Literal[
+        "skill_demand",
+        "skill_trends",
+        "skill_gaps",
+        "major_comparison",
+        "course_effectiveness",
+        "curriculum_recommendations",
+        "management_report",
+    ] = "management_report",
+    limit: int = 10,
+    major: str | None = None,
+    course_id: str | None = None,
+) -> str:
+    return await run_sync_tool(
+        "analyze_university_market",
+        analyze_university_market,
+        analysis_type,
+        limit,
+        major,
+        course_id,
+    )
 
 
 @server.tool(
