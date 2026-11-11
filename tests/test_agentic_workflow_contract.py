@@ -364,3 +364,14 @@ def test_workflow_bounds_filter_value_lists_and_normalizes_persian_zwnj():
     assert 'x.value.length>100' in validator
     assert r'replace(/[\u200c\u200d\u200e\u200f\u0640]/g,"")' in validator
     assert "digitValues[digitChars.indexOf(d)]" in validator
+
+
+def test_workflow_normalizes_metric_aliases_and_sanitizes_count_documents_fields():
+    workflow = _workflow()
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+
+    assert "m.function??m.aggregation??m.metric??m.type" in validator
+    assert "m.field??m.field_name" in validator
+    assert "for(let metricIndex=0;metricIndex<ms.length;metricIndex++)" in validator
+    assert 'Metric "+(metricIndex+1)' in validator
+    assert "warnings.push(...args._validation_warnings)" in validator
