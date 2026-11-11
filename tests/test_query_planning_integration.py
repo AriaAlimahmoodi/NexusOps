@@ -35,9 +35,14 @@ def test_local_plan_rejects_metric_role_mismatch():
     payload = valid_aggregate_payload(); payload['metrics'] = [{'function': 'avg', 'field': 'course_name', 'alias': 'bad'}]
     with pytest.raises(AnalyticsPlanningError, match='cannot be used as'): _validate_plan(payload)
 
-def test_local_plan_rejects_aggregate_without_grouping():
-    payload = valid_aggregate_payload(); payload['group_by'] = []
-    with pytest.raises(AnalyticsPlanningError, match='requires group_by and metrics'): _validate_plan(payload)
+def test_local_plan_accepts_scalar_aggregate_without_grouping():
+    payload = valid_aggregate_payload()
+    payload['group_by'] = []
+    payload['sort'] = []
+    plan = _validate_plan(payload)
+    assert plan['operation'] == 'aggregate'
+    assert plan['group_by'] == []
+    assert plan['metrics'][0]['alias'] == 'average_credits'
 
 def test_local_plan_accepts_engine_supported_cardinality_metric():
     payload = valid_aggregate_payload()
