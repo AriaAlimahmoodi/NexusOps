@@ -148,3 +148,34 @@ def test_mcp_tool_call_preserves_per_plan_transport_failures_for_partial_results
     assert "responseItems[index]?.pairedItem" in parser
     assert "statusCode: 599" in parser
     assert "paired-item lineage" in parser
+
+
+def test_execution_trace_is_propagated_across_mcp_and_answer_context():
+    workflow = _workflow()
+    build = _node(workflow, "Build Tool Call")["parameters"]["jsCode"]
+    parser = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
+    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
+    context = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert '$execution?.id' in build
+    assert 'executionId' in build
+    assert 'executionId: request.executionId' in parser
+    assert 'executionId: response.executionId' in formatter
+    assert 'execution_id: item.executionId' in context
+    assert 'execution_ids:' in context
+    assert 'executionIds' in compose
+
+
+def test_final_gate_rejects_incomplete_duplicate_and_unrecognized_plan_sets():
+    workflow = _workflow()
+    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+
+    assert 'expectedCounts.length===1' in compose
+    assert 'uniqueIndexes.size===r.length' in compose
+    assert 'uniqueIds.size===ids.length' in compose
+    assert 'correlationFailures' in compose
+    assert 'unrecognized>0' in compose
+    assert 'overallStatus' in compose
+    assert 'if(mode==="analysis")' in compose
+    assert 'وضعیت اعتبار پاسخ' in compose
