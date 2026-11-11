@@ -28,7 +28,9 @@ def run_syntax_gate() -> dict[str, Any]:
     failures = []
     for path in sources:
         try:
-            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            # utf-8-sig accepts ordinary UTF-8 and safely strips an optional BOM.
+            source = path.read_text(encoding="utf-8-sig")
+            ast.parse(source, filename=str(path))
         except (OSError, UnicodeError, SyntaxError) as exc:
             failures.append({
                 "path": str(path.relative_to(PROJECT_ROOT)),
