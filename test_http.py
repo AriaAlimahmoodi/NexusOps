@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import httpx2
 
 async def main():
