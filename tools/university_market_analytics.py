@@ -120,7 +120,7 @@ def _skill_demand(limit: int) -> dict[str, Any]:
 def _skill_gaps(limit: int) -> dict[str, Any]:
     result = _run_aggregate(
         "skill_mapping",
-        ["skill"],
+        ["skill", "course_id", "course_name"],
         [
             {"function": "avg", "field": "course_coverage", "alias": "average_course_coverage"},
             {"function": "avg", "field": "market_demand", "alias": "average_market_demand"},
