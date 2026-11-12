@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from time import perf_counter
 from typing import Any
 
 from config import get_elasticsearch_client
+
+logger = logging.getLogger("nexusops.analytics.elasticsearch")
 
 
 class ElasticsearchAdapterError(Exception):
@@ -181,7 +184,6 @@ class ElasticsearchAdapter:
                 )
                 details["request"]["size"] = query_plan.get("limit", 10)
 
-            logger = __import__("logging").getLogger("nexusops.analytics.elasticsearch")
             logger.exception(
                 "Elasticsearch analytics request failed",
                 extra={
