@@ -163,6 +163,18 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn("No aggregated course rows were returned", compose)
         self.assertIn("هیچ ردیف تجمیعی برای رتبه‌بندی درس‌ها", compose)
 
+    def test_formatter_preserves_major_localization_contract_and_course_localization(self):
+        formatter = self.nodes["Format Result"]["parameters"]["jsCode"]
+        self.assertIn('column === "major" && value === "Computer Engineering" ? "مهندسی کامپیوتر"', formatter)
+        self.assertIn('column === "course_name" && typeof value === "string"', formatter)
+        self.assertIn("ENGLISH_COURSE_NAMES", formatter)
+
+    def test_course_gap_analysis_uses_real_newlines_and_singular_record_grammar(self):
+        compose = self.nodes["Compose Final"]["parameters"]["jsCode"]
+        self.assertIn('lines.join("\\n")', compose)
+        self.assertNotIn('lines.join("\\\\n")', compose)
+        self.assertIn('Number(count)===1?" record":" records"', compose)
+
     def test_answer_writer_uses_one_authoritative_language_source(self):
         prompt = self.nodes["Answer Writer"]["parameters"]["text"]
         self.assertIn("responseLanguage", prompt)
