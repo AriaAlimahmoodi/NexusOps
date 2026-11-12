@@ -8,10 +8,10 @@ The automated Python suite validates planning, request validation, the analytics
 
 ## 1. Local code gate
 
-Run on **refactor/integration-foundation**:
+Run on **feat/agentic-workflow-hardening**:
 
 ~~~powershell
-git pull --ff-only origin refactor/integration-foundation
+git pull --ff-only origin feat/agentic-workflow-hardening
 python -m py_compile llm_query_planner.py
 python -m py_compile llm_mcp_client.py
 python -m py_compile query_planner.py
@@ -22,7 +22,7 @@ python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size after the MCP tool-routing contract test was added: **103 tests**. The previously reported 102-pass result predates that test and predates the latest tool-description change; rerun the suite to establish the new result. The exact result must be taken from the local run; the expected count is not a test result.
+The last user-reported baseline before the Phase 4 changes was **233 passed**. Phase 4 adds additional tests, so do not use that historical count as the expected total. Record the exact result from the current local run.
 
 ## 2. Verify live services before opening n8n
 
@@ -243,6 +243,73 @@ The MCP tool descriptions now define explicit precedence:
 - `search_elasticsearch` handles document retrieval, not analytics.
 
 This prevents a field-name mention such as `market_gap` or `market_demand` from overriding the shape of the requested operation. The regression test `tests/test_mcp_tool_routing_contract.py` protects the precedence language from reverting to broad, overlapping mandatory instructions.
+
+
+## 9. Unified reliability release gate
+
+Run from the repository root:
+
+~~~powershell
+python scripts/release_gate.py
+~~~
+
+This parses the Python source tree and runs the complete pytest suite. To include live service readiness:
+
+~~~powershell
+python scripts/release_gate.py --with-runtime-preflight
+~~~
+
+To include three simultaneous requests against the active production Chat Trigger in separate sessions, including both Persian and English requests (and automatically run preflight first):
+
+~~~powershell
+python scripts/release_gate.py --with-live-concurrency
+~~~
+
+The live concurrency harness reads the production Chat Trigger webhook ID from the canonical workflow JSON and submits independent English graduate-count, Persian C002 lookup, and Persian skill-gap requests with distinct session IDs. It validates each response's expected language and intent-specific evidence, reports per-request duration, and requires at least five visible ranked skill-gap entries. This is a cross-session isolation smoke test; Python-client same-conversation ordering is covered by automated concurrency tests; this harness does not claim n8n same-session ordering or full numerical parity with Kibana.
+
+The release report uses NOT_RUN for any live gate that was not requested. A static-only PASS must not be described as a complete live release acceptance.
+
+## 10. Numerical integrity rules
+
+The analytics formatter rejects:
+- boolean, floating-point, or negative COUNT values;
+- SELECT metadata where returned_records differs from the actual records list;
+- SELECT total_records smaller than returned_records;
+- non-finite or non-numeric aggregate metric values.
+
+Use the independent Kibana Dev Tools queries in sections 4A–4E to compare live values. Do not treat successful HTTP status, a passing text assertion, or a passing unit suite as proof that all live aggregate values match Elasticsearch.
+
+
+## 11. Phase 4 execution record — 2026-11-12
+
+The repository already contains three distinct acceptance layers and they must remain separate:
+
+1. **Python contract/reliability tests:** deterministic tests for planning, validation, MCP protocol, runtime failure handling, and conversation isolation.
+2. **MCP Runtime Test Suite:** six live protocol/tool/analytics checks without Ollama.
+3. **Agentic E2E Acceptance Suite:** five sequential requests through the active production Chat Trigger and local Ollama.
+
+The live concurrency harness submits three independent Chat Trigger executions concurrently. Its assertions cover:
+- exact graduate count token (30), not a substring such as 130;
+- Persian course identifier and expected course name;
+- a five-entry skill-gap ranking;
+- expected response language for each case;
+- HTTP failures and explicit incomplete/integrity states fail closed.
+
+The concurrency harness is a smoke test for cross-session separation. It does not prove same-session ordering in n8n, nor does it replace the numerical Kibana comparisons in sections 4A–4E.
+
+### Current verification boundary
+
+| Evidence | Status |
+|---|---|
+| Phase 3 local suite | PASS — 233 passed, as reported by the user before Phase 4 changes |
+| Persian/English course-gap live examples | PASS — user-provided n8n outputs on 2026-11-12 |
+| Phase 4 regression tests | PASS — GitHub Actions: 238 passed in 8.06s on commit `72c97f157dc9e3516275e20083b5d3e9e907a017`; local Windows rerun pending |
+| MCP Runtime Test Suite (T01–T06) | Pending fresh live execution |
+| Agentic E2E Suite (A01–A05) | Pending fresh live execution |
+| Independent Kibana numerical comparisons (A/B/C/E) | Pending fresh comparison |
+| Concurrent Chat Trigger acceptance (C01–C03) | Pending fresh live execution |
+
+A Phase 4 release is not complete until the pending local and live evidence has been collected. A passing pytest run alone is not a live release acceptance.
 
 
 ## 9. Consolidated regression gate — 2026-11-12
