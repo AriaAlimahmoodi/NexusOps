@@ -23,7 +23,7 @@ def test_agent_e2e_suite_is_importable_and_graph_is_well_connected():
     workflow = _workflow(SUITE_PATH)
     names = [node["name"] for node in workflow["nodes"]]
 
-    assert workflow["name"] == "NexusOps Agentic E2E Acceptance Suite"
+    assert workflow["name"] == "NexusOps Full-System E2E Acceptance Suite"
     assert workflow["active"] is False
     assert len(names) == len(set(names))
     assert names[0] == "Manual Trigger"
@@ -70,6 +70,14 @@ def test_agent_cases_cover_numeric_course_multi_objective_and_domain_paths():
         "A02", "course_lookup", "C002", "ساختمان داده",
         "A03", "multi_plan", "شکاف مهارتی",
         "A04", "out_of_scope", "بیت‌کوین",
+        "A06", "skill_demand", "تحلیل تقاضای مهارت‌های بازار کار",
+        "A07", "skill_gaps", "بیشترین شکاف مهارتی",
+        "A08", "course_gap", "C013", "رایانش ابری",
+        "A09", "english_course_lookup", "What is the name of course C002?", "Data Structures",
+        "A10", "nested_filter", "career_relevance",
+        "A11", "multi_metric", "employment_months",
+        "A12", "skill_details", "Python", "SQL",
+        "A13", "management_report", "گزارش مدیریتی",
         'action:"sendMessage"', "sessionId", "chatInput",
     ]:
         assert token in build_code
@@ -113,5 +121,8 @@ def test_agent_evaluator_checks_real_response_content_and_reports_scope_limits()
         "expectedCount", "expectedCourseName", "partial_failure",
         "Response correlation failed", "items.length===cases.length", 'overall:failed===0',
         "does not inject MCP faults or claim concurrency coverage",
+        "skill_demand", "skill_gaps", "course_gap", "english_course_lookup",
+        "nested_filter", "multi_metric", "skill_details", "management_report",
+        "NexusOps Full-System E2E Acceptance Suite",
     ]:
         assert token in code
