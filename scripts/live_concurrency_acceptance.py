@@ -126,10 +126,10 @@ def evaluate_response(
     elif not _language_matches(text, case.get("expected_language", "")):
         detail = f"Response language does not match expected language {case.get('expected_language')}."
     elif case["kind"] == "numeric_count":
-        passed = re.search(r"(?<!\d)30(?!\d)", normalized) is not None
+        passed = re.fullmatch(r"\s*(?:\*\*)?30(?:\*\*)?[.!]?\s*", normalized) is not None
         detail = (
-            "The independent conversation returned the exact graduate count 30."
-            if passed else "Expected exact graduate count 30 was not found."
+            "The independent conversation returned only the exact graduate count 30."
+            if passed else "Expected an isolated exact graduate count 30; a different value or unrelated content was returned."
         )
     elif case["kind"] == "course_lookup":
         passed = (
