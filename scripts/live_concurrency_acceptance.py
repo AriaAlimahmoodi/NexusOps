@@ -138,7 +138,7 @@ def evaluate_response(
             if passed else "Expected course identifier and name were not both found."
         )
     elif case["kind"] == "skill_gap":
-        entry_count = _ranked_entry_count(text)
+        entry_count = _ranked_entry_count(normalized)
         passed = ("شکاف" in text or "market_gap" in text.casefold()) and entry_count >= 5
         detail = (
             f"The independent conversation returned a skill-gap ranking with {entry_count} visible entries."
