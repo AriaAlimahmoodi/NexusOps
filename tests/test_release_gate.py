@@ -132,7 +132,7 @@ def test_release_gate_documents_one_live_main_workflow_acceptance_path(monkeypat
     )
     assert release_gate.main([]) == 0
     output = capsys.readouterr().out
-    report = json.loads(output.split("RELEASE_GATE_RESULT=\\n", 1)[1])
+    report = json.loads(output.split("RELEASE_GATE_RESULT=\n", 1)[1])
     gates = report["manual_gates"]
     assert any("Full-System E2E Acceptance Suite (A01-A13)" in gate for gate in gates)
     assert any("diagnostic artifact" in gate for gate in gates)
