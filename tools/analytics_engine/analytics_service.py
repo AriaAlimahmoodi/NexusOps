@@ -120,7 +120,9 @@ class AnalyticsService:
         except Exception as exc:
             raise AnalyticsServiceError(
                 f"Query execution failed: "
-                f"{type(exc).__name__}: {exc}"
+                f"{type(exc).__name__}: {exc}",
+                code="ANALYTICS_QUERY_EXECUTION_FAILED",
+                details=getattr(exc, "details", None),
             ) from exc
 
         # ---------------------------------------------------------

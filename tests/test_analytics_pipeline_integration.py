@@ -503,3 +503,41 @@ def test_analytics_request_enforces_engine_resource_limits():
 
     with pytest.raises(AnalyticsModelError, match="Metric alias"):
         MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="Bad Alias")
+
+
+
+def test_real_elasticsearch_adapter_preserves_bad_request_body_and_aggregation_dsl(
+    pipeline_environment,
+):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+    from tools.analytics_engine.analytics_service import AnalyticsServiceError
+
+    class BadRequestError(Exception):
+        def __init__(self):
+            super().__init__("Bad Request")
+            self.meta = type("Meta", (), {"status": 400})()
+            self.body = {"error": {"type": "search_phase_execution_exception",
+                                   "reason": "fielddata disabled"}, "status": 400}
+
+    class RejectingClient(FakeElasticsearchClient):
+        def search(self, **kwargs):
+            self.search_calls.append(deepcopy(kwargs))
+            raise BadRequestError()
+
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=("major",),
+        metrics=(MetricSpec(MetricFunction.AVG, "career_relevance", "avg_relevance"),),
+        sort=(SortSpec("avg_relevance", SortOrder.DESC),),
+        limit=10,
+    )
+    with pytest.raises(AnalyticsServiceError) as captured:
+        AnalyticsService(adapter=ElasticsearchAdapter(client=RejectingClient())).analyze(request)
+
+    details = captured.value.details
+    assert details["request"]["index"] == "pipeline-fixture-index"
+    assert details["request"]["query"] == {"match_all": {}}
+    assert details["request"]["aggregations"]["group_0"]["terms"]["field"] == "major"
+    assert details["backend_exception"]["status_code"] == 400
+    assert details["backend_exception"]["body"]["error"]["reason"] == "fielddata disabled"

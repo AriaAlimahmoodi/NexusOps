@@ -9,6 +9,10 @@ from config import get_elasticsearch_client
 class ElasticsearchAdapterError(Exception):
     """Raised when Elasticsearch adapter cannot execute or normalize a plan."""
 
+    def __init__(self, message: str, *, details: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
 
 class ElasticsearchAdapter:
     """
@@ -146,8 +150,33 @@ class ElasticsearchAdapter:
         except ElasticsearchAdapterError:
             raise
         except Exception as exc:
+            details: dict[str, Any] = {
+                "request": {"index": index, "operation": operation, "query": query},
+                "backend_exception": {"type": type(exc).__name__},
+            }
+            meta = getattr(exc, "meta", None)
+            status = getattr(meta, "status", None)
+            if status is not None:
+                details["backend_exception"]["status_code"] = status
+            body = getattr(exc, "body", None)
+            if body is None:
+                body = getattr(exc, "info", None)
+            if body is not None:
+                details["backend_exception"]["body"] = self._json_safe(body)
+            if operation == "aggregate":
+                aggregation_plan = query_plan.get("aggregation")
+                if isinstance(aggregation_plan, dict):
+                    details["aggregation_plan"] = self._json_safe(aggregation_plan)
+                    try:
+                        details["request"]["aggregations"] = self._build_aggregations(aggregation_plan)
+                    except Exception as plan_exc:
+                        details["aggregation_build_error"] = f"{type(plan_exc).__name__}: {plan_exc}"
+            elif operation == "select":
+                details["request"]["sort"] = query_plan.get("sort", [])
+                details["request"]["size"] = query_plan.get("limit", 10)
             raise ElasticsearchAdapterError(
-                f"Elasticsearch execution failed: {type(exc).__name__}"
+                f"Elasticsearch execution failed: {type(exc).__name__}",
+                details=details,
             ) from exc
 
     # ------------------------------------------------------------------
@@ -913,6 +942,22 @@ class ElasticsearchAdapter:
     # ------------------------------------------------------------------
     # Response compatibility
     # ------------------------------------------------------------------
+
+    @classmethod
+    def _json_safe(cls, value: Any) -> Any:
+        """Convert backend error payloads and plans into JSON-safe values."""
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return {str(key): cls._json_safe(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [cls._json_safe(item) for item in value]
+        if hasattr(value, "to_dict"):
+            try:
+                return cls._json_safe(value.to_dict())
+            except Exception:
+                pass
+        return str(value)
 
     @staticmethod
     def _response_body(response: Any) -> dict[str, Any]:

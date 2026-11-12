@@ -275,3 +275,75 @@ def test_aggregate_domain_sections_expose_results_alias_for_mcp_client(monkeypat
     ))
     result = domain.analyze_university_market("skill_demand")
     assert result["results"] == result["rows"]
+
+
+
+def test_management_report_counts_each_failed_section_once_and_ignores_warnings(monkeypatch):
+    def fake(arguments):
+        dataset_id = arguments["dataset_id"]
+        if dataset_id in {"skill_mapping", "course_graduate_records"}:
+            return {"status": "error", "dataset_id": dataset_id,
+                    "error": {"code": "BACKEND_FAILURE", "message": "query failed"}}
+        if dataset_id == "labor_market":
+            response = _success(dataset_id, [{
+                "group": {"skill": "Python"}, "metrics": {"average_demand_score": 4.5},
+            }])
+            response["warnings"] = ["terms buckets truncated"]
+            return response
+        return _success(dataset_id, [{
+            "group": {"major": "Computer Engineering"}, "metrics": {"graduate_count": 3},
+        }])
+
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("management_report")
+    assert result["status"] == "partial_success"
+    assert result["section_failures"] == 2
+    assert result["section_partial_successes"] == 0
+    assert result["sections"]["skill_demand"]["status"] == "success"
+
+
+def test_management_report_tracks_partial_course_section_without_counting_failure(monkeypatch):
+    def fake(arguments):
+        dataset_id = arguments["dataset_id"]
+        if dataset_id == "course_graduate_records":
+            if arguments["group_by"] == ["course_id", "course_name"]:
+                return _success(dataset_id, [{
+                    "group": {"course_id": "C013", "course_name": "رایانش ابری"},
+                    "metrics": {"relationship_records": 5},
+                }])
+            return {"status": "error", "dataset_id": dataset_id,
+                    "error": {"code": "BACKEND_FAILURE", "message": "breakdown failed"}}
+        if dataset_id == "skill_mapping":
+            return _success(dataset_id, [{
+                "group": {"skill": "Kubernetes", "course_id": "C013", "course_name": "رایانش ابری"},
+                "metrics": {"average_course_coverage": 1, "average_market_demand": 4.8,
+                            "average_market_gap": 3.8},
+            }])
+        if dataset_id == "labor_market":
+            return _success(dataset_id, [{
+                "group": {"skill": "Python"}, "metrics": {"average_demand_score": 4.5},
+            }])
+        return _success(dataset_id, [{
+            "group": {"major": "Computer Engineering"}, "metrics": {"graduate_count": 3},
+        }])
+
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("management_report")
+    assert result["status"] == "partial_success"
+    assert result["section_failures"] == 0
+    assert result["section_partial_successes"] == 1
+    assert result["sections"]["course_effectiveness"]["status"] == "partial_success"
+
+
+def test_domain_section_preserves_structured_adapter_error_details(monkeypatch):
+    class BackendFailure(Exception):
+        details = {"request": {"index": "skill_mapping"},
+                   "backend_exception": {"status_code": 400, "body": {"error": "bad request"}}}
+
+    monkeypatch.setattr(
+        domain, "run_analytics_query",
+        lambda arguments: (_ for _ in ()).throw(BackendFailure("bad request")),
+    )
+    result = domain.analyze_university_market("skill_gaps")
+    assert result["status"] == "error"
+    assert result["error"]["details"]["backend_exception"]["status_code"] == 400

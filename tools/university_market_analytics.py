@@ -52,6 +52,12 @@ def _run_aggregate(
             "error": {
                 "code": "DOMAIN_ANALYTICS_EXECUTION_FAILED",
                 "message": str(exc),
+                **(
+                    {"details": getattr(exc, "details")}
+                    if isinstance(getattr(exc, "details", None), dict)
+                    and getattr(exc, "details")
+                    else {}
+                ),
             },
         }
 
@@ -363,17 +369,24 @@ def analyze_university_market(
         "major_comparison": _major_comparison(limit, major),
         "course_effectiveness": _course_effectiveness(limit, course_id),
     }
-    successes = sum(section.get("status") == "success" for section in sections.values())
-    failures = len(sections) - successes
+    section_statuses = [section.get("status") for section in sections.values()]
+    successes = sum(section_status == "success" for section_status in section_statuses)
+    partial_successes = sum(section_status == "partial_success" for section_status in section_statuses)
+    failures = sum(section_status == "error" for section_status in section_statuses)
+    completed_sections = successes + partial_successes
+
     gaps_for_recommendations = sections["skill_gaps"]
     recommendations = (
         _build_curriculum_recommendations(gaps_for_recommendations)
         if gaps_for_recommendations.get("status") == "success"
         else []
     )
-    if gaps_for_recommendations.get("status") != "success":
-        failures += 1
-    status = "success" if failures == 0 else "partial_success" if successes else "error"
+    if failures == 0 and partial_successes == 0:
+        status = "success"
+    elif completed_sections:
+        status = "partial_success"
+    else:
+        status = "error"
 
     summary_rows = [
         {
@@ -403,4 +416,5 @@ def analyze_university_market(
             "پیشنهادهای برنامه درسی از رتبه‌بندی market_gap در skill_mapping استخراج می‌شوند."
         ),
         "section_failures": failures,
+        "section_partial_successes": partial_successes,
     }
