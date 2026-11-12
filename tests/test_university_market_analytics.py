@@ -429,3 +429,48 @@ def test_skill_gaps_preserves_backend_failure_details(monkeypatch):
 
     assert result["status"] == "error"
     assert result["error"]["details"] == backend_error["details"]
+
+
+def test_course_effectiveness_metadata_matches_displayed_domain_rows(monkeypatch):
+    def fake(arguments):
+        if arguments["group_by"] == ["course_id", "course_name"]:
+            response = _success("course_graduate_records", [
+                {"group": {"course_id": f"C{i:03d}", "course_name": f"Course {i}"},
+                 "metrics": {"relationship_records": 20 - i}}
+                for i in range(1, 13)
+            ])
+            response["metadata"]["returned_records"] = 19
+            return response
+        return _success("course_graduate_records", [
+            {"group": {"course_id": f"C{i:03d}", "course_name": f"Course {i}", "job_field": "Software"},
+             "metrics": {"job_field_relationship_records": 1}}
+            for i in range(1, 13)
+        ])
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("course_effectiveness", limit=10)
+    assert len(result["rows"]) == 10
+    assert result["metadata"]["returned_records"] == 10
+    assert result["metadata"]["displayed_rows"] == 10
+    assert result["metadata"]["aggregation_returned_records"] == 19
+
+
+def test_skill_demand_exposes_terms_aggregation_truncation(monkeypatch):
+    def fake(arguments):
+        response = _success("labor_market", [{"group": {"skill": "Python"}, "metrics": {"average_demand_score": 4.5}}])
+        response["warnings"] = ["sum_other_doc_count=42"]
+        return response
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("skill_demand")
+    assert result["metadata"]["aggregation_coverage"]["omitted_document_count"] == 42
+    assert result["metadata"]["aggregation_coverage"]["truncated"] is True
+    assert any("not exhaustive" in warning for warning in result["warnings"])
+
+
+def test_major_comparison_warns_when_only_one_group_is_returned(monkeypatch):
+    monkeypatch.setattr(domain, "run_analytics_query", lambda arguments: _success("university_graduates", [
+        {"group": {"major": "Computer Engineering"}, "metrics": {"graduate_count": 30}}
+    ]))
+    result = domain.analyze_university_market("major_comparison")
+    assert result["metadata"]["comparison_status"] == "insufficient_returned_groups"
+    assert result["metadata"]["returned_major_groups"] == 1
+    assert any("does not establish" in warning for warning in result["warnings"])

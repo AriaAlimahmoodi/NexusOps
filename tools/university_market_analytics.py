@@ -116,6 +116,27 @@ def _skill_demand(limit: int) -> dict[str, Any]:
         sort=[{"field": "average_demand_score", "order": "desc"}],
     )
     result["analysis_type"] = "skill_demand"
+    warnings = result.get("warnings") or []
+    omitted = None
+    import re
+    for warning in warnings:
+        match = re.search(r"sum_other_doc_count\\s*[=:]\\s*(\\d+)", str(warning))
+        if match:
+            omitted = int(match.group(1))
+            break
+    result["metadata"] = {
+        **(result.get("metadata") or {}),
+        "aggregation_coverage": {
+            "returned_skill_buckets": len(result.get("rows", [])),
+            "omitted_document_count": omitted,
+            "truncated": omitted is not None and omitted > 0,
+            "scope": "Elasticsearch terms aggregation; omitted count is not a count of omitted skill buckets",
+        },
+    }
+    if omitted:
+        result.setdefault("warnings", []).append(
+            f"Skill-demand terms aggregation reports {omitted} documents in sum_other_doc_count; returned skill buckets are not exhaustive."
+        )
     result["interpretation"] = (
         "مقایسه مقطعی مهارت‌ها بر اساس میانگین امتیاز تقاضا و مجموع فراوانی ثبت‌شده؛ "
         "این خروجی به‌تنهایی روند زمانی را نشان نمی‌دهد."
@@ -197,6 +218,15 @@ def _major_comparison(limit: int, major: str | None = None) -> dict[str, Any]:
         filters=filters,
     )
     result["analysis_type"] = "major_comparison"
+    if result.get("status") == "success" and len(result.get("rows", [])) < 2:
+        result["metadata"] = {
+            **(result.get("metadata") or {}),
+            "comparison_status": "insufficient_returned_groups",
+            "returned_major_groups": len(result.get("rows", [])),
+        }
+        result.setdefault("warnings", []).append(
+            "Fewer than two major groups were returned; this does not establish that other majors are absent from the full dataset."
+        )
     result["interpretation"] = (
         "مقایسه خروجی‌های ثبت‌شده فارغ‌التحصیلان به تفکیک major؛ "
         "این شاخص‌ها توصیفی‌اند و به‌تنهایی رابطه علّی میان رشته و موفقیت شغلی را اثبات نمی‌کنند."
@@ -266,13 +296,22 @@ def _course_effectiveness(limit: int, course_id: str | None = None) -> dict[str,
             item["course_id"],
         ),
     )
+    displayed_rows = rows[:limit]
+    source_metadata = totals.get("metadata", {})
+    metadata = {
+        **source_metadata,
+        "aggregation_returned_records": source_metadata.get("returned_records"),
+        "returned_records": len(displayed_rows),
+        "displayed_rows": len(displayed_rows),
+        "returned_records_semantics": "number of course rows exposed by this domain response",
+    }
     return {
         "status": "success" if breakdown.get("status") == "success" else "partial_success",
         "analysis_type": "course_effectiveness",
         "dataset_id": "course_graduate_records",
-        "rows": rows[:limit],
-        "results": rows[:limit],
-        "metadata": totals.get("metadata", {}),
+        "rows": displayed_rows,
+        "results": displayed_rows,
+        "metadata": metadata,
         "warnings": totals.get("warnings", []) + breakdown.get("warnings", []),
         "interpretation": (
             "این تحلیل یک نمایه پوشش/ارتباط درس با سوابق فارغ‌التحصیلان و حوزه‌های شغلی است. "

@@ -424,3 +424,13 @@ def test_n8n_mixed_boolean_skill_filters_use_nested_groups_and_reject_or_conditi
     assert "هرگز کلید or_conditions یا کلید خارج از قرارداد نساز" in planner
     assert "تقدم استاندارد AND بر OR" in planner
     assert "filters={logic,conditions,groups}" in planner
+
+
+def test_answer_writer_and_context_detect_the_user_question_language():
+    workflow = _workflow()
+    answer_prompt = _node(workflow, "Answer Writer")["parameters"]["text"]
+    context_code = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
+    assert "قانون قطعی زبان پاسخ" in answer_prompt
+    assert "زبان غالب سؤال جاری" in answer_prompt
+    assert "responseLanguage" in context_code
+    assert "persianCount" in context_code and "latinCount" in context_code
