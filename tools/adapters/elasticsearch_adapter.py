@@ -174,6 +174,7 @@ class ElasticsearchAdapter:
                     "body": self._json_safe(error_body),
                 },
             }
+            details["backend_exception"] = details["elasticsearch"]
             if operation == "aggregate":
                 details["request"]["aggregation_plan"] = self._json_safe(
                     query_plan.get("aggregation")
