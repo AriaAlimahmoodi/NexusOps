@@ -303,7 +303,7 @@ The concurrency harness is a smoke test for cross-session separation. It does no
 |---|---|
 | Phase 3 local suite | PASS — 233 passed, as reported by the user before Phase 4 changes |
 | Persian/English course-gap live examples | PASS — user-provided n8n outputs on 2026-11-12 |
-| Phase 4 regression tests | Pending local execution after pull |
+| Phase 4 regression tests | PASS — GitHub Actions: 238 passed in 8.06s on commit `72c97f157dc9e3516275e20083b5d3e9e907a017`; local Windows rerun pending |
 | MCP Runtime Test Suite (T01–T06) | Pending fresh live execution |
 | Agentic E2E Suite (A01–A05) | Pending fresh live execution |
 | Independent Kibana numerical comparisons (A/B/C/E) | Pending fresh comparison |
