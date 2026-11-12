@@ -451,6 +451,148 @@ def test_real_elasticsearch_adapter_select_preserves_hit_totals_and_sort(pipelin
     assert client.search_calls[0]["size"] == 2
 
 
+def test_scalar_aggregate_executes_without_group_by(pipeline_environment):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    client = FakeElasticsearchClient(search_response={
+        "hits": {"total": {"value": 30, "relation": "eq"}},
+        "aggregations": {"average_employment_months": {"value": 6.93}},
+        "_shards": {"failed": 0},
+        "timed_out": False,
+    })
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=(),
+        metrics=(
+            MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="graduate_count"),
+            MetricSpec(MetricFunction.AVG, "employment_months", "average_employment_months"),
+        ),
+        limit=1,
+    )
+    response = AnalyticsService(adapter=ElasticsearchAdapter(client=client)).analyze(request)
+    assert response["status"] == "success"
+    assert response["result"]["buckets"] == [{
+        "group": {},
+        "metrics": {"graduate_count": 30, "average_employment_months": 6.93},
+        "document_count": 30,
+    }]
+    assert client.search_calls[0]["track_total_hits"] is True
+    assert client.search_calls[0]["aggs"] == {
+        "average_employment_months": {"avg": {"field": "employment_months"}}
+    }
+
+
+def test_analytics_request_enforces_engine_resource_limits():
+    from tools.analytics_engine.models import AnalyticsModelError
+
+    with pytest.raises(AnalyticsModelError, match="between 1 and 1000"):
+        AnalyticsRequest(
+            dataset_id=DATASET_ID,
+            operation=AnalyticsOperation.SELECT,
+            limit=1001,
+        )
+
+    with pytest.raises(AnalyticsModelError, match="At most 3 group_by"):
+        AnalyticsRequest(
+            dataset_id=DATASET_ID,
+            operation=AnalyticsOperation.AGGREGATE,
+            group_by=("major", "major_2", "major_3", "major_4"),
+            metrics=(MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="documents"),),
+        )
+
+    with pytest.raises(AnalyticsModelError, match="Metric alias"):
+        MetricSpec(MetricFunction.COUNT_DOCUMENTS, alias="Bad Alias")
+
+
+
+def test_real_elasticsearch_adapter_preserves_bad_request_body_and_aggregation_dsl(
+    pipeline_environment,
+):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+    from tools.analytics_engine.analytics_service import AnalyticsServiceError
+
+    class BadRequestError(Exception):
+        def __init__(self):
+            super().__init__("Bad Request")
+            self.meta = type("Meta", (), {"status": 400})()
+            self.body = {"error": {"type": "search_phase_execution_exception",
+                                   "reason": "fielddata disabled"}, "status": 400}
+
+    class RejectingClient(FakeElasticsearchClient):
+        def search(self, **kwargs):
+            self.search_calls.append(deepcopy(kwargs))
+            raise BadRequestError()
+
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=("major",),
+        metrics=(MetricSpec(MetricFunction.AVG, "career_relevance", "avg_relevance"),),
+        sort=(SortSpec("avg_relevance", SortOrder.DESC),),
+        limit=10,
+    )
+    with pytest.raises(AnalyticsServiceError) as captured:
+        AnalyticsService(adapter=ElasticsearchAdapter(client=RejectingClient())).analyze(request)
+
+    details = captured.value.details
+    assert details["request"]["index"] == "pipeline-fixture-index"
+    assert details["request"]["query"] == {"match_all": {}}
+    assert details["request"]["aggregations"]["group_0"]["terms"]["field"] == "major"
+    assert details["backend_exception"]["status_code"] == 400
+    assert details["backend_exception"]["body"]["error"]["reason"] == "fielddata disabled"
+
+def test_count_documents_sort_uses_bucket_count_for_nested_course_groups():
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    adapter = ElasticsearchAdapter(client=FakeElasticsearchClient())
+    aggregation_plan = {
+        "dataset_id": DATASET_ID,
+        "group_by": [
+            {"name": "course_id"},
+            {"name": "course_name"},
+        ],
+        "metrics": [
+            {"function": "count_documents", "field": None, "alias": "relationship_records"},
+        ],
+        "sort": [
+            {"target_type": "metric", "target": "relationship_records", "order": "desc"},
+        ],
+        "limit": 1000,
+        "options": {},
+    }
+
+    dsl = adapter._build_aggregations(aggregation_plan)
+    root_terms = dsl["group_0"]["terms"]
+    nested_terms = dsl["group_0"]["aggs"]["group_1"]["terms"]
+
+    assert root_terms["order"] == [{"_count": "desc"}]
+    assert "order" not in nested_terms
+    assert "relationship_records" not in dsl["group_0"]["aggs"]["group_1"].get("aggs", {})
+
+
+def test_count_documents_sort_uses_bucket_count_for_single_group():
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    adapter = ElasticsearchAdapter(client=FakeElasticsearchClient())
+    aggregation_plan = {
+        "dataset_id": DATASET_ID,
+        "group_by": [{"name": "course_id"}],
+        "metrics": [
+            {"function": "count_documents", "field": None, "alias": "relationship_records"},
+        ],
+        "sort": [
+            {"target_type": "metric", "target": "relationship_records", "order": "desc"},
+        ],
+        "limit": 1000,
+        "options": {},
+    }
+
+    dsl = adapter._build_aggregations(aggregation_plan)
+    assert dsl["group_0"]["terms"]["order"] == [{"_count": "desc"}]
+
+
+
 class FakeBadRequestError(Exception):
     def __init__(self):
         super().__init__("search_phase_execution_exception: fielddata disabled")
