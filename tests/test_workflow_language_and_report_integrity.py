@@ -52,6 +52,13 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
             with self.subTest(rule=rule):
                 self.assertIn(rule, prompt)
 
+    def test_answer_writer_binds_skill_values_to_their_own_rows(self):
+        prompt = self.nodes["Answer Writer"]["parameters"]["text"]
+        self.assertIn("همان ردیف ساختاریافته همان مهارت", prompt)
+        self.assertIn("هرگز مقدار Git را به Python", prompt)
+        self.assertIn("status و rows_returned", prompt)
+        self.assertIn("زوج (skill, market_gap)", prompt)
+
     def test_result_tables_localize_common_headers_for_persian(self):
         code = self.nodes["Format Result"]["parameters"]["jsCode"]
         self.assertIn("PERSIAN_COLUMN_LABELS", code)
