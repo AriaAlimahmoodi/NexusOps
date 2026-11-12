@@ -259,7 +259,7 @@ def test_answer_writer_never_overstates_filtered_result_scope_or_invents_missing
     assert "تعداد کل اسناد ایندکس یا دیتاست معرفی نکن" in prompt
     assert "بدون فیلتر روی کل دیتاست" in prompt
     assert "complete بودن نتایج فیلترشده" in prompt
-    assert "Never infer that unreturned majors" in prompt
+    assert "نبود یک رکورد در داده‌های نمونه‌ای" in prompt
 
 
 def test_error_reply_is_bilingual_and_never_converts_execution_errors_to_zero():
