@@ -541,3 +541,53 @@ def test_real_elasticsearch_adapter_preserves_bad_request_body_and_aggregation_d
     assert details["request"]["aggregations"]["group_0"]["terms"]["field"] == "major"
     assert details["backend_exception"]["status_code"] == 400
     assert details["backend_exception"]["body"]["error"]["reason"] == "fielddata disabled"
+
+def test_count_documents_sort_uses_bucket_count_for_nested_course_groups():
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    adapter = ElasticsearchAdapter(client=FakeElasticsearchClient())
+    aggregation_plan = {
+        "dataset_id": DATASET_ID,
+        "group_by": [
+            {"name": "course_id"},
+            {"name": "course_name"},
+        ],
+        "metrics": [
+            {"function": "count_documents", "field": None, "alias": "relationship_records"},
+        ],
+        "sort": [
+            {"target_type": "metric", "target": "relationship_records", "order": "desc"},
+        ],
+        "limit": 1000,
+        "options": {},
+    }
+
+    dsl = adapter._build_aggregations(aggregation_plan)
+    root_terms = dsl["group_0"]["terms"]
+    nested_terms = dsl["group_0"]["aggs"]["group_1"]["terms"]
+
+    assert root_terms["order"] == [{"_count": "desc"}]
+    assert "order" not in nested_terms
+    assert "relationship_records" not in dsl["group_0"]["aggs"]["group_1"].get("aggs", {})
+
+
+def test_count_documents_sort_uses_bucket_count_for_single_group():
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    adapter = ElasticsearchAdapter(client=FakeElasticsearchClient())
+    aggregation_plan = {
+        "dataset_id": DATASET_ID,
+        "group_by": [{"name": "course_id"}],
+        "metrics": [
+            {"function": "count_documents", "field": None, "alias": "relationship_records"},
+        ],
+        "sort": [
+            {"target_type": "metric", "target": "relationship_records", "order": "desc"},
+        ],
+        "limit": 1000,
+        "options": {},
+    }
+
+    dsl = adapter._build_aggregations(aggregation_plan)
+    assert dsl["group_0"]["terms"]["order"] == [{"_count": "desc"}]
+
