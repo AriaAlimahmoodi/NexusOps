@@ -434,3 +434,12 @@ def test_answer_writer_and_context_detect_the_user_question_language():
     assert "زبان غالب سؤال جاری" in answer_prompt
     assert "responseLanguage" in context_code
     assert "persianCount" in context_code and "latinCount" in context_code
+
+
+def test_final_composer_localizes_deterministic_sections_by_question_language():
+    workflow = _workflow()
+    code = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+    assert "const fa=faCount>enCount" in code
+    assert "Largest skill gaps" in code
+    assert "Execution failed: " in code
+    assert "if(graduateMajorAggregate.length&&fa)" in code

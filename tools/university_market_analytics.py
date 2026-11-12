@@ -120,7 +120,7 @@ def _skill_demand(limit: int) -> dict[str, Any]:
     omitted = None
     import re
     for warning in warnings:
-        match = re.search(r"sum_other_doc_count\\s*[=:]\\s*(\\d+)", str(warning))
+        match = re.search(r"sum_other_doc_count\s*[=:]\s*(\d+)", str(warning))
         if match:
             omitted = int(match.group(1))
             break
