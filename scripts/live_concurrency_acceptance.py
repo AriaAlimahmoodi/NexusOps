@@ -132,14 +132,23 @@ def evaluate_response(
             if passed else "Expected exact graduate count 30 was not found."
         )
     elif case["kind"] == "course_lookup":
-        passed = "C002" in text and "ساختمان داده" in text
+        passed = (
+            "C002" in text
+            and "ساختمان داده" in text
+            and not re.search(r"شکاف مهارتی|market_gap|تعداد کل فارغ", text, re.I)
+        )
         detail = (
-            "The independent conversation returned course C002 and its Persian name."
-            if passed else "Expected course identifier and name were not both found."
+            "The independent conversation returned course C002 and its Persian name without foreign-intent markers."
+            if passed else "Expected isolated course identifier/name evidence was not found."
         )
     elif case["kind"] == "skill_gap":
         entry_count = _ranked_entry_count(normalized)
-        passed = ("شکاف" in text or "market_gap" in text.casefold()) and entry_count >= 5
+        passed = (
+            ("شکاف" in text or "market_gap" in text.casefold())
+            and entry_count >= 5
+            and "C002" not in text
+            and "ساختمان داده" not in text
+        )
         detail = (
             f"The independent conversation returned a skill-gap ranking with {entry_count} visible entries."
             if passed else f"Expected a five-entry skill-gap ranking; detected {entry_count} entries."
