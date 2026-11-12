@@ -29,3 +29,12 @@ def test_mcp_tool_descriptions_define_non_overlapping_routing_precedence():
     assert (
         "MANDATORY for questions involving university coverage" not in source
     )
+
+
+def test_domain_analytics_tool_has_explicit_evidence_boundaries():
+    source = (Path(__file__).resolve().parents[1] / "server.py").read_text(encoding="utf-8")
+    assert 'name="analyze_university_market"' in source
+    assert "skill_trends" in source
+    assert "course_effectiveness" in source
+    assert "does not perform cross-index JOINs" in source
+    assert "not causal educational" in source

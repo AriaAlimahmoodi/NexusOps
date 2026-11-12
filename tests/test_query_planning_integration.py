@@ -467,3 +467,66 @@ def test_analytics_response_rejects_malformed_warnings_and_execution_time():
     valid, message = validate_mcp_result(plan, data)
     assert not valid
     assert "warnings must be a list" in message
+
+
+def test_scalar_aggregate_plan_is_valid_without_group_by():
+    payload = {
+        "dataset_id": "university_graduates",
+        "operation": "aggregate",
+        "group_by": [],
+        "metrics": [{"function": "avg", "field": "employment_months", "alias": "average_employment_months"}],
+        "filters": None,
+        "sort": [],
+        "limit": 1,
+        "options": {},
+    }
+    plan = _validate_plan(payload)
+    assert plan["group_by"] == []
+    assert plan["metrics"][0]["alias"] == "average_employment_months"
+
+
+def test_plan_rejects_unknown_top_level_fields():
+    payload = valid_aggregate_payload()
+    payload["select_fields"] = ["course_name"]
+    with pytest.raises(AnalyticsPlanningError, match="Unsupported plan field"):
+        _validate_plan(payload)
+
+
+def test_plan_rejects_excessively_deep_filter_tree():
+    payload = valid_aggregate_payload()
+    node = {"logic": "and", "conditions": [{"field": "credits", "operator": "gte", "value": 2}], "groups": []}
+    for _ in range(7):
+        node = {"logic": "and", "conditions": [], "groups": [node]}
+    payload["filters"] = node
+    with pytest.raises(AnalyticsPlanningError, match="maximum depth"):
+        _validate_plan(payload)
+
+
+def test_persian_text_normalization_handles_arabic_letters_zwnj_and_digits():
+    from llm_query_planner import normalize_analytics_text
+
+    assert normalize_analytics_text("فارغ‌التحصیلان ۱۴۰۲ ك") == "فارغالتحصیلان 1402 ک"
+
+
+@pytest.mark.parametrize("question,expected_type", [
+    ("روند مهارت‌های بازار کار را تحلیل کن", "skill_trends"),
+    ("گزارش مدیریتی جامع دانشگاه و بازار کار تولید کن", "management_report"),
+    ("پیشنهاد اصلاح برنامه درسی بر اساس شکاف مهارتی بده", "curriculum_recommendations"),
+    ("اثربخشی دروس را تحلیل کن", "course_effectiveness"),
+    ("مقایسه رشته‌های دانشگاه را انجام بده", "major_comparison"),
+    ("تحلیل شکاف مهارتی را ارائه کن", "skill_gaps"),
+    ("تحلیل تقاضای مهارت‌ها را ارائه کن", "skill_demand"),
+])
+def test_query_planner_routes_domain_analysis_to_university_market_tool(question, expected_type):
+    plan = build_query_plan(question)
+    assert plan.tool_name == "analyze_university_market"
+    assert plan.arguments["analysis_type"] == expected_type
+    assert plan.fresh_mcp_required is True
+    assert plan.memory_allowed is False
+
+
+def test_query_planner_preserves_course_id_for_course_effectiveness_analysis():
+    plan = build_query_plan("اثربخشی درس C013 را تحلیل کن")
+    assert plan.tool_name == "analyze_university_market"
+    assert plan.arguments["analysis_type"] == "course_effectiveness"
+    assert plan.arguments["course_id"] == "C013"

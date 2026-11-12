@@ -189,3 +189,8 @@ preflight predate this routing-description change and its new regression test.
 The current branch is expected to contain 103 tests, but a fresh local run is
 required before reporting the updated suite as passing. Actual tool selection
 must still be confirmed through the n8n workflow.
+
+
+## Addendum — فاز دوم: دقت معنایی برنامه‌ریز زبان طبیعی
+
+در فاز دوم، برنامه‌ریز قطعی Python و fallback قطعی Workflow اصلی n8n برای حفظ عملگرهای مقایسه و منطق Boolean هم‌راستا شدند. چند شرط روی یک فیلد حفظ می‌شود، عملگرهای چهارگانه مقایسه و حالت معکوس پشتیبانی می‌شوند، و ترکیب تخت و مبهم AND/OR به‌صورت حدسی اجرا نمی‌شود. آزمون‌های Regression این رفتارها را پوشش می‌دهند؛ پذیرش نهایی همچنان به اجرای pytest و آزمون زنده Chat Trigger نیاز دارد.

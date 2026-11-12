@@ -205,6 +205,144 @@ def test_multi_metric_comparison_sorts_by_explicitly_ranked_metric():
     ]
 
 
+def test_global_graduate_average_uses_scalar_aggregate_without_grouping():
+    plan = build_deterministic_analytics_query_plan(
+        "میانگین مدت اشتغال فارغ التحصیلان را محاسبه کن"
+    )
+    assert plan is not None
+    assert plan.arguments["dataset_id"] == "university_graduates"
+    assert plan.arguments["operation"] == "aggregate"
+    assert plan.arguments["group_by"] == []
+    assert plan.arguments["metrics"] == [
+        {"function": "avg", "field": "employment_months", "alias": "average_employment_months"}
+    ]
+
+
+def test_numeric_thresholds_on_metric_fields_remain_select_not_aggregate():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_gap >= 2.5"
+    )
+    assert plan is not None
+    assert plan.arguments["operation"] == "select"
+    assert plan.arguments["filters"]["conditions"] == [
+        {"field": "market_demand", "operator": "gte", "value": 4.8},
+        {"field": "market_gap", "operator": "gte", "value": 2.5},
+    ]
+
+
+def test_global_graduate_count_and_average_share_one_scalar_aggregate():
+    plan = build_deterministic_analytics_query_plan(
+        "تعداد فارغ التحصیلان و میانگین مدت اشتغال را محاسبه کن"
+    )
+    assert plan is not None
+    assert plan.arguments["operation"] == "aggregate"
+    assert plan.arguments["group_by"] == []
+    assert plan.arguments["metrics"] == [
+        {"function": "count_documents", "alias": "graduate_count"},
+        {"function": "avg", "field": "employment_months", "alias": "average_employment_months"},
+    ]
+
+
+def test_skill_threshold_planner_preserves_multiple_comparisons_on_one_field():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_demand <= 5 and market_gap > 2.5"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"]["logic"] == "and"
+    assert plan.arguments["filters"]["conditions"] == [
+        {"field": "market_demand", "operator": "gte", "value": 4.8},
+        {"field": "market_demand", "operator": "lte", "value": 5},
+        {"field": "market_gap", "operator": "gt", "value": 2.5},
+    ]
+
+
+def test_skill_threshold_planner_preserves_explicit_or_semantics():
+    plan = build_deterministic_analytics_query_plan(
+        "فهرست مهارت‌هایی که تقاضای بازار حداقل 4.8 یا شکاف بازار حداقل 2.5 دارند"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"]["logic"] == "or"
+    assert len(plan.arguments["filters"]["conditions"]) == 2
+
+
+def test_skill_threshold_planner_applies_and_precedence_to_mixed_boolean_connectors():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_gap >= 2.5 or course_coverage < 2"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"] == {
+        "logic": "or",
+        "conditions": [],
+        "groups": [
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "market_demand", "operator": "gte", "value": 4.8},
+                    {"field": "market_gap", "operator": "gte", "value": 2.5},
+                ],
+                "groups": [],
+            },
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "course_coverage", "operator": "lt", "value": 2},
+                ],
+                "groups": [],
+            },
+        ],
+    }
+
+
+def test_skill_threshold_planner_inverts_reversed_numeric_comparisons():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills where 4.8 <= market_demand and 2.5 < market_gap"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"]["conditions"] == [
+        {"field": "market_demand", "operator": "gte", "value": 4.8},
+        {"field": "market_gap", "operator": "gt", "value": 2.5},
+    ]
+
+
+def test_skill_threshold_planner_normalizes_persian_digits_and_decimal_commas():
+    plan = build_deterministic_analytics_query_plan(
+        "مهارت‌هایی با تقاضای بازار بیشتر از ۴,۸ و شکاف بازار کمتر از ۲,۵"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"]["conditions"] == [
+        {"field": "market_demand", "operator": "gt", "value": 4.8},
+        {"field": "market_gap", "operator": "lt", "value": 2.5},
+    ]
+
+
+def test_skill_threshold_planner_builds_nested_boolean_groups_with_and_precedence():
+    plan = build_deterministic_analytics_query_plan(
+        "List skills with market_demand >= 4.8 and market_gap >= 2.5 or course_coverage < 2"
+    )
+    assert plan is not None
+    assert plan.arguments["filters"] == {
+        "logic": "or",
+        "conditions": [],
+        "groups": [
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "market_demand", "operator": "gte", "value": 4.8},
+                    {"field": "market_gap", "operator": "gte", "value": 2.5},
+                ],
+                "groups": [],
+            },
+            {
+                "logic": "and",
+                "conditions": [
+                    {"field": "course_coverage", "operator": "lt", "value": 2},
+                ],
+                "groups": [],
+            },
+        ],
+    }
+
+
 def test_market_demand_by_job_field_uses_labor_market_demand_score():
     plan = build_deterministic_analytics_query_plan(
         "Compare average market demand by job field"

@@ -1,0 +1,297 @@
+{
+  "name": "NexusOps MCP Runtime Test Suite",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "nexusops-runtime-001",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": {},\n    \"clientInfo\": {\n      \"name\": \"nexusops-runtime-tests\",\n      \"version\": \"1.0.0\"\n    }\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "nexusops-runtime-002",
+      "name": "MCP Initialize"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function parseBody(v){if(v&&typeof v===\"object\")return v;const s=String(v??\"\").trim();try{return JSON.parse(s)}catch{}let last=null;for(const line of s.split(/\\r?\\n/)){const t=line.trim();if(!t.startsWith(\"data:\"))continue;try{last=JSON.parse(t.slice(5).trim())}catch{}}return last;}\nconst r=$input.first().json??{},m=parseBody(r.body??r.data),h=r.headers??{};\nconst header=k=>Object.keys(h).find(x=>x.toLowerCase()===k.toLowerCase());\nconst session=header(\"mcp-session-id\")?h[header(\"mcp-session-id\")]:null;\nif(Number(r.statusCode??0)>=400||!m?.result?.protocolVersion)throw new Error(\"MCP initialize failed: \"+JSON.stringify(m?.error??r.body??r));\nreturn [{json:{sessionId:session,protocolVersion:m.result.protocolVersion}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "nexusops-runtime-003",
+      "name": "Parse MCP Initialize"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            },
+            {
+              "name": "Mcp-Session-Id",
+              "value": "={{ $(\"Parse MCP Initialize\").first().json.sessionId }}"
+            },
+            {
+              "name": "MCP-Protocol-Version",
+              "value": "={{ $(\"Parse MCP Initialize\").first().json.protocolVersion }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "nexusops-runtime-004",
+      "name": "MCP Initialized Notify"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r=$input.first().json??{};const code=Number(r.statusCode??0);if(code<200||code>=300)throw new Error(\"MCP initialized notification failed: HTTP \"+code+\" \"+String(r.body??\"\").slice(0,500));return [{json:{notificationStatus:code,ready:true}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "nexusops-runtime-005",
+      "name": "Validate MCP Session"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const s=$(\"Parse MCP Initialize\").first().json;\nconst cases=[\n {testId:\"T01\",name:\"MCP tools/list\",kind:\"tools_list\",rpcBody:{jsonrpc:\"2.0\",id:101,method:\"tools/list\",params:{}}},\n {testId:\"T02\",name:\"Course lookup C002\",kind:\"select\",rpcBody:{jsonrpc:\"2.0\",id:102,method:\"tools/call\",params:{name:\"analytics_query\",arguments:{dataset_id:\"university_courses\",operation:\"select\",filter_conditions:[{field:\"course_id\",operator:\"eq\",value:\"C002\"}],limit:1}}}},\n {testId:\"T03\",name:\"Graduate count\",kind:\"count\",rpcBody:{jsonrpc:\"2.0\",id:103,method:\"tools/call\",params:{name:\"analytics_query\",arguments:{dataset_id:\"university_graduates\",operation:\"count\",filters:{logic:\"and\",conditions:[{field:\"graduate_id\",operator:\"exists\"}],groups:[]}}}}},\n {testId:\"T04\",name:\"Skill mapping aggregate\",kind:\"aggregate\",rpcBody:{jsonrpc:\"2.0\",id:104,method:\"tools/call\",params:{name:\"analytics_query\",arguments:{dataset_id:\"skill_mapping\",operation:\"aggregate\",group_by:[\"skill\"],metrics:[{function:\"avg\",field:\"market_demand\",alias:\"avg_market_demand\"},{function:\"avg\",field:\"market_gap\",alias:\"avg_market_gap\"}],sort:[{field:\"avg_market_gap\",order:\"desc\"}],limit:5}}}},\n {testId:\"T05\",name:\"Nested filter count\",kind:\"count\",rpcBody:{jsonrpc:\"2.0\",id:105,method:\"tools/call\",params:{name:\"analytics_query\",arguments:{dataset_id:\"university_graduates\",operation:\"count\",filters:{logic:\"and\",conditions:[{field:\"graduation_year\",operator:\"gte\",value:1400}],groups:[{logic:\"or\",conditions:[{field:\"additional_training\",operator:\"eq\",value:true},{field:\"career_relevance\",operator:\"gte\",value:4}],groups:[]}]}}}}},\n {testId:\"T06\",name:\"Invalid dataset error envelope\",kind:\"expected_error\",rpcBody:{jsonrpc:\"2.0\",id:106,method:\"tools/call\",params:{name:\"analytics_query\",arguments:{dataset_id:\"__nexusops_invalid_dataset__\",operation:\"count\"}}}}\n,\n {testId:\"T07\",name:\"University-market skill demand\",kind:\"domain\",rpcBody:{jsonrpc:\"2.0\",id:107,method:\"tools/call\",params:{name:\"analyze_university_market\",arguments:{analysis_type:\"skill_demand\",limit:5}}}}\n];\nreturn cases.map(c=>({json:{...c,sessionId:s.sessionId,protocolVersion:s.protocolVersion}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "nexusops-runtime-006",
+      "name": "Build Runtime Test Cases"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/mcp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            },
+            {
+              "name": "Mcp-Session-Id",
+              "value": "={{ $json.sessionId }}"
+            },
+            {
+              "name": "MCP-Protocol-Version",
+              "value": "={{ $json.protocolVersion }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpcBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "nexusops-runtime-007",
+      "name": "MCP Runtime Calls",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function parseBody(v){\n if(v&&typeof v===\"object\")return v;\n const s=String(v??\"\").trim();\n try{return JSON.parse(s)}catch{}\n let last=null;\n for(const line of s.split(/\\r?\\n/)){\n  const t=line.trim();\n  if(!t.startsWith(\"data:\"))continue;\n  try{last=JSON.parse(t.slice(5).trim())}catch{}\n }\n return last;\n}\nfunction normalizePayload(value){\n let current=value;\n for(let depth=0;depth<6;depth++){\n  if(typeof current===\"string\"){\n   try{current=JSON.parse(current);continue}catch{return current}\n  }\n  if(current&&typeof current===\"object\"){\n   if(current.structuredContent!==undefined){current=current.structuredContent;continue}\n   if(typeof current.result===\"string\"){\n    try{current=JSON.parse(current.result);continue}catch{}\n   }\n  }\n  return current;\n }\n return current;\n}\nfunction parsePayload(message){\n const result=message?.result??{};\n if(result.structuredContent!==undefined)return normalizePayload(result.structuredContent);\n const text=(result.content??[]).filter(x=>x?.type===\"text\").map(x=>x.text).join(\"\\n\");\n return text?normalizePayload(text):normalizePayload(result);\n}\nconst source=$(\"Build Runtime Test Cases\").all().map(x=>x.json);\nconst items=$input.all();\nconst parsed=items.map((item,index)=>{\n const json=item.json??{};\n const message=parseBody(json.body??json.data);\n const paired=Array.isArray(item.pairedItem)?item.pairedItem[0]?.item:item.pairedItem?.item;\n return {item,json,message,index,pairedIndex:Number.isInteger(paired)?paired:null};\n});\nconst byId=new Map(),duplicates=new Set();\nfor(const entry of parsed){\n const id=entry.message?.id;\n if(id===undefined||id===null)continue;\n if(byId.has(id))duplicates.add(id);\n else byId.set(id,entry);\n}\nconst results=[];\nfor(let i=0;i<source.length;i++){\n const test=source[i],id=test.rpcBody.id;\n let entry=byId.get(id);\n if(!entry)entry=parsed.find(x=>x.pairedIndex===i);\n const item=entry?.json??{},message=entry?.message??null;\n let payload=message?parsePayload(message):null,passed=false,detail=\"\";\n if(duplicates.has(id)){detail=\"Duplicate JSON-RPC response ID: \"+id;}\n else if(!entry){detail=\"No response could be correlated with JSON-RPC ID \"+id+\"; inspect transport error and pairedItem metadata.\";}\n else if(item.error){detail=String(item.error.message??item.error);}\n else if(Number(item.statusCode??0)>=400){detail=\"HTTP \"+item.statusCode+\": \"+String(item.body??\"\").slice(0,400);}\n else if(!message||message.id!==id){detail=\"Missing response or JSON-RPC ID mismatch.\";}\n else if(message.error){detail=\"JSON-RPC error: \"+JSON.stringify(message.error);}\n else if(test.kind===\"tools_list\"){\n  const names=(payload?.tools??[]).map(x=>x.name);\n  const required=[\"analytics_query\",\"get_top_market_skills\",\"get_top_skill_gaps\",\"get_market_skill_details\",\"search_elasticsearch\",\"analyze_university_market\"];\n  passed=required.every(x=>names.includes(x));\n  detail=passed?\"All required MCP tools are registered.\":\"Missing tools: \"+required.filter(x=>!names.includes(x)).join(\", \");\n }else if(test.kind===\"expected_error\"){\n  passed=payload?.status===\"error\"&&!!payload?.error;\n  detail=passed?\"Invalid dataset returned a structured error envelope (\"+(payload.error.code??\"error\")+\").\":\"Expected structured error; received \"+JSON.stringify(payload).slice(0,500);\n }else if(payload?.status===\"error\"){\n  detail=\"Analytics error: \"+JSON.stringify(payload.error).slice(0,500);\n }else if(test.kind===\"count\"){\n  const count=payload?.result?.count;\n  passed=payload?.status===\"success\"&&Number.isInteger(count)&&count>=0;\n  detail=passed?\"Count returned successfully: \"+count:\"Count response shape/value invalid: \"+JSON.stringify(payload).slice(0,500);\n }else if(test.kind===\"select\"){\n  const rows=payload?.result;\n  passed=payload?.status===\"success\"&&Array.isArray(rows)&&rows.length===1&&rows[0]?.course_id===\"C002\";\n  detail=passed?\"Course C002 retrieved.\":\"Expected exactly one C002 row: \"+JSON.stringify(payload).slice(0,500);\n }else if(test.kind===\"aggregate\"){\n  const buckets=payload?.result?.buckets;\n  passed=payload?.status===\"success\"&&Array.isArray(buckets)&&buckets.length>0&&buckets.every(b=>b.group?.skill&&typeof b.metrics?.avg_market_demand===\"number\"&&typeof b.metrics?.avg_market_gap===\"number\");\n  detail=passed?\"Grouped metrics and aliases validated across \"+buckets.length+\" buckets.\":\"Aggregate response invalid: \"+JSON.stringify(payload).slice(0,700);\n }else if(test.kind===\"domain\"){\n  const rows=payload?.rows??payload?.results;\n  passed=payload?.status===\"success\"&&payload?.analysis_type===\"skill_demand\"&&Array.isArray(rows)&&rows.length>0&&rows.every(row=>row.skill&&typeof row.average_demand_score===\"number\");\n  detail=passed?\"University-market domain tool returned structured skill-demand evidence.\":\"Domain analysis response invalid: \"+JSON.stringify(payload).slice(0,700);\n }\n results.push({testId:test.testId,name:test.name,status:passed?\"PASS\":\"FAIL\",detail});\n}\nconst passed=results.filter(x=>x.status===\"PASS\").length,failed=results.length-passed;\nreturn [{json:{suite:\"NexusOps MCP Runtime Test Suite\",executedAt:new Date().toISOString(),summary:{total:results.length,passed,failed,overall:failed===0?\"PASS\":\"FAIL\"},results,instructions:\"Results are correlated by JSON-RPC ID; nested MCP structuredContent/result JSON wrappers are normalized before assertions. Inspect failed details for transport or contract evidence.\"}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "nexusops-runtime-008",
+      "name": "Evaluate Runtime Results"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "MCP Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Initialize": {
+      "main": [
+        [
+          {
+            "node": "Parse MCP Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse MCP Initialize": {
+      "main": [
+        [
+          {
+            "node": "MCP Initialized Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Initialized Notify": {
+      "main": [
+        [
+          {
+            "node": "Validate MCP Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate MCP Session": {
+      "main": [
+        [
+          {
+            "node": "Build Runtime Test Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Runtime Test Cases": {
+      "main": [
+        [
+          {
+            "node": "MCP Runtime Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Runtime Calls": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Runtime Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -193,6 +193,11 @@ class ResultFormatter:
                 "SELECT returned_records does not match the number of records."
             )
 
+        if total_records < returned_records:
+            raise ResultFormattingError(
+                "SELECT total_records cannot be less than returned_records."
+            )
+
         return records, returned_records, total_records
 
 
@@ -305,17 +310,17 @@ class ResultFormatter:
                     f"Invalid metric name in bucket {bucket_index}."
                 )
 
-            if value is not None and isinstance(value, float):
-                if not math.isfinite(value):
-                    raise ResultFormattingError(
-                        f"Non-finite metric value in bucket {bucket_index}."
-                    )
+            if value is None:
+                continue
 
-            if value is not None and not isinstance(
-                value, (str, int, float, bool)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or (isinstance(value, float) and not math.isfinite(value))
             ):
                 raise ResultFormattingError(
-                    f"Unsupported metric value type in bucket {bucket_index}."
+                    f"Metric {metric_name!r} in bucket {bucket_index} "
+                    "must be a finite numeric value or None."
                 )
 
     @staticmethod
