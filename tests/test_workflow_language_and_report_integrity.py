@@ -97,6 +97,27 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn("ranked.map((row,index)", compose_code)
         self.assertIn("رتبه‌بندی قطعی درس‌ها", compose_code)
 
+    def test_aggregate_semantic_integrity_checks_required_fields_numeric_values_and_duplicate_groups(self):
+        code = self.nodes["Format Result"]["parameters"]["jsCode"]
+        self.assertIn('semanticIntegrity.status = semanticIntegrity.violations.length ? "invalid" : "valid"', code)
+        self.assertIn('"missing_required_field:" + field', code)
+        self.assertIn('"invalid_metric_value:" + alias', code)
+        self.assertIn('"duplicate_group_key"', code)
+        self.assertIn("semantic_integrity: semanticIntegrity", code)
+
+    def test_compose_final_withholds_numeric_analysis_on_integrity_failure(self):
+        code = self.nodes["Compose Final"]["parameters"]["jsCode"]
+        self.assertIn('const semanticIntegrityFailures=r.filter(x=>x.semanticIntegrity?.status==="invalid")', code)
+        self.assertIn('"integrity_failure"', code)
+        self.assertIn("Data integrity warning", code)
+        self.assertIn("final numeric analysis was withheld", code)
+
+    def test_answer_writer_obeys_semantic_integrity_status(self):
+        prompt = self.nodes["Answer Writer"]["parameters"]["text"]
+        self.assertIn("قرارداد یکپارچگی ساختاریافته (Semantic Integrity)", prompt)
+        self.assertIn("facts.semantic_integrity.status برابر invalid", prompt)
+        self.assertIn("status برابر valid فقط صحت ساختار", prompt)
+
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
         self.assertIn('warning.push(fa?', code)
