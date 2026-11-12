@@ -59,6 +59,21 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn("displayColumnName(column)", code)
         self.assertIn("buildItems[0]?.json?.question", code)
 
+    def test_persian_language_detection_uses_real_unicode_range(self):
+        for node_name in ("Prepare LLM Context", "Format Result", "Compose Final"):
+            with self.subTest(node=node_name):
+                code = self.nodes[node_name]["parameters"]["jsCode"]
+                self.assertIn(r"match(/[\\u0600-\\u06FF]/g)", code)
+                self.assertNotIn(r"match(/[\\\\u0600-\\\\u06FF]/g)", code)
+
+    def test_skill_gap_questions_have_deterministic_routes(self):
+        code = self.nodes["Validate Plan"]["parameters"]["jsCode"]
+        self.assertIn("const asksSkillGap=", code)
+        self.assertIn('tool:"get_top_skill_gaps"', code)
+        self.assertIn('group_by:["course_id","course_name"]', code)
+        self.assertIn('alias:"max_market_gap"', code)
+        self.assertIn('alias:"record_count"', code)
+
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
         self.assertIn('warning.push(fa?', code)
