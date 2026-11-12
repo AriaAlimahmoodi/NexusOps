@@ -124,6 +124,10 @@ def _skill_demand(limit: int) -> dict[str, Any]:
 
 
 def _skill_gaps(limit: int) -> dict[str, Any]:
+    # Elasticsearch cannot order an outer terms aggregation by a metric that
+    # lives below another multi-bucket terms aggregation. Fetch the bounded
+    # skill/course combinations first, then apply the requested global ranking
+    # to the flattened rows in this domain layer.
     result = _run_aggregate(
         "skill_mapping",
         ["skill", "course_id", "course_name"],
@@ -132,12 +136,41 @@ def _skill_gaps(limit: int) -> dict[str, Any]:
             {"function": "avg", "field": "market_demand", "alias": "average_market_demand"},
             {"function": "avg", "field": "market_gap", "alias": "average_market_gap"},
         ],
-        limit=limit,
-        sort=[{"field": "average_market_gap", "order": "desc"}],
+        limit=1000,
     )
     result["analysis_type"] = "skill_gaps"
+    if result.get("status") == "success":
+        rows = result.get("rows", [])
+        rows.sort(
+            key=lambda row: (
+                -(row.get("average_market_gap")
+                  if isinstance(row.get("average_market_gap"), (int, float))
+                  else float("-inf")),
+                str(row.get("skill") or ""),
+                str(row.get("course_id") or ""),
+                str(row.get("course_name") or ""),
+            )
+        )
+        result["rows"] = rows[:limit]
+        result["results"] = result["rows"]
+        result["metadata"] = {
+            **(result.get("metadata") or {}),
+            "ranking": {
+                "scope": "global_flattened_skill_course_rows",
+                "field": "average_market_gap",
+                "order": "desc",
+                "applied_by": "domain_layer",
+                "candidate_rows": len(rows),
+                "returned_rows": len(result["rows"]),
+            },
+        }
+        if len(rows) > limit:
+            result.setdefault("warnings", []).append(
+                f"Global skill-gap ranking returned the top {limit} of {len(rows)} fetched skill/course combinations."
+            )
     result["interpretation"] = (
-        "رتبه‌بندی شکاف‌ها با استفاده از فیلد market_gap ثبت‌شده در skill_mapping؛ "
+        "رتبه‌بندی سراسری ترکیب مهارت و درس بر اساس میانگین market_gap ثبت‌شده؛ "
+        "ابتدا گروه‌ها بدون مرتب‌سازی تو‌در‌تو از Elasticsearch دریافت و سپس در لایه دامنه مرتب می‌شوند. "
         "مقادیر به‌عنوان شاخص از پیش محاسبه‌شده گزارش می‌شوند و در این لایه بازتعریف نمی‌شوند."
     )
     return result

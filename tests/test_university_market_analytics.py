@@ -76,8 +76,11 @@ def test_skill_gaps_preserve_associated_course_evidence(monkeypatch):
 
     assert result["status"] == "success"
     assert captured["group_by"] == ["skill", "course_id", "course_name"]
+    assert captured["limit"] == 1000
+    assert captured["sort"] == []
     assert result["rows"][0]["course_id"] == "C013"
     assert result["rows"][0]["average_market_gap"] == 3.3
+    assert result["metadata"]["ranking"]["scope"] == "global_flattened_skill_course_rows"
 
 
 def test_major_comparison_uses_graduate_outcomes_and_optional_major_filter(monkeypatch):
@@ -347,3 +350,82 @@ def test_domain_section_preserves_structured_adapter_error_details(monkeypatch):
     result = domain.analyze_university_market("skill_gaps")
     assert result["status"] == "error"
     assert result["error"]["details"]["backend_exception"]["status_code"] == 400
+
+
+
+def test_skill_gaps_globally_ranks_flattened_rows_and_applies_requested_limit(monkeypatch):
+    captured = {}
+
+    def fake(arguments):
+        captured.update(deepcopy(arguments))
+        return _success("skill_mapping", [
+            {
+                "group": {"skill": "Python", "course_id": "C001", "course_name": "برنامه‌سازی"},
+                "metrics": {"average_course_coverage": 2.0, "average_market_demand": 4.0,
+                            "average_market_gap": 2.0},
+            },
+            {
+                "group": {"skill": "Kubernetes", "course_id": "C013", "course_name": "رایانش ابری"},
+                "metrics": {"average_course_coverage": 1.0, "average_market_demand": 4.8,
+                            "average_market_gap": 3.8},
+            },
+            {
+                "group": {"skill": "SQL", "course_id": "C005", "course_name": "پایگاه داده"},
+                "metrics": {"average_course_coverage": 2.5, "average_market_demand": 4.5,
+                            "average_market_gap": 2.0},
+            },
+        ])
+
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("skill_gaps", limit=2)
+
+    assert result["status"] == "success"
+    assert captured["sort"] == []
+    assert captured["limit"] == 1000
+    assert [row["skill"] for row in result["rows"]] == ["Kubernetes", "Python"]
+    assert result["results"] == result["rows"]
+    assert result["metadata"]["ranking"] == {
+        "scope": "global_flattened_skill_course_rows",
+        "field": "average_market_gap",
+        "order": "desc",
+        "applied_by": "domain_layer",
+        "candidate_rows": 3,
+        "returned_rows": 2,
+    }
+
+
+def test_skill_gaps_uses_stable_tiebreakers_for_equal_market_gap(monkeypatch):
+    def fake(arguments):
+        return _success("skill_mapping", [
+            {
+                "group": {"skill": "Zeta", "course_id": "C002", "course_name": "Z"},
+                "metrics": {"average_market_gap": 2.5},
+            },
+            {
+                "group": {"skill": "Alpha", "course_id": "C001", "course_name": "A"},
+                "metrics": {"average_market_gap": 2.5},
+            },
+        ])
+
+    monkeypatch.setattr(domain, "run_analytics_query", fake)
+    result = domain.analyze_university_market("skill_gaps", limit=10)
+
+    assert [(row["skill"], row["course_id"]) for row in result["rows"]] == [
+        ("Alpha", "C001"), ("Zeta", "C002")
+    ]
+
+
+def test_skill_gaps_preserves_backend_failure_details(monkeypatch):
+    backend_error = {
+        "code": "BACKEND_FAILURE",
+        "message": "search failed",
+        "details": {"backend_exception": {"status_code": 400, "body": {"error": "bad request"}}},
+    }
+    monkeypatch.setattr(domain, "run_analytics_query", lambda arguments: {
+        "status": "error", "dataset_id": "skill_mapping", "error": backend_error,
+    })
+
+    result = domain.analyze_university_market("skill_gaps")
+
+    assert result["status"] == "error"
+    assert result["error"]["details"] == backend_error["details"]
