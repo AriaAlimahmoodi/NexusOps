@@ -43,6 +43,49 @@ def test_local_plan_accepts_global_aggregate_without_grouping():
     assert plan['metrics']
 
 
+@pytest.mark.parametrize("filters", [
+    None,
+    {},
+    {"logic": "and", "conditions": [], "groups": []},
+])
+def test_local_plan_normalizes_empty_root_filters_for_grouped_multi_metric_aggregate(filters):
+    payload = {
+        "dataset_id": "university_graduates",
+        "operation": "aggregate",
+        "group_by": ["major"],
+        "metrics": [
+            {"function": "avg", "field": "employment_months", "alias": "avg_employment_months"},
+            {"function": "avg", "field": "career_relevance", "alias": "avg_career_relevance"},
+        ],
+        "filters": filters,
+        "sort": [],
+        "limit": 100,
+        "options": {},
+    }
+
+    plan = _validate_plan(payload)
+
+    assert plan["dataset_id"] == "university_graduates"
+    assert plan["group_by"] == ["major"]
+    assert [metric["alias"] for metric in plan["metrics"]] == [
+        "avg_employment_months",
+        "avg_career_relevance",
+    ]
+    assert plan["filters"] is None
+
+
+def test_local_plan_rejects_empty_nested_filter_group():
+    payload = valid_aggregate_payload()
+    payload["filters"]["groups"].append({
+        "logic": "and",
+        "conditions": [],
+        "groups": [],
+    })
+
+    with pytest.raises(AnalyticsPlanningError, match="nested filter group cannot be empty"):
+        _validate_plan(payload)
+
+
 def test_local_plan_rejects_aggregate_without_metrics():
     payload = valid_aggregate_payload()
     payload['metrics'] = []
