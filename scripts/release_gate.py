@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         "runtime_preflight": preflight,
         "live_concurrency": concurrency,
         "manual_gates": [
-            "Run the active n8n Full-System E2E Acceptance Suite (A01-A13) against the main Ollama-backed Chat Trigger workflow.",
+            "Run the active n8n Full-System E2E Acceptance Suite (A01-A18) against the main Ollama-backed Chat Trigger workflow.",
             "Do not run the standalone MCP Runtime Test Suite as a separate live acceptance path; retain it only as an opt-in diagnostic artifact.",
             "Compare live numerical outputs with independent Kibana Dev Tools queries (A/B/C/E).",
             "Review concurrent Chat Trigger results as cross-session smoke evidence only; do not infer same-session ordering.",
