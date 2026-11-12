@@ -72,9 +72,10 @@ def test_transport_errors_keep_positional_request_metadata_only_for_http_failure
     workflow = _workflow()
     parser = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
     call = _node(workflow, "MCP Call Tool")["parameters"]
-    assert call["onError"] == "continueRegularOutput"
-    assert call["retryOnFail"] is True
-    assert call["maxTries"] == 2
+    response_options = call["options"]["response"]["response"]
+    assert response_options["fullResponse"] is True
+    assert response_options["neverError"] is True
+    assert response_options["responseFormat"] == "text"
     assert "statusCode >= 400 ? requests[index] : null" in parser
     assert "successful responses must match by JSON-RPC ID" in parser
 
