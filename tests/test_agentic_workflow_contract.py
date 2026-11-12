@@ -209,7 +209,7 @@ def test_formatter_localizes_course_names_and_rounds_numeric_strings():
     assert "displayColumnName(column)" in code
     assert 'column === "course_name"' in code
     assert 'typeof value === "string"' in code
-    assert "Number(parsed.toFixed(2))" in code
+    assert "Number(numeric.toFixed(2))" in code
 
 
 def test_course_gap_aggregate_is_ranked_by_max_market_gap_and_not_bucket_order():
