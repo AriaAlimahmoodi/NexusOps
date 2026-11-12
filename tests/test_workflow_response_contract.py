@@ -22,7 +22,8 @@ def test_prepare_input_detects_language_from_each_request():
     code = _node("Prepare Input")["parameters"]["jsCode"]
     assert "faLetters" in code
     assert "enLetters" in code
-    assert 'language=faLetters===0&&enLetters===0?"und":faLetters>enLetters?"fa":"en"' in code
+    assert 'language=faLetters===0&&enLetters===0?"und":faLetters>=enLetters?"fa":"en"' in code
+    assert "Script=Arabic" in code
     assert "sessionId" in code
 
 
@@ -37,9 +38,10 @@ def test_numeric_only_requests_return_only_the_scalar_value():
 def test_answer_writer_language_is_dynamic_not_persian_only():
     prompt = _node("Answer Writer")["parameters"]["text"]
     assert "{{ $json.language }}" in prompt
-    assert "دقیقاً به زبان ورودی همین درخواست پاسخ بده" in prompt
+    assert "Answer only in that language: fa means Persian; en means English." in prompt
     assert "- فارسی باشد." not in prompt
-    assert "هرگز از تاریخچه، Session دیگر" in prompt
+    assert "conversation history, memory" in prompt
+    assert "Compose Final renders all factual values and tables" in prompt
 
 
 def test_count_and_aggregate_are_not_misclassified_as_incomplete_datasets():
