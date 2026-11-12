@@ -38,7 +38,6 @@ class WorkflowLanguageAndEvidenceTests(unittest.TestCase):
         self.assertIn("responseLanguage", context_code)
         self.assertIn("{{ $json.responseLanguage }}", prompt)
         self.assertIn("زبان پاسخ از فیلد ساختاریافته", prompt)
-        self.assertIn("The answer language", prompt) if "The answer language" in prompt else None
 
     def test_answer_writer_has_numeric_evidence_guardrails(self):
         prompt = self.nodes["Answer Writer"]["parameters"]["text"]
@@ -58,6 +57,7 @@ class WorkflowLanguageAndEvidenceTests(unittest.TestCase):
         self.assertIn("PERSIAN_COLUMN_LABELS", code)
         self.assertIn('شناسه درس', code)
         self.assertIn("displayColumnName(column)", code)
+        self.assertIn("buildItems[0]?.json?.question", code)
 
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
