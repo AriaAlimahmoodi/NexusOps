@@ -83,7 +83,7 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn('alias:"max_market_gap"', code)
         self.assertIn('alias:"record_count"', code)
         # Nested terms buckets cannot be ordered by a metric below another terms bucket.
-        self.assertIn("sort:[],\\n      limit:50", code)
+        self.assertIn("sort:[],\n      limit:50", code)
 
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
