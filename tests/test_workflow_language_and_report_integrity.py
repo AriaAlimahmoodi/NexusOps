@@ -157,6 +157,12 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
             with self.subTest(rule=rule):
                 self.assertIn(rule, prompt)
 
+    def test_course_gap_composer_does_not_invent_a_ranking_for_empty_rows(self):
+        compose = self.nodes["Compose Final"]["parameters"]["jsCode"]
+        self.assertIn("if(sourceRows.length===0)", compose)
+        self.assertIn("No aggregated course rows were returned", compose)
+        self.assertIn("هیچ ردیف تجمیعی برای رتبه‌بندی درس‌ها", compose)
+
     def test_answer_writer_uses_one_authoritative_language_source(self):
         prompt = self.nodes["Answer Writer"]["parameters"]["text"]
         self.assertIn("responseLanguage", prompt)
