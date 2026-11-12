@@ -178,6 +178,14 @@ class ElasticsearchAdapter:
                 details["request"]["aggregation_plan"] = self._json_safe(
                     query_plan.get("aggregation")
                 )
+                try:
+                    details["request"]["aggregations"] = self._json_safe(
+                        self._build_aggregations(query_plan["aggregation"])
+                    )
+                except Exception:
+                    # Keep the original backend-neutral plan if DSL
+                    # reconstruction itself is not possible here.
+                    pass
             elif operation == "select":
                 details["request"]["sort"] = self._json_safe(
                     query_plan.get("sort", [])
