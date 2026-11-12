@@ -3,8 +3,6 @@ name: NexusOps Python Tests
 on:
   push:
     branches:
-      - feat/agentic-workflow-hardening
-      - integration/phase5-hardening-unification
       - refactor/integration-foundation
     paths:
       - "**.py"
@@ -14,9 +12,8 @@ on:
       - ".github/workflows/python-tests.yml"
   pull_request:
     branches:
-      - feat/agentic-workflow-hardening
-      - integration/phase5-hardening-unification
       - refactor/integration-foundation
+      - main
   workflow_dispatch:
 
 permissions:
