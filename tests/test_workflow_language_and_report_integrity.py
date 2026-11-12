@@ -136,6 +136,8 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         compose = self.nodes["Compose Final"]["parameters"]["jsCode"]
         formatter = self.nodes["Format Result"]["parameters"]["jsCode"]
         self.assertIn("Course ranking by maximum skill gap", compose)
+        self.assertIn("displayCourseName(row.course_name)", compose)
+        self.assertIn("Cloud Computing", compose)
         self.assertIn("رتبه‌بندی قطعی درس‌ها بر اساس بیشترین شکاف مهارتی", compose)
         self.assertIn("all \"+ranked.length+\" course rows", compose)
         self.assertIn("max_market_gap", compose)
