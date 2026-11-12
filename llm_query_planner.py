@@ -104,7 +104,11 @@ def _normalize_filter_tree(node: Any, *, depth: int = 0, budget: dict[str, int] 
     if not isinstance(conditions, list) or not isinstance(groups, list):
         raise AnalyticsPlanningError("Filter conditions and groups must be lists.")
     if not conditions and not groups:
-        raise AnalyticsPlanningError("A supplied filter group cannot be empty.")
+        if depth == 0:
+            # An empty root filter object is equivalent to no filtering.
+            # Empty nested groups remain invalid because they add no predicate.
+            return None
+        raise AnalyticsPlanningError("A nested filter group cannot be empty.")
     normalized_conditions = []
     for condition in conditions:
         budget["conditions"] += 1
