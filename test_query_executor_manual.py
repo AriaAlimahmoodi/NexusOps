@@ -78,7 +78,8 @@ def make_aggregate_request():
         },
         "sort": [
             {
-                "field": "total_frequency",
+                "field_type": "metric",
+                "alias": "total_frequency",
                 "order": "desc",
             }
         ],
