@@ -49,6 +49,7 @@ def test_runtime_test_suite_covers_protocol_analytics_and_error_contracts():
         "Skill mapping aggregate",
         "Nested filter count",
         "Invalid dataset error envelope",
+        "University-market skill demand",
     ]
     for case in expected_cases:
         assert case in cases_code
@@ -65,6 +66,7 @@ def test_runtime_test_suite_covers_protocol_analytics_and_error_contracts():
         'test.kind==="select"',
         'test.kind==="aggregate"',
         'test.kind==="expected_error"',
+        'test.kind==="domain"',
         'status:passed?"PASS":"FAIL"',
         'overall:failed===0?"PASS":"FAIL"',
     ]:
