@@ -123,3 +123,17 @@ def test_syntax_gate_accepts_utf8_bom_and_rejects_invalid_python(tmp_path, monke
     assert report["status"] == "FAIL"
     assert [failure["path"] for failure in report["failures"]] == ["invalid.py"]
     assert report["failures"][0]["error"].startswith("SyntaxError:")
+
+
+def test_release_gate_documents_one_live_main_workflow_acceptance_path(monkeypatch, capsys):
+    monkeypatch.setattr(
+        release_gate.subprocess, "run",
+        lambda command, cwd, check: SimpleNamespace(returncode=0),
+    )
+    assert release_gate.main([]) == 0
+    output = capsys.readouterr().out
+    report = json.loads(output.split("RELEASE_GATE_RESULT=\\n", 1)[1])
+    gates = report["manual_gates"]
+    assert any("Full-System E2E Acceptance Suite (A01-A13)" in gate for gate in gates)
+    assert any("diagnostic artifact" in gate for gate in gates)
+    assert not any("Run the n8n MCP Runtime Test Suite" in gate for gate in gates)
