@@ -89,7 +89,7 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
 
     def test_missing_entities_are_not_assumed_absent(self):
         prompt = self.nodes["Answer Writer"]["parameters"]["text"]
-        self.assertIn("Never infer that unreturned majors", prompt)
+        self.assertIn("نبود یک رکورد در داده‌های نمونه‌ای", prompt)
         self.assertIn("داده‌های نمونه‌ای", prompt)
 
 
