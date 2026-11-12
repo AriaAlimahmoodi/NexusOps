@@ -35,3 +35,15 @@ Run:
 python -m json.tool .\workflows\nexusops-agentic-workflow.json > $null
 pytest -q tests/test_n8n_workflow_contract.py
 ```
+
+
+## Deterministic routing and response normalization
+
+- Exact course and graduate identifiers are routed to `search_elasticsearch` when the request is a lookup, even if the local model returns an unsupported or malformed plan. Only the extracted identifiers are sent as the search query.
+- The `get_top_skill_gaps` result is a skill-level ranking. Its `ranked_skill`, associated course, coverage, demand, and gap fields are normalized into a stable ranked-row contract. The MCP envelope may contain the payload under `result`; both direct and enveloped forms are accepted.
+- `ranking` and `calculation` response modes render structured result tables. Numeric display values are rounded to two decimal places without modifying the structured facts retained for analysis.
+- A successfully executed tool result that cannot be normalized is a contract failure, not an empty result. Dedicated code-node runtime tests execute the workflow's actual JavaScript with mocked n8n bindings to protect these paths.
+
+## Validation
+
+The consolidated Python suite includes the workflow contract and Node-backed Code node execution tests. Node.js must be available for the latter; it is already a runtime dependency of the local n8n installation.

@@ -103,3 +103,21 @@ def test_workflow_keeps_the_existing_execution_path():
     connections = _workflow()["connections"]
     assert connections["Prepare LLM Context"]["main"][0][0]["node"] == "Answer Writer"
     assert connections["Answer Writer"]["main"][0][0]["node"] == "Compose Final"
+
+
+
+def test_skill_gap_ranking_has_a_dedicated_normalizer_and_ranking_table_path():
+    format_code = _node("Format Result")["parameters"]["jsCode"]
+    compose_code = _node("Compose Final")["parameters"]["jsCode"]
+    assert "function renderTopSkillGaps(data)" in format_code
+    assert 'selectedTool === "get_top_skill_gaps"' in format_code
+    assert 'payload.analysis !== "top_skill_gaps"' in format_code
+    assert 'data.result.analysis !== undefined' in format_code
+    assert 'mode==="ranking"' in compose_code
+
+
+def test_exact_course_lookup_has_a_deterministic_route_before_llm_plan_validation():
+    code = _node("Validate Plan")["parameters"]["jsCode"]
+    assert "const lookupIntent=" in code
+    assert 'tool:"search_elasticsearch"' in code
+    assert "lookupIds.join" in code

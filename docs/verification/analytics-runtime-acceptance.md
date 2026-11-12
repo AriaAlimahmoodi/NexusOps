@@ -243,3 +243,19 @@ The MCP tool descriptions now define explicit precedence:
 - `search_elasticsearch` handles document retrieval, not analytics.
 
 This prevents a field-name mention such as `market_gap` or `market_demand` from overriding the shape of the requested operation. The regression test `tests/test_mcp_tool_routing_contract.py` protects the precedence language from reverting to broad, overlapping mandatory instructions.
+
+
+## 9. Consolidated regression gate — 2026-11-12
+
+The current workflow regression suite now executes the actual JavaScript source from the n8n Code nodes under Node.js with controlled n8n input bindings. It covers:
+
+- deterministic exact lookup for course identifiers when the model proposes an unsupported plan;
+- MCP `get_top_skill_gaps` result-envelope unwrapping and ranked-row normalization;
+- the combined graduate count plus five-skill-gap request, including ranking-mode table rendering;
+- preservation of course ID/name evidence;
+- numeric-only scalar output and display-only decimal rounding;
+- request-language detection and English result rendering.
+
+These automated checks validate the Code node logic; they do not claim that the user's live n8n, Ollama, MCP, or Elasticsearch processes have passed runtime acceptance.
+
+After pulling the consolidated change, run the local Python suite once. Then import the matching workflow JSON and perform one consolidated live acceptance pass for the affected n8n paths. Do not start a new code-edit cycle from an isolated prompt result: capture the selected tools, all plan outputs, and the complete execution result for the entire acceptance pass before diagnosing any remaining issue.

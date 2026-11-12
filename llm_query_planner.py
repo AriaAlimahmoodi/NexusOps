@@ -165,8 +165,8 @@ def _validate_plan(payload: dict[str, Any]) -> dict[str, Any]:
         if group_by or metrics or sort:
             raise AnalyticsPlanningError("COUNT does not accept group_by, metrics, or sort.")
     else:
-        if not group_by or not metrics:
-            raise AnalyticsPlanningError("AGGREGATE requires group_by and metrics.")
+        if not metrics:
+            raise AnalyticsPlanningError("AGGREGATE requires at least one metric.")
         for field_name in group_by:
             require_role(field_name, "group_by")
 
@@ -255,7 +255,7 @@ Allowed metrics: count_documents, value_count, sum, avg, min, max, cardinality.
 Allowed filters: eq, neq, in, not_in, gt, gte, lt, lte, between, exists, not_exists.
 Filter shape: {{"logic":"and|or","conditions":[{{"field":"...","operator":"...","value":...}}],"groups":[{{...nested group...}}]}}.
 Use filters=null when no filtering is needed.
-COUNT requires empty group_by, metrics, and sort. SELECT requires empty group_by and metrics. AGGREGATE requires non-empty group_by and metrics.
+COUNT requires empty group_by, metrics, and sort. SELECT requires empty group_by and metrics. AGGREGATE requires at least one metric; group_by may be empty for a global aggregation.
 Aggregate metrics require unique meaningful aliases. Aggregate sort targets a group_by field or metric alias. Select sorting uses a registered field with the sort role.
 Use count only when the user wants only a total. Use select to retrieve records. Use aggregate for averages, sums, grouped comparisons, rankings, and calculated summaries.
 Do not invent filters, values, units, joins, or relationships. One call queries exactly one dataset.
