@@ -38,25 +38,29 @@ pytest -q tests/test_n8n_workflow_contract.py
 
 ## Agentic End-to-End acceptance
 
-The repository includes a separate n8n acceptance workflow at
-`workflows/nexusops-agentic-e2e-test-suite.json`. It calls the active production
-Chat Trigger endpoint of the main agent workflow, rather than calling MCP tools
-directly. Its four cases cover a numeric graduate count, course C002 retrieval,
-a multi-objective graduate-count/skill-gap request, and out-of-domain rejection.
+The repository has one live n8n acceptance workflow at
+`workflows/nexusops-agentic-e2e-test-suite.json`. It calls only the active
+production Chat Trigger endpoint of the main agent workflow; all live acceptance
+requests therefore pass through Ollama planning, plan validation, MCP,
+Elasticsearch, result normalization, Answer Writer, and final composition.
 
-The suite serializes requests with a one-item Loop Over Items node. This is
-intentional for the local Ollama runtime and avoids creating accidental model
-concurrency during ordinary acceptance runs. The test suite checks observable
-HTTP response content; it does not introspect hidden planner state and therefore
-does not claim that a multi-objective prompt necessarily became two independent
-plans. It also does not inject an MCP transport failure or establish concurrent
-execution isolation. Those are separate resilience and concurrency acceptance
-gates.
+The Full-System E2E suite contains 13 sequential cases (A01-A13): graduate
+count, scalar aggregation, canonical course lookup, multi-objective analysis,
+out-of-domain rejection, skill demand, skill-gap ranking, course-level gap
+ranking, English-language lookup, nested filters, grouped multi-metric
+analytics, named-skill details, and a university-market management report.
+Requests use a one-item Loop Over Items batch and distinct session IDs.
+
+The suite checks observable HTTP responses. It does not introspect hidden
+planner state, so the multi-objective case does not by itself prove the exact
+number of internal plans. It also does not inject MCP transport failures or
+claim same-session concurrency ordering. Python CI tests protect internal
+contracts; the standalone MCP Runtime workflow is retained only as an
+opt-in diagnostic and is not part of routine live acceptance.
 
 The main Chat Trigger workflow must be active for the production webhook to
-accept requests. The suite uses the Chat Trigger webhook ID stored in the
-exported workflow; if n8n regenerates that ID during import, update the suite
-endpoint to the Chat URL displayed by the active Chat Trigger.
+accept requests. If n8n regenerates its webhook ID during import, update the
+acceptance workflow endpoint to the Chat URL displayed by the active trigger.
 
 ## Specialized skill-gap result normalization
 
