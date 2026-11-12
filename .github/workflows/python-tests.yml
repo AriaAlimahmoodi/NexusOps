@@ -5,6 +5,7 @@ on:
     branches:
       - feat/agentic-workflow-hardening
       - integration/phase5-hardening-unification
+      - refactor/integration-foundation
     paths:
       - "**.py"
       - "workflows/**"
