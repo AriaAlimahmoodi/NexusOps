@@ -85,6 +85,18 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         # Nested terms buckets cannot be ordered by a metric below another terms bucket.
         self.assertIn("sort:[],\n      limit:50", code)
 
+    def test_course_gap_rows_are_ranked_deterministically_and_summary_uses_all_rows(self):
+        format_code = self.nodes["Format Result"]["parameters"]["jsCode"]
+        compose_code = self.nodes["Compose Final"]["parameters"]["jsCode"]
+        self.assertIn('args.group_by.includes("course_id")', format_code)
+        self.assertIn('args.group_by.includes("course_name")', format_code)
+        self.assertIn('metric.alias === "max_market_gap"', format_code)
+        self.assertIn("return rightValue - leftValue", format_code)
+        self.assertIn("courseGapAggregates", compose_code)
+        self.assertIn("ranked.length===sourceRows.length", compose_code)
+        self.assertIn("ranked.map((row,index)", compose_code)
+        self.assertIn("رتبه‌بندی قطعی درس‌ها", compose_code)
+
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
         self.assertIn('warning.push(fa?', code)
