@@ -63,8 +63,8 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         for node_name in ("Prepare LLM Context", "Format Result", "Compose Final"):
             with self.subTest(node=node_name):
                 code = self.nodes[node_name]["parameters"]["jsCode"]
-                self.assertIn(r"match(/[\\u0600-\\u06FF]/g)", code)
-                self.assertNotIn(r"match(/[\\\\u0600-\\\\u06FF]/g)", code)
+                self.assertIn(r"match(/[\u0600-\u06FF]/g)", code)
+                self.assertNotIn(r"match(/[\\u0600-\\u06FF]/g)", code)
 
     def test_skill_gap_questions_have_deterministic_routes(self):
         code = self.nodes["Validate Plan"]["parameters"]["jsCode"]
