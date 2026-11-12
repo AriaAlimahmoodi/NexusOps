@@ -23,3 +23,18 @@ def test_agent_workflow_planner_prompt_forbids_synthesizing_empty_filter_groups(
 
     assert "اگر هیچ شرطی در درخواست وجود ندارد، filters را حذف کن یا null بده" in prompt
     assert "گروه خالی تو‌در‌تو نامعتبر است" in prompt
+
+def test_compose_final_interprets_grouped_graduate_averages_independent_of_metric_aliases():
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    composer = next(node for node in workflow["nodes"] if node["name"] == "Compose Final")
+    code = composer["parameters"]["jsCode"]
+
+    assert 'q.dataset_id==="university_graduates"' in code
+    assert 'm.field==="career_relevance"&&m.function==="avg"' in code
+    assert 'm.field==="employment_months"&&m.function==="avg"' in code
+    assert 'getMetric(row,employmentMetric??{})' in code
+    assert 'getMetric(row,relevanceMetric??{})' in code
+    assert 'row.record_count??row.document_count??row.doc_count' in code
+    assert "همبستگی میان مدت اشتغال و ارتباط شغلی" in code
+    assert "individual-level correlation" in code
+
