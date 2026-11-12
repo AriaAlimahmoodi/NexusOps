@@ -15,7 +15,7 @@ WORKFLOW_PATH = (
 )
 
 
-class WorkflowLanguageAndEvidenceTests(unittest.TestCase):
+class TestWorkflowLanguageAndEvidence(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
