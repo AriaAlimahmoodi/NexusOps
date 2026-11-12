@@ -330,9 +330,18 @@ def test_live_concurrency_evaluator_checks_each_session_result_independently():
     assert [case["test_id"] for case in cases] == ["C01", "C02", "C03"]
 
     results = [
-        evaluate_response(cases[0], 200, "۳۰"),
+        evaluate_response(cases[0], 200, "30"),
         evaluate_response(cases[1], 200, "C002 — ساختمان داده"),
-        evaluate_response(cases[2], 200, "پنج مهارت با بیشترین شکاف مهارتی بازار"),
+        evaluate_response(
+            cases[2],
+            200,
+            "پنج مهارت با بیشترین شکاف مهارتی بازار:\\n"
+            "1. مهارت الف: 4.5\\n"
+            "2. مهارت ب: 4.2\\n"
+            "3. مهارت پ: 3.9\\n"
+            "4. مهارت ت: 3.7\\n"
+            "5. مهارت ث: 3.4",
+        ),
     ]
     assert [result["status"] for result in results] == ["PASS", "PASS", "PASS"]
     assert all(result["session_ref"] for result in results)
