@@ -8,10 +8,10 @@ The automated Python suite validates planning, request validation, the analytics
 
 ## 1. Local code gate
 
-Run on **refactor/integration-foundation**:
+Run on **feat/agentic-workflow-hardening**:
 
 ~~~powershell
-git pull --ff-only origin refactor/integration-foundation
+git pull --ff-only origin feat/agentic-workflow-hardening
 python -m py_compile llm_query_planner.py
 python -m py_compile llm_mcp_client.py
 python -m py_compile query_planner.py
@@ -22,7 +22,7 @@ python -m py_compile scripts/runtime_preflight.py
 python -m pytest -q tests
 ~~~
 
-Expected suite size after the MCP tool-routing contract test was added: **103 tests**. The previously reported 102-pass result predates that test and predates the latest tool-description change; rerun the suite to establish the new result. The exact result must be taken from the local run; the expected count is not a test result.
+The last user-reported baseline before the Phase 4 changes was **233 passed**. Phase 4 adds additional tests, so do not use that historical count as the expected total. Record the exact result from the current local run.
 
 ## 2. Verify live services before opening n8n
 
@@ -259,13 +259,13 @@ This parses the Python source tree and runs the complete pytest suite. To includ
 python scripts/release_gate.py --with-runtime-preflight
 ~~~
 
-To include three simultaneous requests against the active production Chat Trigger (and automatically run preflight first):
+To include three simultaneous requests against the active production Chat Trigger in separate sessions, including both Persian and English requests (and automatically run preflight first):
 
 ~~~powershell
 python scripts/release_gate.py --with-live-concurrency
 ~~~
 
-The live concurrency harness reads the production Chat Trigger webhook ID from the canonical workflow JSON and submits independent graduate-count, C002 lookup, and skill-gap requests with distinct session IDs. It reports each HTTP response separately. This is a cross-session isolation check; Python-client conversation-lock ordering is covered by automated concurrency tests; this harness does not claim n8n same-session ordering.
+The live concurrency harness reads the production Chat Trigger webhook ID from the canonical workflow JSON and submits independent English graduate-count, Persian C002 lookup, and Persian skill-gap requests with distinct session IDs. It validates each response's expected language and intent-specific evidence, reports per-request duration, and requires at least five visible ranked skill-gap entries. This is a cross-session isolation smoke test; Python-client same-conversation ordering is covered by automated concurrency tests; this harness does not claim n8n same-session ordering or full numerical parity with Kibana.
 
 The release report uses NOT_RUN for any live gate that was not requested. A static-only PASS must not be described as a complete live release acceptance.
 
@@ -278,3 +278,35 @@ The analytics formatter rejects:
 - non-finite or non-numeric aggregate metric values.
 
 Use the independent Kibana Dev Tools queries in sections 4A–4E to compare live values. Do not treat successful HTTP status, a passing text assertion, or a passing unit suite as proof that all live aggregate values match Elasticsearch.
+
+
+## 11. Phase 4 execution record — 2026-11-12
+
+The repository already contains three distinct acceptance layers and they must remain separate:
+
+1. **Python contract/reliability tests:** deterministic tests for planning, validation, MCP protocol, runtime failure handling, and conversation isolation.
+2. **MCP Runtime Test Suite:** six live protocol/tool/analytics checks without Ollama.
+3. **Agentic E2E Acceptance Suite:** five sequential requests through the active production Chat Trigger and local Ollama.
+
+The live concurrency harness submits three independent Chat Trigger executions concurrently. Its assertions cover:
+- exact graduate count token (30), not a substring such as 130;
+- Persian course identifier and expected course name;
+- a five-entry skill-gap ranking;
+- expected response language for each case;
+- HTTP failures and explicit incomplete/integrity states fail closed.
+
+The concurrency harness is a smoke test for cross-session separation. It does not prove same-session ordering in n8n, nor does it replace the numerical Kibana comparisons in sections 4A–4E.
+
+### Current verification boundary
+
+| Evidence | Status |
+|---|---|
+| Phase 3 local suite | PASS — 233 passed, as reported by the user before Phase 4 changes |
+| Persian/English course-gap live examples | PASS — user-provided n8n outputs on 2026-11-12 |
+| Phase 4 regression tests | Pending local execution after pull |
+| MCP Runtime Test Suite (T01–T06) | Pending fresh live execution |
+| Agentic E2E Suite (A01–A05) | Pending fresh live execution |
+| Independent Kibana numerical comparisons (A/B/C/E) | Pending fresh comparison |
+| Concurrent Chat Trigger acceptance (C01–C03) | Pending fresh live execution |
+
+A Phase 4 release is not complete until the pending local and live evidence has been collected. A passing pytest run alone is not a live release acceptance.
