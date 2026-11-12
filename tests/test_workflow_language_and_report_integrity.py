@@ -124,6 +124,43 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn('fa?"تحلیل متنی تولید نشد."', code)
         self.assertIn("The analysis plan set is incomplete", code)
 
+    def test_english_university_course_gap_question_routes_to_course_level_aggregation(self):
+        code = self.nodes["Validate Plan"]["parameters"]["jsCode"]
+        self.assertIn("if(asksSkillGap&&asksCourses&&(", code)
+        self.assertIn('has("which")&&has("course")', code)
+        self.assertIn('"which university courses"', code)
+        self.assertIn('group_by:["course_id","course_name"]', code)
+        self.assertIn('alias:"max_market_gap"', code)
+
+    def test_course_gap_analysis_is_deterministic_and_fully_localized(self):
+        compose = self.nodes["Compose Final"]["parameters"]["jsCode"]
+        formatter = self.nodes["Format Result"]["parameters"]["jsCode"]
+        self.assertIn("Course ranking by maximum skill gap", compose)
+        self.assertIn("رتبه‌بندی قطعی درس‌ها بر اساس بیشترین شکاف مهارتی", compose)
+        self.assertIn("all \"+ranked.length+\" course rows", compose)
+        self.assertIn("max_market_gap", compose)
+        self.assertIn("ENGLISH_COURSE_NAMES", formatter)
+        self.assertIn('"رایانش ابری": "Cloud Computing"', formatter)
+        self.assertIn('column === "course_name"', formatter)
+
+    def test_answer_writer_checks_entity_type_row_count_and_requested_metric(self):
+        prompt = self.nodes["Answer Writer"]["parameters"]["text"]
+        for rule in (
+            "# 15. تطبیق نوع موجودیت، تعداد ردیف و معیار رتبه‌بندی",
+            "group_by و فیلدهای همان ردیف",
+            "تعداد نتایج را فقط از طول آرایه واقعی facts.rows",
+            "demand_score یا market_demand جایگزین gap نیست",
+            "ترتیب جدول و تحلیل باید یکسان باشد",
+        ):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, prompt)
+
+    def test_answer_writer_uses_one_authoritative_language_source(self):
+        prompt = self.nodes["Answer Writer"]["parameters"]["text"]
+        self.assertIn("responseLanguage", prompt)
+        self.assertIn("زبان پاسخ را دوباره تشخیص نده", prompt)
+        self.assertNotIn("زبان غالب سؤال جاری را با شمارش نویسه‌های فارسی و لاتین", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
