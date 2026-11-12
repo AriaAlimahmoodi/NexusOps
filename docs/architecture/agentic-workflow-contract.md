@@ -44,11 +44,11 @@ production Chat Trigger endpoint of the main agent workflow; all live acceptance
 requests therefore pass through Ollama planning, plan validation, MCP,
 Elasticsearch, result normalization, Answer Writer, and final composition.
 
-The Full-System E2E suite contains 13 sequential cases (A01-A13): graduate
+The Full-System E2E suite contains 18 sequential cases (A01-A18): graduate
 count, scalar aggregation, canonical course lookup, multi-objective analysis,
 out-of-domain rejection, skill demand, skill-gap ranking, course-level gap
 ranking, English-language lookup, nested filters, grouped multi-metric
-analytics, named-skill details, and a university-market management report.
+analytics, named-skill details, a university-market management report, top market-skill ranking, course-effectiveness analysis, major comparison, curriculum recommendations, and an explicit temporal-data limitation check.
 Requests use a one-item Loop Over Items batch and distinct session IDs.
 
 The suite checks observable HTTP responses. It does not introspect hidden
