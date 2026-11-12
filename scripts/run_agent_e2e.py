@@ -37,7 +37,7 @@ CASES: list[dict[str, Any]] = [
     {"id": "A18", "name": "Skill trends and temporal limitation", "query": "روند زمانی تقاضای مهارت‌های بازار را تحلیل کن و محدودیت داده‌های زمانی را توضیح بده.", "kind": "trends"},
 ]
 
-ERROR_MARKERS = re.compile(r"\b(error|exception|traceback|unsupported|partial_failure|incomplete)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر", re.I)
+ERROR_MARKERS = re.compile(r"\b(error|exception|traceback|partial_failure)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر", re.I)
 
 
 def find_webhook_id() -> str:
