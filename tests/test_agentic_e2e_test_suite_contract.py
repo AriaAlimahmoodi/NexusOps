@@ -78,6 +78,11 @@ def test_agent_cases_cover_numeric_course_multi_objective_and_domain_paths():
         "A11", "multi_metric", "میانگین مدت اشتغال",
         "A12", "skill_details", "Python", "SQL",
         "A13", "management_report", "گزارش مدیریتی",
+        "A14", "top_market_skills", "بیشترین تقاضای بازار کار",
+        "A15", "course_effectiveness", "اثربخشی درس C013",
+        "A16", "major_comparison", "وضعیت اشتغال مهندسی کامپیوتر",
+        "A17", "curriculum_recommendations", "بهبود برنامه درسی",
+        "A18", "skill_trends", "روند زمانی تقاضای مهارت‌ها",
         'action:"sendMessage"', "sessionId", "chatInput",
     ]:
         assert token in build_code
@@ -123,6 +128,8 @@ def test_agent_evaluator_checks_real_response_content_and_reports_scope_limits()
         "does not inject MCP faults or claim concurrency coverage",
         "skill_demand", "skill_gaps", "course_gap", "english_course_lookup",
         "nested_filter", "multi_metric", "skill_details", "management_report",
+        "top_market_skills", "course_effectiveness", "major_comparison",
+        "curriculum_recommendations", "skill_trends",
         "NexusOps Full-System E2E Acceptance Suite",
     ]:
         assert token in code
