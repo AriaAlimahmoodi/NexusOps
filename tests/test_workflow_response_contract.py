@@ -26,6 +26,14 @@ def test_prepare_input_detects_language_from_each_request():
     assert "sessionId" in code
 
 
+def test_numeric_only_requests_return_only_the_scalar_value():
+    prepare = _node("Prepare Input")["parameters"]["jsCode"]
+    compose = _node("Compose Final")["parameters"]["jsCode"]
+    assert "const numericOnly=" in prepare
+    assert "only (the )?number" in prepare
+    assert "numericOnly&&r.length===1" in compose
+
+
 def test_answer_writer_language_is_dynamic_not_persian_only():
     prompt = _node("Answer Writer")["parameters"]["text"]
     assert "{{ $json.language }}" in prompt
