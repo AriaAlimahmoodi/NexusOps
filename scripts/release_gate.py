@@ -108,9 +108,11 @@ def main(argv: list[str] | None = None) -> int:
         "runtime_preflight": preflight,
         "live_concurrency": concurrency,
         "manual_gates": [
-            "Run the active n8n Agentic E2E Acceptance Suite.",
-            "Compare live numerical outputs with independent Kibana Dev Tools queries.",
-            "Record actual runtime results; preflight and pytest do not replace them.",
+            "Run the active n8n Agentic E2E Acceptance Suite (A01-A05).",
+            "Run the n8n MCP Runtime Test Suite (T01-T06).",
+            "Compare live numerical outputs with independent Kibana Dev Tools queries (A/B/C/E).",
+            "Review concurrent Chat Trigger results as cross-session smoke evidence only; do not infer same-session ordering.",
+            "Record actual runtime results; preflight and pytest do not replace live workflow acceptance.",
         ],
     }
     print("\nRELEASE_GATE_RESULT=")
