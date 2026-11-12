@@ -58,6 +58,8 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn("هرگز مقدار Git را به Python", prompt)
         self.assertIn("status و rows_returned", prompt)
         self.assertIn("زوج (skill, market_gap)", prompt)
+        self.assertIn("# 14. رتبه‌بندی محلی نتایج تجمیعی", prompt)
+        self.assertIn("ترتیب ردیف‌های facts.rows را برای رتبه‌بندی معتبر فرض نکن", prompt)
 
     def test_result_tables_localize_common_headers_for_persian(self):
         code = self.nodes["Format Result"]["parameters"]["jsCode"]
@@ -80,6 +82,8 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
         self.assertIn('group_by:["course_id","course_name"]', code)
         self.assertIn('alias:"max_market_gap"', code)
         self.assertIn('alias:"record_count"', code)
+        # Nested terms buckets cannot be ordered by a metric below another terms bucket.
+        self.assertIn("sort:[],\\n      limit:50", code)
 
     def test_final_composer_localizes_diagnostics(self):
         code = self.nodes["Compose Final"]["parameters"]["jsCode"]
