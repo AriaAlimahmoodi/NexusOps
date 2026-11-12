@@ -40,7 +40,8 @@ def make_resolved_request():
         ],
         "sort": [
             {
-                "field": "average_demand",
+                "field_type": "metric",
+                "alias": "average_demand",
                 "order": "desc",
             }
         ],
@@ -93,7 +94,8 @@ request_3["metrics"] = [
 
 request_3["sort"] = [
     {
-        "field": "document_count",
+        "field_type": "metric",
+        "alias": "document_count",
         "order": "desc",
     }
 ]
@@ -124,7 +126,8 @@ print("Test 4 passed: Metric alias sorting handled")
 request_5 = make_resolved_request()
 request_5["sort"] = [
     {
-        "field": "skill",
+        "field_type": "group_by",
+        "field": make_field("skill", ["keyword"], "keyword"),
         "order": "asc",
     }
 ]
@@ -178,7 +181,8 @@ except AggregationPlanError:
 request_9 = make_resolved_request()
 request_9["sort"] = [
     {
-        "field": "unknown_field",
+        "field_type": "metric",
+        "alias": "unknown_field",
         "order": "desc",
     }
 ]
@@ -194,7 +198,8 @@ except AggregationPlanError:
 request_10 = make_resolved_request()
 request_10["sort"] = [
     {
-        "field": "skill",
+        "field_type": "group_by",
+        "field": make_field("skill", ["keyword"], "keyword"),
         "order": "sideways",
     }
 ]
