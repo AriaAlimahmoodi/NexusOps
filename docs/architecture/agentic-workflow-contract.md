@@ -36,6 +36,115 @@ python -m json.tool .\workflows\nexusops-agentic-workflow.json > $null
 pytest -q tests/test_n8n_workflow_contract.py
 ```
 
+## Agentic End-to-End acceptance
+
+The repository includes a separate n8n acceptance workflow at
+`workflows/nexusops-agentic-e2e-test-suite.json`. It calls the active production
+Chat Trigger endpoint of the main agent workflow, rather than calling MCP tools
+directly. Its four cases cover a numeric graduate count, course C002 retrieval,
+a multi-objective graduate-count/skill-gap request, and out-of-domain rejection.
+
+The suite serializes requests with a one-item Loop Over Items node. This is
+intentional for the local Ollama runtime and avoids creating accidental model
+concurrency during ordinary acceptance runs. The test suite checks observable
+HTTP response content; it does not introspect hidden planner state and therefore
+does not claim that a multi-objective prompt necessarily became two independent
+plans. It also does not inject an MCP transport failure or establish concurrent
+execution isolation. Those are separate resilience and concurrency acceptance
+gates.
+
+The main Chat Trigger workflow must be active for the production webhook to
+accept requests. The suite uses the Chat Trigger webhook ID stored in the
+exported workflow; if n8n regenerates that ID during import, update the suite
+endpoint to the Chat URL displayed by the active Chat Trigger.
+
+## Specialized skill-gap result normalization
+
+The `get_top_skill_gaps` MCP tool returns a ranked list of skills using
+`ranked_skill`, `associated_course_id`, `associated_course_name`,
+`course_coverage`, `market_demand`, and `market_gap`. The result normalizer
+must not reuse the market-demand tool's field contract (`skill`,
+`average_demand_score`, and `total_frequency`).
+
+The formatter handles both a direct tool payload and a nested MCP
+`result` envelope, validates the skill identity and numeric gap value,
+and renders the associated course and market fields without changing their
+meaning. The displayed rank is the one-based position in the tool's
+market-gap-descending result order; it is not a separately stored dataset field.
+
+## Planner retry contract
+
+The Query Planner receives the previous validation errors and raw invalid plan on
+retry. It must use those diagnostics to repair the plan rather than repeating the
+same output. Canonical examples define an unfiltered graduate count and a C002
+course lookup; simple single-objective requests must remain single plans. This
+prompt-level contract is covered by a static workflow contract test. It does not
+replace live Ollama acceptance testing.
+
+
+## Deterministic analytics planning and validation recovery
+
+The n8n workflow includes a deterministic pre-validation fallback for three
+well-defined analytical intents: grouped graduate outcome averages, compound
+skill-mapping thresholds, and full skill ranking by average market gap.
+When the request unambiguously matches one of these contracts, the validator
+uses a schema-checked canonical plan instead of forwarding malformed LLM
+output. The local planner prompt also contains canonical examples using the
+exact `analytics_query` argument schema (`group_by`, `metrics`,
+`filter_conditions`, and `sort`). This avoids model-invented fields such
+as `select_fields` and invalid metric shapes.
+
+An exhausted planner retry is classified separately from a genuinely
+unsupported request. Validation errors are reported as planner/contract
+failures; they must not be presented to the user as proof that Analytics lacks
+the requested capability. The deterministic fallback does not replace
+validation: every generated plan still passes the same dataset, field-role,
+metric, filter, alias, sort, and limit checks before MCP execution.
+
+
+## Live analytics acceptance follow-up
+
+The live n8n run exposed three presentation/planning edge cases and the workflow contract
+now addresses them:
+
+- Persian ZWNJ and spacing variants such as «ماه‌های اشتغال» are normalized before
+  deterministic intent matching. Grouped graduate outcomes include a document-count
+  metric as well as both requested averages.
+- Planner envelope metadata (`unsupported_reason` and `response_mode`) is removed only
+  from the nested argument object after validating its values. All other unknown
+  analytics arguments remain rejected by the strict schema.
+- Filtered SELECT counts are explicitly scoped to matching records and must not be
+  described as the size of the entire Elasticsearch index. Floating-point artifacts
+  are rounded to two decimal places for display while structured facts retain precision.
+
+The exact Persian grouped-graduate request is covered by a workflow contract regression
+test. Live acceptance still requires rerunning all three Chat Trigger scenarios after
+importing the updated workflow into n8n.
+
+
+## Deterministic output-scope and numeric presentation guard
+
+A subsequent live run showed that some Elasticsearch floating-point values arrive at the
+presentation layer as numeric strings, so number-only rounding was insufficient. Both
+the result table renderer and final composer now round decimal numeric strings to two
+places while preserving nonnumeric strings and integer identifiers.
+
+For filtered SELECT operations on `skill_mapping`, the final composer now replaces
+LLM-generated scope commentary with a deterministic statement derived from the actual
+structured row count. It explicitly identifies the number of matching rows and states
+that this does not establish the full index size; a separate unfiltered COUNT is required.
+Two regression tests cover these behaviors.
+
+## Deterministic grouped graduate interpretation
+
+Grouped graduate aggregates by `major` are interpreted in the final composition layer from the structured aggregate rows, not from free-form LLM commentary. The composer validates the graduate count and both requested averages before producing the summary. It formats the averages to two decimal places and localizes the known dataset value `Computer Engineering` as «مهندسی کامپیوتر» for display while preserving the original structured value. The explanation explicitly limits its claim to returned aggregation groups; it does not infer that unreturned majors are absent from the entire dataset.
+
+
+
+## Scalar aggregation
+
+The analytics contract supports both grouped and scalar aggregation. A grouped aggregate supplies one or more registered group_by fields. A scalar aggregate supplies an empty group_by array and at least one metric; the result is normalized as one bucket with an empty group key. When scalar aggregation requests count_documents, the Elasticsearch adapter enables exact hit tracking.
+
 
 ## Deterministic routing and response normalization
 
