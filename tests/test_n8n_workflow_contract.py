@@ -68,3 +68,23 @@ def test_mcp_tool_execution_is_downstream_of_successful_initialization():
     assert connections["Init OK?"]["main"][0][0]["node"] == "MCP Initialized Notify"
     assert connections["Initialized Notification OK?"]["main"][0][0]["node"] == "Build Tool Call"
     assert connections["Build Tool Call"]["main"][0][0]["node"] == "MCP Call Tool"
+
+
+def test_workflow_routes_domain_analytics_through_the_new_mcp_tool():
+    workflow = _workflow()
+    nodes = {node["name"]: node for node in workflow["nodes"]}
+    gate = nodes["Domain Gate"]["parameters"]["jsCode"]
+    planner = nodes["Query Planner"]["parameters"]["text"]
+    validator = nodes["Validate Plan"]["parameters"]["jsCode"]
+    builder = nodes["Build Tool Call"]["parameters"]["jsCode"]
+    formatter = nodes["Format Result"]["parameters"]["jsCode"]
+
+    assert "روند" in gate and "برنامه درسی" in gate
+    assert "analyze_university_market" in planner
+    assert "management_report" in planner
+    assert 'tool:"analyze_university_market"' in validator
+    assert 'tool==="analyze_university_market"' in validator
+    assert '"analyze_university_market"' in builder
+    assert "sections: data.sections" in formatter
+    assert "recommendations: data.recommendations" in formatter
+    assert "limitations: data.limitations" in formatter
