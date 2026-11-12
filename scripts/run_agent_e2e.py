@@ -128,8 +128,8 @@ def evaluate(case: dict[str, Any], response_text: str, http_status: int) -> tupl
         passed = has_number(text, case["count"]) and has_number(text, case["average"])
         reason = "Both expected values (30 and 6.93) are present." if passed else "Expected count 30 and average 6.93 were not both found."
     elif kind == "skill_demand":
-        passed = "مهارت" in text and "تقاضا" in text
-        reason = "Skill-demand discussion is present." if passed else "Skill-demand evidence was not found."
+        passed = "مهارت" in text and ("تقاضا" in text or "average_demand_score" in text) and ("فراوانی" in text or "total_frequency" in text)
+        reason = "Skill-demand rows include demand and frequency evidence." if passed else "Skill-demand evidence was not found."
     elif kind == "skill_gap":
         passed = "شکاف" in text and "مهارت" in text
         reason = "Skill-gap ranking discussion is present." if passed else "Skill-gap evidence was not found."
@@ -143,8 +143,8 @@ def evaluate(case: dict[str, Any], response_text: str, http_status: int) -> tupl
         passed = bool(re.search(r"\d", normalize_digits(text))) and any(term in text for term in ("تعداد", "رکورد", "فارغ‌التحصیل"))
         reason = "A numeric filtered result is present." if passed else "Numeric count evidence was not found."
     elif kind == "multi_metric":
-        passed = bool(re.search(r"\d", normalize_digits(text))) and "میانگین" in text and ("حوزه" in text or "شغلی" in text)
-        reason = "Grouped output includes a numeric average and job-field dimension." if passed else "Grouped multi-metric evidence was not found."
+        passed = bool(re.search(r"\d", normalize_digits(text))) and "میانگین" in text and ("حوزه شغلی" in text or "job_field" in text) and ("تعداد" in text or "record_count" in text)
+        reason = "Grouped output includes a numeric average, count, and job-field dimension." if passed else "Grouped multi-metric evidence was not found."
     elif kind == "skill_details":
         passed = "Python" in text and "SQL" in text and "تقاضا" in text and "فراوانی" in text
         reason = "Python and SQL demand/frequency details are present." if passed else "Expected named-skill demand/frequency details were not found."
@@ -152,8 +152,8 @@ def evaluate(case: dict[str, Any], response_text: str, http_status: int) -> tupl
         passed = "دانشگاه" in text and "بازار" in text and ("پیشنهاد" in text or "توصیه" in text)
         reason = "Management report includes university, market, and recommendations." if passed else "Expected management-report elements were not found."
     elif kind == "top_skills":
-        passed = "مهارت" in text and "تقاضا" in text
-        reason = "Top market-skill demand content is present." if passed else "Top-skill demand evidence was not found."
+        passed = "مهارت" in text and ("تقاضا" in text or "average_demand_score" in text) and ("فراوانی" in text or "total_frequency" in text)
+        reason = "Top market-skill rows include demand and frequency evidence." if passed else "Top-skill demand evidence was not found."
     elif kind == "course_effectiveness":
         passed = case["course_id"] in text and case["course_name"] in text and ("اثربخشی" in text or "تحلیل" in text)
         reason = "C013 course-effectiveness analysis is present." if passed else "Expected C013 effectiveness evidence was not found."
