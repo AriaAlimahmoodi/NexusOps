@@ -77,7 +77,7 @@ def test_transport_errors_keep_positional_request_metadata_only_for_http_failure
     assert response_options["neverError"] is True
     assert response_options["responseFormat"] == "text"
     assert "statusCode >= 400 ? requests[index] : null" in parser
-    assert "successful responses must match by JSON-RPC ID" in parser
+    assert "Successful responses must match by JSON-RPC ID" in parser
 
 
 def test_prepare_context_rejects_incomplete_or_mixed_plan_sets():
@@ -209,7 +209,7 @@ def test_formatter_localizes_course_names_and_rounds_numeric_strings():
     assert "displayColumnName(column)" in code
     assert 'column === "course_name"' in code
     assert 'typeof value === "string"' in code
-    assert "Number(numeric.toFixed(2))" in code
+    assert "Number(parsed.toFixed(2))" in code
 
 
 def test_course_gap_aggregate_is_ranked_by_max_market_gap_and_not_bucket_order():
