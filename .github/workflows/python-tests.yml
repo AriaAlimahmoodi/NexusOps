@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/agentic-workflow-hardening
+      - integration/phase5-hardening-unification
     paths:
       - "**.py"
       - "workflows/**"
@@ -13,6 +14,7 @@ on:
   pull_request:
     branches:
       - feat/agentic-workflow-hardening
+      - integration/phase5-hardening-unification
   workflow_dispatch:
 
 permissions:
