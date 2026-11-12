@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -19,16 +20,29 @@ AGENT_WORKFLOW_PATH = PROJECT_ROOT / "workflows" / "nexusops-agentic-workflow.js
 
 
 def build_cases(run_token: str) -> list[dict[str, str]]:
+    """Build independent conversations covering English and Persian paths."""
     return [
-        {"test_id": "C01", "kind": "numeric_count",
-         "session_id": f"nexusops-concurrency-{run_token}-C01",
-         "chat_input": "فقط عدد: تعداد کل فارغ‌التحصیلان دانشگاه چند نفر است؟"},
-        {"test_id": "C02", "kind": "course_lookup",
-         "session_id": f"nexusops-concurrency-{run_token}-C02",
-         "chat_input": "نام درس با شناسه C002 چیست؟"},
-        {"test_id": "C03", "kind": "skill_gap",
-         "session_id": f"nexusops-concurrency-{run_token}-C03",
-         "chat_input": "پنج مهارت با بیشترین شکاف مهارتی بازار را رتبه‌بندی کن."},
+        {
+            "test_id": "C01",
+            "kind": "numeric_count",
+            "expected_language": "en",
+            "session_id": f"nexusops-concurrency-{run_token}-C01",
+            "chat_input": "Only the number: How many total university graduates are in the dataset?",
+        },
+        {
+            "test_id": "C02",
+            "kind": "course_lookup",
+            "expected_language": "fa",
+            "session_id": f"nexusops-concurrency-{run_token}-C02",
+            "chat_input": "نام درس با شناسه C002 چیست؟",
+        },
+        {
+            "test_id": "C03",
+            "kind": "skill_gap",
+            "expected_language": "fa",
+            "session_id": f"nexusops-concurrency-{run_token}-C03",
+            "chat_input": "پنج مهارت با بیشترین شکاف مهارتی بازار را رتبه‌بندی کن.",
+        },
     ]
 
 
@@ -59,7 +73,41 @@ def extract_response_text(value: Any) -> str:
     return "" if value is None else str(value)
 
 
-def evaluate_response(case: dict[str, str], status_code: int, response_body: Any) -> dict[str, Any]:
+def _language_matches(text: str, expected: str) -> bool:
+    persian = len(re.findall(r"[\u0600-\u06FF]", text))
+    latin = len(re.findall(r"[A-Za-z]", text))
+    if expected == "fa":
+        return persian > 0
+    if expected == "en":
+        return persian == 0 and (latin > 0 or bool(re.search(r"(?<!\d)\d+(?!\d)", text)))
+    return False
+
+
+def _ranked_entry_count(text: str) -> int:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    numbered = [
+        line for line in lines
+        if re.match(r"^(?:[-*]\s*)?\d{1,2}[.)]\s+\S", line)
+    ]
+    bullets = [
+        line for line in lines
+        if re.match(r"^[-*]\s+\S", line)
+    ]
+    table_rows = [
+        line for line in lines
+        if line.startswith("|")
+        and line.count("|") >= 3
+        and not re.search(r"^\|\s*:?-{2,}", line)
+        and not re.search(r"\b(skill|مهارت|rank|رتبه)\b", line, re.I)
+    ]
+    return max(len(numbered), len(bullets), len(table_rows))
+
+
+def evaluate_response(
+    case: dict[str, str],
+    status_code: int,
+    response_body: Any,
+) -> dict[str, Any]:
     text = extract_response_text(response_body)
     normalized = normalize_digits(text)
     passed = False
@@ -69,21 +117,38 @@ def evaluate_response(case: dict[str, str], status_code: int, response_body: Any
         detail = f"Chat Trigger returned HTTP {status_code}: {text[:400]}"
     elif not text.strip():
         detail = "Chat Trigger returned an empty response."
-    elif re.search(r"partial_failure|incomplete|unknown response structure", text, re.I):
-        detail = "Response contains an incomplete-execution or unknown-structure warning."
+    elif re.search(
+        r"partial_failure|incomplete|unknown response structure|integrity_failure",
+        text,
+        re.I,
+    ):
+        detail = "Response contains an incomplete-execution or integrity warning."
+    elif not _language_matches(text, case.get("expected_language", "")):
+        detail = f"Response language does not match expected language {case.get('expected_language')}."
     elif case["kind"] == "numeric_count":
         passed = re.search(r"(?<!\d)30(?!\d)", normalized) is not None
-        detail = "The independent conversation returned the exact graduate count 30." if passed else "Expected exact graduate count 30 was not found."
+        detail = (
+            "The independent conversation returned the exact graduate count 30."
+            if passed else "Expected exact graduate count 30 was not found."
+        )
     elif case["kind"] == "course_lookup":
         passed = "C002" in text and "ساختمان داده" in text
-        detail = "The independent conversation returned course C002 and its Persian name." if passed else "Expected course identifier and name were not both found."
+        detail = (
+            "The independent conversation returned course C002 and its Persian name."
+            if passed else "Expected course identifier and name were not both found."
+        )
     elif case["kind"] == "skill_gap":
-        passed = "شکاف" in text or "market_gap" in text.casefold()
-        detail = "The independent conversation returned a skill-gap analysis." if passed else "Expected skill-gap evidence was not found."
+        entry_count = _ranked_entry_count(text)
+        passed = ("شکاف" in text or "market_gap" in text.casefold()) and entry_count >= 5
+        detail = (
+            f"The independent conversation returned a skill-gap ranking with {entry_count} visible entries."
+            if passed else f"Expected a five-entry skill-gap ranking; detected {entry_count} entries."
+        )
 
     return {
         "test_id": case["test_id"],
         "kind": case["kind"],
+        "expected_language": case.get("expected_language"),
         "status": "PASS" if passed else "FAIL",
         "http_status": status_code,
         "detail": detail,
@@ -94,7 +159,10 @@ def evaluate_response(case: dict[str, str], status_code: int, response_body: Any
 
 def get_chat_webhook_id() -> str:
     workflow = json.loads(AGENT_WORKFLOW_PATH.read_text(encoding="utf-8"))
-    matches = [node for node in workflow.get("nodes", []) if node.get("name") == "When chat message received"]
+    matches = [
+        node for node in workflow.get("nodes", [])
+        if node.get("name") == "When chat message received"
+    ]
     if len(matches) != 1:
         raise RuntimeError("Expected exactly one production Chat Trigger node.")
     webhook_id = matches[0].get("webhookId")
@@ -103,24 +171,37 @@ def get_chat_webhook_id() -> str:
     return webhook_id
 
 
-async def invoke_case(client: httpx.AsyncClient, endpoint: str, case: dict[str, str]) -> dict[str, Any]:
-    body = {"action": "sendMessage", "sessionId": case["session_id"], "chatInput": case["chat_input"]}
+async def invoke_case(
+    client: httpx.AsyncClient,
+    endpoint: str,
+    case: dict[str, str],
+) -> dict[str, Any]:
+    body = {
+        "action": "sendMessage",
+        "sessionId": case["session_id"],
+        "chatInput": case["chat_input"],
+    }
+    started = time.perf_counter()
     try:
         response = await client.post(endpoint, json=body)
         try:
             payload = response.json()
         except ValueError:
             payload = response.text
-        return evaluate_response(case, response.status_code, payload)
+        result = evaluate_response(case, response.status_code, payload)
+        result["duration_ms"] = round((time.perf_counter() - started) * 1000, 2)
+        return result
     except Exception as exc:
         return {
             "test_id": case["test_id"],
             "kind": case["kind"],
+            "expected_language": case.get("expected_language"),
             "status": "FAIL",
             "http_status": None,
             "detail": f"Request failed: {type(exc).__name__}: {str(exc)[:300]}",
             "session_ref": case["session_id"][-3:],
             "response_excerpt": "",
+            "duration_ms": round((time.perf_counter() - started) * 1000, 2),
         }
 
 
@@ -128,10 +209,16 @@ async def run_acceptance() -> dict[str, Any]:
     base_url = os.getenv("N8N_BASE_URL", "http://127.0.0.1:5678").rstrip("/")
     endpoint = f"{base_url}/webhook/{get_chat_webhook_id()}/chat"
     cases = build_cases(uuid.uuid4().hex[:12])
-    timeout = httpx.Timeout(180.0, connect=10.0)
+    session_ids = [case["session_id"] for case in cases]
+    if len(session_ids) != len(set(session_ids)):
+        raise RuntimeError("Concurrent acceptance cases must use unique session IDs.")
 
+    timeout = httpx.Timeout(180.0, connect=10.0)
+    started = time.perf_counter()
     async with httpx.AsyncClient(timeout=timeout) as client:
-        results = await asyncio.gather(*(invoke_case(client, endpoint, case) for case in cases))
+        results = await asyncio.gather(
+            *(invoke_case(client, endpoint, case) for case in cases)
+        )
 
     passed = sum(item["status"] == "PASS" for item in results)
     failed = len(results) - passed
@@ -141,8 +228,17 @@ async def run_acceptance() -> dict[str, Any]:
         "total": len(results),
         "passed": passed,
         "failed": failed,
+        "duration_ms": round((time.perf_counter() - started) * 1000, 2),
         "results": results,
-        "scope": "Three independent production Chat Trigger executions are submitted concurrently with unique session IDs. This validates cross-session isolation for these cases. Python-client conversation-lock ordering is covered by pytest; this harness does not claim n8n same-session ordering.",
+        "scope": (
+            "Three independent production Chat Trigger executions are submitted "
+            "concurrently with unique session IDs. The cases include an English "
+            "graduate-count request and Persian course-lookup/skill-gap requests. "
+            "Each response is checked for its expected language and intent-specific "
+            "evidence. This is a cross-session isolation smoke test; Python-client "
+            "same-conversation ordering is covered by pytest, but this harness does "
+            "not claim n8n same-session ordering or full numerical parity with Kibana."
+        ),
     }
 
 
@@ -150,8 +246,11 @@ def main() -> int:
     try:
         result = asyncio.run(run_acceptance())
     except Exception as exc:
-        result = {"suite": "NexusOps Live Concurrent Conversation Acceptance",
-                  "overall": "FAIL", "error": f"{type(exc).__name__}: {str(exc)[:500]}"}
+        result = {
+            "suite": "NexusOps Live Concurrent Conversation Acceptance",
+            "overall": "FAIL",
+            "error": f"{type(exc).__name__}: {str(exc)[:500]}",
+        }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result.get("overall") == "PASS" else 1
 
