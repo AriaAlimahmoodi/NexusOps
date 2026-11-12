@@ -564,12 +564,17 @@ class ElasticsearchAdapter:
 
         aggregations = self._build_aggregations(aggregation_plan)
 
-        response = self.client.search(
-            index=index,
-            query=query,
-            size=0,
-            aggs=aggregations,
-        )
+        search_kwargs = {
+            "index": index,
+            "query": query,
+            "size": 0,
+            "aggs": aggregations,
+        }
+        # Scalar aggregate responses always expose document_count, so exact
+        # hit tracking is required even when count_documents is not a metric.
+        if not aggregation_plan.get("group_by"):
+            search_kwargs["track_total_hits"] = True
+        response = self.client.search(**search_kwargs)
 
         return self._response_body(response)
 
@@ -637,6 +642,7 @@ class ElasticsearchAdapter:
         order = self._build_terms_order(
             sort_specs=sort_specs,
             group_by=group_by,
+            metrics=metrics,
             level=level,
         )
 
@@ -666,6 +672,7 @@ class ElasticsearchAdapter:
         self,
         sort_specs: list[dict[str, Any]],
         group_by: list[dict[str, Any]],
+        metrics: list[dict[str, Any]],
         level: int,
     ) -> list[dict[str, str]] | None:
 
@@ -686,8 +693,24 @@ class ElasticsearchAdapter:
                 order.append({"_key": direction})
 
             elif target_type in {"metric", "metric_alias"}:
-                remaining_group_levels = len(group_by) - level - 1
+                metric = next(
+                    (item for item in metrics if item.get("alias") == target),
+                    None,
+                )
+                if metric is None:
+                    raise ElasticsearchAdapterError(
+                        f"Unknown aggregation metric sort target: {target}"
+                    )
 
+                if metric.get("function") == "count_documents":
+                    # count_documents is normalized from bucket doc_count;
+                    # it has no named Elasticsearch aggregation to sort by.
+                    # Sort the outer course/skill bucket using native _count.
+                    if level == 0:
+                        order.append({"_count": direction})
+                    continue
+
+                remaining_group_levels = len(group_by) - level - 1
                 if remaining_group_levels == 0:
                     order.append({target: direction})
                 else:
