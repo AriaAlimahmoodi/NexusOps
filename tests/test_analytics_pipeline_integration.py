@@ -449,3 +449,58 @@ def test_real_elasticsearch_adapter_select_preserves_hit_totals_and_sort(pipelin
         "career_relevance": {"order": "desc"},
     }]
     assert client.search_calls[0]["size"] == 2
+
+
+class FakeBadRequestError(Exception):
+    def __init__(self):
+        super().__init__("search_phase_execution_exception: fielddata disabled")
+        self.status_code = 400
+        self.body = {
+            "error": {
+                "type": "search_phase_execution_exception",
+                "reason": "Fielddata is disabled on [major] in [pipeline-fixture-index]",
+                "root_cause": [{
+                    "type": "illegal_argument_exception",
+                    "reason": "Fielddata is disabled on [major] in [pipeline-fixture-index]",
+                }],
+            },
+            "status": 400,
+        }
+
+
+def test_elasticsearch_bad_request_preserves_backend_body_and_query_details(
+    pipeline_environment,
+):
+    from tools.adapters.elasticsearch_adapter import ElasticsearchAdapter
+
+    class FailingElasticsearchClient(FakeElasticsearchClient):
+        def search(self, **kwargs):
+            self.search_calls.append(deepcopy(kwargs))
+            raise FakeBadRequestError()
+
+    client = FailingElasticsearchClient()
+    request = AnalyticsRequest(
+        dataset_id=DATASET_ID,
+        operation=AnalyticsOperation.AGGREGATE,
+        group_by=("major",),
+        metrics=(
+            MetricSpec(MetricFunction.AVG, "career_relevance", "avg_relevance"),
+        ),
+        limit=10,
+    )
+
+    with pytest.raises(Exception) as captured:
+        AnalyticsService(
+            adapter=ElasticsearchAdapter(client=client),
+        ).analyze(request)
+
+    error = captured.value
+    assert error.__class__.__name__ == "AnalyticsServiceError"
+    assert error.details["request"]["index"] == "pipeline-fixture-index"
+    assert error.details["request"]["operation"] == "aggregate"
+    assert error.details["request"]["query"] == {"match_all": {}}
+    assert error.details["request"]["aggregation_plan"]["group_by"][0]["name"] == "major"
+    assert error.details["elasticsearch"]["exception_type"] == "FakeBadRequestError"
+    assert error.details["elasticsearch"]["status_code"] == 400
+    assert error.details["elasticsearch"]["body"]["error"]["type"] == "search_phase_execution_exception"
+    assert client.search_calls[0]["index"] == "pipeline-fixture-index"

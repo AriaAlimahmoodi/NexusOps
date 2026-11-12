@@ -9,6 +9,10 @@ from config import get_elasticsearch_client
 class ElasticsearchAdapterError(Exception):
     """Raised when Elasticsearch adapter cannot execute or normalize a plan."""
 
+    def __init__(self, message: str, *, details: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.details = details or {}
+
 
 class ElasticsearchAdapter:
     """
@@ -146,8 +150,50 @@ class ElasticsearchAdapter:
         except ElasticsearchAdapterError:
             raise
         except Exception as exc:
+            meta = getattr(exc, "meta", None)
+            status_code = getattr(meta, "status", None)
+            if status_code is None:
+                status_code = getattr(exc, "status_code", None)
+
+            error_body = getattr(exc, "body", None)
+            if error_body is None:
+                error_body = getattr(exc, "info", None)
+
+            details = {
+                "request": {
+                    "index": index,
+                    "operation": operation,
+                    "query": query,
+                },
+                "elasticsearch": {
+                    "exception_type": type(exc).__name__,
+                    "status_code": status_code,
+                    "body": self._json_safe(error_body),
+                },
+            }
+            if operation == "aggregate":
+                details["request"]["aggregation_plan"] = self._json_safe(
+                    query_plan.get("aggregation")
+                )
+            elif operation == "select":
+                details["request"]["sort"] = self._json_safe(
+                    query_plan.get("sort", [])
+                )
+                details["request"]["size"] = query_plan.get("limit", 10)
+
+            logger = __import__("logging").getLogger("nexusops.analytics.elasticsearch")
+            logger.exception(
+                "Elasticsearch analytics request failed",
+                extra={
+                    "index": index,
+                    "operation": operation,
+                    "status_code": status_code,
+                    "query": query,
+                },
+            )
             raise ElasticsearchAdapterError(
-                f"Elasticsearch execution failed: {type(exc).__name__}"
+                f"Elasticsearch execution failed: {type(exc).__name__}: {exc}",
+                details=details,
             ) from exc
 
     # ------------------------------------------------------------------
@@ -908,6 +954,20 @@ class ElasticsearchAdapter:
     # ------------------------------------------------------------------
     # Response compatibility
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _json_safe(value: Any) -> Any:
+        """Convert Elasticsearch error payloads into JSON-safe values."""
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return {
+                str(key): ElasticsearchAdapter._json_safe(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [ElasticsearchAdapter._json_safe(item) for item in value]
+        return str(value)
 
     @staticmethod
     def _response_body(response: Any) -> dict[str, Any]:

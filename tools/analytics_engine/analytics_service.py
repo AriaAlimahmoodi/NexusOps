@@ -118,9 +118,17 @@ class AnalyticsService:
                 adapter=self.adapter,
             )
         except Exception as exc:
+            # Preserve structured backend diagnostics instead of reducing
+            # Elasticsearch API errors to an exception class name only.
+            execution_details = getattr(exc, "details", None)
             raise AnalyticsServiceError(
                 f"Query execution failed: "
-                f"{type(exc).__name__}: {exc}"
+                f"{type(exc).__name__}: {exc}",
+                details=(
+                    execution_details
+                    if isinstance(execution_details, dict)
+                    else {}
+                ),
             ) from exc
 
         # ---------------------------------------------------------
