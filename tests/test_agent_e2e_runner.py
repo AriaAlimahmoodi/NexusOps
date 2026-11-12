@@ -69,3 +69,29 @@ def test_partial_suite_can_never_be_reported_as_full_acceptance():
     source = SCRIPT.read_text(encoding="utf-8")
     assert 'len(selected) == 18' in source
     assert '"overall": "PASS" if failed == 0 and len(selected) == 18 else "FAIL"' in source
+
+
+
+def test_skill_demand_evaluator_accepts_localized_structured_metric_headers():
+    case = {"kind": "skill_demand"}
+    response = "| مهارت | میانگین امتیاز تقاضا | مجموع فراوانی |\\n|---|---:|---:|\\n| DevOps | 4.9 | 790 |"
+    assert runner.evaluate(case, response, 200)[0] == "PASS"
+
+
+def test_top_market_skill_evaluator_requires_demand_and_frequency_evidence():
+    case = {"kind": "top_skills"}
+    response = "| مهارت | میانگین امتیاز تقاضا | مجموع فراوانی |\\n|---|---:|---:|\\n| SQL | 4.73 | 2480 |"
+    assert runner.evaluate(case, response, 200)[0] == "PASS"
+    assert runner.evaluate(case, "| مهارت | توضیح |\\n|---|---|\\n| SQL | پرتقاضا |", 200)[0] == "FAIL"
+
+
+def test_grouped_multi_metric_evaluator_requires_count_average_and_dimension():
+    case = {"kind": "multi_metric"}
+    response = "| حوزه شغلی | تعداد رکورد | میانگین مدت اشتغال |\\n|---|---:|---:|\\n| AI | 5 | 9.4 |"
+    assert runner.evaluate(case, response, 200)[0] == "PASS"
+
+
+def test_english_course_lookup_evaluator_accepts_only_english_evidence():
+    case = {"kind": "course_en", "course_id": "C002", "course_name": "Data Structures"}
+    assert runner.evaluate(case, "C002 — Data Structures", 200)[0] == "PASS"
+    assert runner.evaluate(case, "C002 — Data Structures; ساختمان داده", 200)[0] == "FAIL"
