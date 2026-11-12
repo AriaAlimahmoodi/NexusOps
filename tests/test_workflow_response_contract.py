@@ -92,6 +92,13 @@ def test_tool_calls_and_results_preserve_session_identity():
     assert "const chatSessionId = response.chatSessionId" in format_result
 
 
+def test_course_lookup_keeps_explicit_identifier_and_name_evidence():
+    code = _node("Compose Final")["parameters"]["jsCode"]
+    assert 'x.selectedTool==="search_elasticsearch"' in code
+    assert "row.course_id!=null&&row.course_name!=null" in code
+    assert "Course evidence (course_id, course_name)" in code
+
+
 def test_workflow_keeps_the_existing_execution_path():
     connections = _workflow()["connections"]
     assert connections["Prepare LLM Context"]["main"][0][0]["node"] == "Answer Writer"
