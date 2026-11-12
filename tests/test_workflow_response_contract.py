@@ -121,3 +121,41 @@ def test_exact_course_lookup_has_a_deterministic_route_before_llm_plan_validatio
     assert "const lookupIntent=" in code
     assert 'tool:"search_elasticsearch"' in code
     assert "lookupIds.join" in code
+
+
+
+def test_language_detection_uses_dominant_script_and_persian_wins_ties():
+    code = _node("Prepare Input")["parameters"]["jsCode"]
+    assert "faLetters>=enLetters?\"fa\":\"en\"" in code
+    assert "Script=Arabic" in code
+
+
+def test_mcp_responses_are_correlated_only_by_json_rpc_id():
+    parse = _node("MCP Parse Result")["parameters"]["jsCode"]
+    formatter = _node("Format Result")["parameters"]["jsCode"]
+    assert "response count does not match request count" in parse
+    assert "duplicate response RPC IDs" in parse
+    assert "response RPC ID has no matching request" in parse
+    assert "buildItems[index]?.json" not in formatter
+
+
+def test_context_rejects_incomplete_or_duplicated_plan_batches():
+    code = _node("Prepare LLM Context")["parameters"]["jsCode"]
+    assert "plan response count does not match the submitted plan count" in code
+    assert "plan indexes are missing, duplicated, or out of range" in code
+    assert "plan IDs are missing or duplicated" in code
+    assert 'context_version: "3.0"' in code
+
+
+def test_exact_course_lookup_uses_only_canonical_course_catalog_records():
+    code = _node("Format Result")["parameters"]["jsCode"]
+    assert 'hit.index === "university_courses"' in code
+    assert "requestedCourseIds.includes" in code
+    assert "seenDocuments" in code
+
+
+def test_answer_writer_is_analysis_only_and_deterministic_composition_owns_tables():
+    prompt = _node("Answer Writer")["parameters"]["text"]
+    assert "return an empty string" in prompt
+    assert "Compose Final renders all factual values and tables" in prompt
+    assert "Request language: {{ $json.language }}" in prompt

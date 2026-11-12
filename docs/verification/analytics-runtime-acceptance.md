@@ -259,3 +259,16 @@ The current workflow regression suite now executes the actual JavaScript source 
 These automated checks validate the Code node logic; they do not claim that the user's live n8n, Ollama, MCP, or Elasticsearch processes have passed runtime acceptance.
 
 After pulling the consolidated change, run the local Python suite once. Then import the matching workflow JSON and perform one consolidated live acceptance pass for the affected n8n paths. Do not start a new code-edit cycle from an isolated prompt result: capture the selected tools, all plan outputs, and the complete execution result for the entire acceptance pass before diagnosing any remaining issue.
+
+
+## 10. Phase 5 regression acceptance
+
+The consolidated local suite includes executable Node.js tests for dominant-script language detection, exact JSON-RPC response correlation, rejection of incomplete or duplicated multi-plan batches, canonical course lookup filtering/deduplication, and analysis-only Answer Writer behavior.
+
+After pulling the phase 5 commit, run `python -m pytest -q tests`, then re-import the workflow JSON into n8n. In one live acceptance pass:
+1. Ask for course C002 by ID; the answer must use the canonical `university_courses` record and must not list repeated `course_graduate_records` rows.
+2. Submit two separate chat sessions concurrently; each answer must contain only its own question and plan metadata.
+3. Submit a multi-plan request and confirm indexes 0..N-1 appear exactly once.
+4. Submit a Persian request containing several English technical names and an English request containing dataset identifiers; each answer must follow the dominant request language.
+
+Record local pytest and live n8n concurrency outcomes separately. Node.js mock execution tests are not a substitute for live concurrency acceptance.

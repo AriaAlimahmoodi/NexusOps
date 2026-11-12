@@ -412,3 +412,113 @@ def test_english_course_lookup_preserves_request_language():
     assert "Data Structures" in output
     assert "نتایج درخواست شما" not in output
     assert "نام درس" not in output
+
+
+
+def test_persian_request_keeps_persian_language_with_english_technical_terms():
+    prepared = _prepare("لطفاً وضعیت Elasticsearch و MCP را برای دانشگاه بررسی کن.")
+    assert prepared["language"] == "fa"
+
+
+def test_english_request_is_detected_as_english():
+    prepared = _prepare("Please analyze the university graduates dataset and report the average.")
+    assert prepared["language"] == "en"
+
+
+def test_mcp_parse_result_rejects_an_unmatched_json_rpc_id():
+    request = {
+        "rpcId": 1, "chatSessionId": "chat-a", "mcpSessionId": "mcp-a",
+        "planIndex": 0, "planCount": 1, "planId": "plan-1",
+        "selectedTool": "analytics_query",
+        "rpcBody": {"params": {"arguments": {"dataset_id": "university_graduates", "operation": "count"}}},
+    }
+    response = {"json": {"statusCode": 200, "body": {
+        "jsonrpc": "2.0", "id": 99,
+        "result": {"structuredContent": {"count": 30}},
+    }}}
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_node_code("MCP Parse Result", [response], {"Build Tool Call": [{"json": request}]})
+
+
+def test_prepare_llm_context_rejects_a_missing_plan_response():
+    prepared = _prepare("تعداد فارغ‌التحصیلان و میانگین مدت اشتغال را گزارش کن.")
+    item = {"json": {
+        "question": prepared["question"], "responseMode": "combined",
+        "planIndex": 0, "planCount": 2, "planId": "plan-1", "rpcId": 1,
+        "chatSessionId": None, "mcpSessionId": None,
+        "executionSuccess": True, "recognized": True, "factsJson": "{}",
+    }}
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_node_code("Prepare LLM Context", [item], {
+            "Prepare Input": [{"json": prepared}],
+            "MCP Parse Init": [{"json": {"ok": True, "sessionId": None}}],
+        })
+
+
+def test_prepare_llm_context_rejects_duplicate_plan_indexes():
+    prepared = _prepare("تعداد فارغ‌التحصیلان و میانگین مدت اشتغال را گزارش کن.")
+    base = {
+        "question": prepared["question"], "responseMode": "combined",
+        "planCount": 2, "chatSessionId": None, "mcpSessionId": None,
+        "executionSuccess": True, "recognized": True, "factsJson": "{}",
+    }
+    items = [
+        {"json": {**base, "planIndex": 0, "planId": "plan-1", "rpcId": 1}},
+        {"json": {**base, "planIndex": 0, "planId": "plan-2", "rpcId": 2}},
+    ]
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_node_code("Prepare LLM Context", items, {
+            "Prepare Input": [{"json": prepared}],
+            "MCP Parse Init": [{"json": {"ok": True, "sessionId": None}}],
+        })
+
+
+def test_course_identifier_lookup_uses_only_the_canonical_course_record():
+    question = "نام درس با شناسه C002 چیست؟"
+    prepared = _prepare(question)
+    build = {"json": {
+        "rpcId": 1, "selectedTool": "search_elasticsearch",
+        "rpcBody": {"params": {"arguments": {"query": "C002"}}},
+        "question": question, "responseMode": "combined",
+        "planIndex": 0, "planCount": 1, "planId": "plan-1",
+    }}
+    response = {"json": {
+        "ok": True, "data": {
+            "query": "C002", "total_returned": 16, "results": [
+                {"index": "course_graduate_records", "id": "C002-G0001",
+                 "data": {"course_id": "C002", "course_name": "ساختمان داده", "course_relevance": 4.5}},
+                {"index": "university_courses", "id": "C002-duplicate",
+                 "data": {"course_id": "C002", "course_name": "ساختمان داده", "course_category": "Core", "credits": 3}},
+                {"index": "university_courses", "id": "C002",
+                 "data": {"course_id": "C002", "course_name": "ساختمان داده", "course_category": "Core", "credits": 3}},
+            ],
+        },
+        "selectedTool": "search_elasticsearch", "requestArguments": {"query": "C002"},
+        "rpcId": 1, "planIndex": 0, "planCount": 1, "planId": "plan-1",
+        "question": question, "responseMode": "combined",
+    }}
+    formatted = _run_node_code("Format Result", [response], {"Build Tool Call": [build]})
+    assert formatted[0]["json"]["recognized"] is True
+    rows = formatted[0]["json"]["rows"]
+    assert len(rows) == 1
+    assert rows[0]["index"] == "university_courses"
+    assert rows[0]["data"]["course_name"] == "ساختمان داده"
+    assert formatted[0]["json"]["totalRecords"] == 1
+
+
+
+def test_mcp_parse_result_preserves_request_identity_for_http_transport_errors():
+    request = {
+        "rpcId": 7, "chatSessionId": "chat-a", "mcpSessionId": "mcp-a",
+        "planIndex": 0, "planCount": 1, "planId": "plan-1",
+        "selectedTool": "analytics_query",
+        "rpcBody": {"params": {"arguments": {"dataset_id": "university_graduates", "operation": "count"}}},
+    }
+    response = {"json": {"statusCode": 503, "body": "MCP unavailable"}}
+    parsed = _run_node_code(
+        "MCP Parse Result", [response], {"Build Tool Call": [{"json": request}]}
+    )[0]["json"]
+    assert parsed["ok"] is False
+    assert parsed["rpcId"] == 7
+    assert parsed["planId"] == "plan-1"
+    assert "MCP HTTP 503" in parsed["error"]

@@ -47,3 +47,16 @@ pytest -q tests/test_n8n_workflow_contract.py
 ## Validation
 
 The consolidated Python suite includes the workflow contract and Node-backed Code node execution tests. Node.js must be available for the latter; it is already a runtime dependency of the local n8n installation.
+
+
+## Phase 5 — request isolation and response integrity
+
+The workflow treats a multi-plan response as an integrity boundary rather than a best-effort collection:
+
+- Request language is selected by dominant writing system; Persian wins ties so Latin technical names do not override a Persian request.
+- Every successful MCP response must carry a JSON-RPC ID that maps to exactly one originating request. Duplicate, missing, unknown, or mismatched IDs fail closed. Positional association is retained only for an HTTP transport failure with no JSON-RPC response body, where no successful data can be misattributed.
+- Before analysis, the workflow verifies expected plan count, contiguous unique plan indexes, unique plan IDs and RPC IDs, consistent response mode, question, and session identity. Missing or mixed metadata is rejected rather than combined.
+- Exact course identifiers are resolved only against the canonical `university_courses` index; exact graduate identifiers use `university_graduates`. Denormalized course-graduate rows cannot override or duplicate canonical course identity.
+- Answer Writer is an analysis-only stage. It returns no unsolicited analysis and does not reproduce deterministic tables or replace facts rendered by Compose Final.
+
+These safeguards are workflow-level checks. They do not claim that concurrent executions have been stress-tested against the user's live n8n deployment.
