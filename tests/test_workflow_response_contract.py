@@ -53,6 +53,15 @@ def test_compose_final_localizes_output_and_suppresses_unsolicited_analysis():
     assert 'english?"Count":"تعداد"' in code
 
 
+def test_markdown_headers_are_rendered_in_the_request_language():
+    code = _node("Compose Final")["parameters"]["jsCode"]
+    assert "headerLabels=english?{" in code
+    assert 'graduate_count:"Graduate count"' in code
+    assert 'graduate_count:"تعداد فارغ‌التحصیلان"' in code
+    assert 'average_employment_months:"Average employment (months)"' in code
+    assert 'average_employment_months:"میانگین مدت اشتغال (ماه)"' in code
+
+
 def test_out_of_scope_and_error_replies_follow_request_language():
     out_of_scope = _node("Out of Scope Reply")["parameters"]["jsCode"]
     error_reply = _node("Error Reply")["parameters"]["jsCode"]
