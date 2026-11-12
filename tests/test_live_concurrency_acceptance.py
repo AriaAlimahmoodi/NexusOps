@@ -46,16 +46,16 @@ def test_live_skill_gap_acceptance_requires_five_ranked_entries():
     case = build_cases("run")[2]
     five_entries = {
         "output": (
-            "رتبه‌بندی پنج مهارت دارای بیشترین شکاف مهارتی:\\n"
-            "1. مهارت الف: 4.5\\n"
-            "2. مهارت ب: 4.2\\n"
-            "3. مهارت پ: 3.9\\n"
-            "4. مهارت ت: 3.7\\n"
+            "رتبه‌بندی پنج مهارت دارای بیشترین شکاف مهارتی:\n"
+            "1. مهارت الف: 4.5\n"
+            "2. مهارت ب: 4.2\n"
+            "3. مهارت پ: 3.9\n"
+            "4. مهارت ت: 3.7\n"
             "5. مهارت ث: 3.4"
         )
     }
     too_few_entries = {
-        "output": "بیشترین شکاف مهارتی:\\n1. مهارت الف: 4.5\\n2. مهارت ب: 4.2"
+        "output": "بیشترین شکاف مهارتی:\n1. مهارت الف: 4.5\n2. مهارت ب: 4.2"
     }
 
     assert evaluate_response(case, 200, five_entries)["status"] == "PASS"
@@ -67,7 +67,7 @@ def test_live_acceptance_fails_closed_for_http_and_execution_integrity_errors():
 
     http_failure = evaluate_response(case, 503, {"output": "service unavailable"})
     incomplete = evaluate_response(
-        case, 200, {"output": "30\\nExecution status: partial_failure"}
+        case, 200, {"output": "30\nExecution status: partial_failure"}
     )
 
     assert http_failure["status"] == "FAIL"
