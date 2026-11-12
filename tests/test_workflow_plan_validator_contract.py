@@ -38,3 +38,32 @@ def test_compose_final_interprets_grouped_graduate_averages_independent_of_metri
     assert "همبستگی میان مدت اشتغال و ارتباط شغلی" in code
     assert "individual-level correlation" in code
 
+
+
+
+def test_workflow_has_deterministic_routes_for_full_system_acceptance_intents():
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    validator = next(node for node in workflow["nodes"] if node["name"] == "Validate Plan")
+    code = validator["parameters"]["jsCode"]
+
+    assert 'if(asksGraduateCount&&!asksEmploymentAverage' in code
+    assert 'tool:"get_top_market_skills"' in code
+    assert 'return domainPlan("skill_trends")' in code
+    assert 'return domainPlan("major_comparison")' in code
+    assert 'return domainPlan("curriculum_recommendations")' in code
+    assert 'arguments:{skills:["Python","SQL"]}' in code
+    assert 'group_by:["job_field"]' in code
+
+
+def test_compose_final_has_structured_fallbacks_for_domain_analysis_and_language_purity():
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    composer = next(node for node in workflow["nodes"] if node["name"] == "Compose Final")
+    code = composer["parameters"]["jsCode"]
+
+    assert 'facts.analysis_type' in code
+    assert 'type==="management_report"' in code
+    assert 'type==="curriculum_recommendations"' in code
+    assert 'type==="skill_trends"' in code
+    assert 'selectedTool==="get_market_skill_details"' in code
+    assert 'englishCourseNames[String(row.course_name)]' in code
+    assert 'job_field:"حوزه شغلی"' in code
