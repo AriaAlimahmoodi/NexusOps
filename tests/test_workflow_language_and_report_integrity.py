@@ -83,7 +83,7 @@ class TestWorkflowLanguageAndEvidence(unittest.TestCase):
 
     def test_analysis_is_confined_to_structured_context(self):
         prompt = self.nodes["Answer Writer"]["parameters"]["text"]
-        self.assertIn("only source of truth", prompt.lower())
+        self.assertIn("تنها منبع معتبر برای پاسخ‌گویی", prompt)
         self.assertIn("contextJson", prompt)
         self.assertIn("conversation history, memory", prompt)
 
