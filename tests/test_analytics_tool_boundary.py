@@ -45,7 +45,7 @@ def test_invalid_aggregate_request_returns_structured_error_without_connecting(m
         "dataset_id": "labor_market",
         "operation": "aggregate",
         "group_by": [],
-        "metrics": [{"function": "avg", "field": "demand_score"}]
+        "metrics": []  # Missing metrics makes this aggregate request invalid.
     })
 
     assert result["status"] == "error"
