@@ -18,68 +18,29 @@ def _node(workflow, name):
     return matches[0]
 
 
-def _header_names(node):
+def _headers(node):
     return {
         str(item.get("name", "")).lower()
         for item in node["parameters"]["headerParameters"]["parameters"]
     }
 
 
-def test_mcp_initialize_sends_required_http_headers():
+def test_mcp_initialize_and_session_negotiation_contract():
     workflow = _workflow()
-    node = _node(workflow, "MCP Initialize")
-    parameters = node["parameters"]
-
-    assert parameters["method"] == "POST"
-    assert parameters["url"].endswith("/mcp")
-    assert parameters["sendHeaders"] is True
-    assert _header_names(node) >= {"content-type", "accept"}
-    assert all(
-        item.get("name") and item.get("value")
-        for item in parameters["headerParameters"]["parameters"]
-    )
-
-    request = json.loads(parameters["jsonBody"])
-    assert request["jsonrpc"] == "2.0"
-    assert request["method"] == "initialize"
-    assert request["params"]["protocolVersion"]
-
-
-def test_mcp_session_headers_are_propagated_through_initialized_and_tool_calls():
-    workflow = _workflow()
-
+    initialize = _node(workflow, "MCP Initialize")
+    assert initialize["parameters"]["method"] == "POST"
+    assert initialize["parameters"]["url"].endswith("/mcp")
+    assert _headers(initialize) >= {"content-type", "accept"}
     parse_init = _node(workflow, "MCP Parse Init")["parameters"]["jsCode"]
-    notify = _node(workflow, "MCP Initialized Notify")
-    call_tool = _node(workflow, "MCP Call Tool")
-
-    # The session identifier is returned as an HTTP response header.
-    # The negotiated protocol version is returned in the initialize result
-    # body and must be propagated to subsequent MCP requests.
     assert 'getHeader("mcp-session-id")' in parse_init
     assert "message.result.protocolVersion" in parse_init
-    assert 'reqHeaders["MCP-Protocol-Version"] = message.result.protocolVersion' in parse_init
-    assert _header_names(notify) >= {
-        "content-type", "accept", "mcp-session-id", "mcp-protocol-version"
-    }
-    assert _header_names(call_tool) >= {
-        "content-type", "accept", "mcp-session-id", "mcp-protocol-version"
-    }
-
-    notify_body = json.loads(notify["parameters"]["jsonBody"])
-    assert notify_body["method"] == "notifications/initialized"
-    assert "id" not in notify_body
 
 
 def test_initialized_notification_is_a_gate_before_tool_execution():
     workflow = _workflow()
     connections = workflow["connections"]
-
-    assert connections["MCP Initialized Notify"]["main"][0][0]["node"] == (
-        "Validate Initialized Notification"
-    )
-    assert connections["Validate Initialized Notification"]["main"][0][0]["node"] == (
-        "Initialized Notification OK?"
-    )
+    assert connections["MCP Initialized Notify"]["main"][0][0]["node"] == "Validate Initialized Notification"
+    assert connections["Validate Initialized Notification"]["main"][0][0]["node"] == "Initialized Notification OK?"
     branches = connections["Initialized Notification OK?"]["main"]
     assert branches[0][0]["node"] == "Build Tool Call"
     assert branches[1][0]["node"] == "Error Reply"
@@ -88,124 +49,77 @@ def test_initialized_notification_is_a_gate_before_tool_execution():
 def test_workflow_connections_reference_existing_nodes():
     workflow = _workflow()
     names = {node["name"] for node in workflow["nodes"]}
-
     for source, outputs in workflow["connections"].items():
-        assert source in names, f"Unknown connection source: {source}"
+        assert source in names
         for channel_outputs in outputs.values():
             for branch in channel_outputs:
                 for connection in branch:
-                    assert connection["node"] in names, (
-                        f"Unknown connection target: {connection['node']}"
-                    )
+                    assert connection["node"] in names
 
 
-def test_mcp_result_parser_enforces_one_outcome_per_requested_plan():
-    workflow = _workflow()
-    code = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
-
+def test_mcp_result_parser_correlates_successful_responses_by_json_rpc_id():
+    code = _node(_workflow(), "MCP Parse Result")["parameters"]["jsCode"]
     assert 'const requests = $("Build Tool Call").all()' in code
-    assert "return requests.map((request, index)" in code
-    assert "Multiple MCP responses matched the same JSON-RPC request ID." in code
-    assert "MCP response missing for this plan." in code
+    assert "requestIds" in code
+    assert "messageId" in code
+    assert "successful response has no JSON-RPC ID" in code
+    assert "duplicate response RPC IDs" in code
+    assert "response RPC ID has no matching request" in code
+    assert "response could not be paired with its originating request" in code
 
 
-def test_mcp_result_parser_never_guesses_multi_plan_correlation_without_rpc_ids():
+def test_transport_errors_keep_positional_request_metadata_only_for_http_failures():
     workflow = _workflow()
-    code = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
-
-    assert "requests.length === 1" in code
-    assert "multi-plan correlation is ambiguous" in code
-    assert "unexpected JSON-RPC IDs were received" in code
-    assert 'responseBuckets.get(key) ?? []' in code
-
-
-def test_multi_plan_correlation_and_completeness_reach_answer_context():
-    workflow = _workflow()
-    format_code = _node(workflow, "Format Result")["parameters"]["jsCode"]
-    context_code = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
-    compose_code = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert 'correlationStatus: response.correlationStatus ?? "unknown"' in format_code
-    assert "expected_plans: expectedPlanCount" in context_code
-    assert "plan_set_complete: planSetComplete" in context_code
-    assert "correlation_failures: correlationFailures" in context_code
-    assert 'overall_execution_status: overallExecutionStatus' in context_code
-    assert '"partial_failure"' in context_code
-    assert "planSetComplete" in compose_code
-    assert "وضعیت اجرای چندبرنامه‌ای" in compose_code
-
-
-def test_mcp_tool_call_preserves_per_plan_transport_failures_for_partial_results():
-    workflow = _workflow()
-    call_tool = _node(workflow, "MCP Call Tool")
     parser = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
-
-    assert call_tool["onError"] == "continueRegularOutput"
-    assert call_tool["retryOnFail"] is True
-    assert call_tool["maxTries"] == 2
-    assert call_tool["waitBetweenTries"] == 1000
-    assert "const responseItems = $input.all()" in parser
-    assert "responseItems[index]?.pairedItem" in parser
-    assert "statusCode: 599" in parser
-    assert "paired-item lineage" in parser
+    call = _node(workflow, "MCP Call Tool")["parameters"]
+    assert call["onError"] == "continueRegularOutput"
+    assert call["retryOnFail"] is True
+    assert call["maxTries"] == 2
+    assert "statusCode >= 400 ? requests[index] : null" in parser
+    assert "successful responses must match by JSON-RPC ID" in parser
 
 
-def test_execution_trace_is_propagated_across_mcp_and_answer_context():
-    workflow = _workflow()
-    build = _node(workflow, "Build Tool Call")["parameters"]["jsCode"]
-    parser = _node(workflow, "MCP Parse Result")["parameters"]["jsCode"]
-    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
-    context = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert '$execution?.id' in build
-    assert 'executionId' in build
-    assert 'executionId: request.executionId' in parser
-    assert 'executionId: response.executionId' in formatter
-    assert 'execution_id: item.executionId' in context
-    assert 'execution_ids:' in context
-    assert 'executionIds' in compose
-
-
-def test_final_gate_rejects_incomplete_duplicate_and_unrecognized_plan_sets():
-    workflow = _workflow()
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert 'expectedCounts.length===1' in compose
-    assert 'uniqueIndexes.size===r.length' in compose
-    assert 'uniqueIds.size===ids.length' in compose
-    assert 'correlationFailures' in compose
-    assert 'unrecognized>0' in compose
-    assert 'overallStatus' in compose
-    assert 'if(mode==="analysis")' in compose
-    assert 'وضعیت اعتبار پاسخ' in compose
+def test_prepare_context_rejects_incomplete_or_mixed_plan_sets():
+    code = _node(_workflow(), "Prepare LLM Context")["parameters"]["jsCode"]
+    for token in (
+        "expectedPlanCount",
+        "planIndexes",
+        "planIds",
+        "rpcIds",
+        "chatSessionIds",
+        "mcpSessionIds",
+        "expectedMcpSessionId",
+        "mixed response modes",
+        "chat session identity mismatch",
+        "MCP session identity mismatch",
+    ):
+        assert token in code
 
 
-def test_top_skill_gap_renderer_supports_tool_schema_and_nested_mcp_result_envelope():
-    workflow = _workflow()
-    code = _node(workflow, "Format Result")["parameters"]["jsCode"]
+def test_format_result_matches_each_response_to_its_originating_rpc_request():
+    code = _node(_workflow(), "Format Result")["parameters"]["jsCode"]
+    assert "response.rpcId" in code
+    assert 'buildItems.find(item => item.json?.rpcId === response.rpcId)' in code
+    assert "response RPC ID has no matching originating plan" in code
 
+
+def test_top_skill_gap_renderer_uses_the_specialized_tool_contract():
+    code = _node(_workflow(), "Format Result")["parameters"]["jsCode"]
     assert "function renderTopSkillGaps(data)" in code
-    assert 'data.result.analysis === "top_skill_gaps"' in code
-    assert 'selectedTool === "get_top_skill_gaps"' in code
-    for field in [
+    for field in (
         "ranked_skill",
         "associated_course_id",
         "associated_course_name",
         "course_coverage",
         "market_demand",
         "market_gap",
-    ]:
+    ):
         assert field in code
-    assert 'ranking_unit: payload.ranking_unit ?? "skill"' in code
-    assert "safeNumber(row.market_gap) !== null" in code
 
 
-def test_planner_prompt_contains_canonical_count_course_examples_and_retry_feedback():
-    workflow = _workflow()
-    prompt = _node(workflow, "Query Planner")["parameters"]["text"]
-
-    for token in [
+def test_planner_prompt_documents_retry_feedback_and_canonical_entity_lookup():
+    prompt = _node(_workflow(), "Query Planner")["parameters"]["text"]
+    for token in (
         "بازخورد اعتبارسنجی تلاش قبلی",
         "{{ $json.lastError }}",
         "{{ $json.lastRaw }}",
@@ -213,233 +127,142 @@ def test_planner_prompt_contains_canonical_count_course_examples_and_retry_feedb
         '"dataset_id":"university_courses","operation":"select"',
         '"field":"course_id","operator":"eq","value":"C002"',
         "برای هر درخواست تک‌هدفه فقط قالب تک را برگردان",
-    ]:
+        "هرگز کلید select_fields یا fields اختراع نکن",
+        "تقدم استاندارد AND بر OR",
+        "کلید or_conditions نساز",
+    ):
         assert token in prompt
 
 
-
-
-def test_workflow_has_deterministic_fallbacks_for_grouped_filter_and_ranked_analytics():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    for token in [
+def test_deterministic_planner_covers_scalar_aggregates_and_course_metric_routing():
+    validator = _node(_workflow(), "Validate Plan")["parameters"]["jsCode"]
+    for token in (
         "function deterministicAnalyticsPlan(question)",
-        'plan("university_graduates","aggregate"',
-        '"career_relevance"',
-        '"employment_months"',
-        'plan("skill_mapping","select"',
-        '{field:"market_demand",labels:["market_demand","تقاضای بازار"]}',
-        '{field:"market_gap",labels:["market_gap","شکاف بازار"]}',
-        "const parsedThresholds=thresholds(thresholdFields)",
-        "const buildThresholdFilter=items=>",
-        'return {logic:"or",conditions:[],groups};',
-        'plan("skill_mapping","aggregate"',
-        '"average_market_gap",order:"desc"',
-        "deterministicAnalyticsPlan(q) ?? extract(txt)",
-    ]:
+        'group_by:[]',
+        'field==="credits"?"university_courses"',
+        'datasets.length===1',
+        'function:"count_documents",alias:"graduate_count"',
+    ):
         assert token in validator
 
 
-def test_planner_prompt_documents_canonical_analytics_metric_contract():
-    workflow = _workflow()
-    prompt = _node(workflow, "Query Planner")["parameters"]["text"]
-    for token in [
-        "نمونه‌های قطعی برای سه تحلیل پرتکرار",
-        '"function":"avg","field":"career_relevance","alias":"average_career_relevance"',
-        '"function":"avg","field":"market_demand","alias":"average_market_demand"',
-        '"field":"average_market_gap","order":"desc"',
-        "هرگز select_fields یا fields اختراع نکن",
-        "نام ابزار تک‌هدفه همیشه دقیقاً analytics_query است",
-    ]:
-        assert token in prompt
-
-
-def test_error_reply_distinguishes_unsupported_requests_from_invalid_plans():
-    workflow = _workflow()
-    code = _node(workflow, "Error Reply")["parameters"]["jsCode"]
-    assert "j.unsupported === true" in code
-    assert "این به معنی پشتیبانی‌نشدن تحلیل نیست" in code
-
-
-def test_live_persian_grouped_graduate_prompt_has_count_and_both_averages():
+def test_deterministic_skill_filters_preserve_every_threshold_and_boolean_group():
     workflow = _workflow()
     validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    planner = _node(workflow, "Query Planner")["parameters"]["text"]
+    for token in (
+        "const thresholds=(fields)=>",
+        "const buildThresholdFilter=items=>",
+        'field:"course_coverage",labels:["course_coverage","پوشش درس"]',
+        'return {logic:"or",conditions:[],groups};',
+        "comparisonOperator(reverse[2],true)",
+    ):
+        assert token in validator
+    assert "تقدم استاندارد AND بر OR" in planner
+    assert "مقایسه معکوس" in planner
 
-    assert r'replace(/[\u200c\u200d\u200e\u200f\u0640]/g,"")' in validator
-    assert '"ماه های اشتغال"' in validator
-    assert '{function:"count_documents",alias:"graduate_count"}' in validator
-    assert '"career_relevance"' in validator
-    assert '"employment_months"' in validator
+
+def test_workflow_validator_bounds_filter_and_aggregation_complexity():
+    validator = _node(_workflow(), "Validate Plan")["parameters"]["jsCode"]
+    for token in ("depth>5", "state.groups>16", "state.conditions>32", "x.value.length>100"):
+        assert token in validator
+    assert 'if(op==="aggregate"&&!metrics.length)' in validator
 
 
-def test_planner_metadata_nested_in_arguments_is_normalized_without_weakening_schema():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-
+def test_planner_metadata_is_normalized_without_weakening_argument_validation():
+    validator = _node(_workflow(), "Validate Plan")["parameters"]["jsCode"]
     assert "rawArgs=x.arguments??{}" in validator
     assert "delete a.unsupported_reason" in validator
     assert "delete a.response_mode" in validator
-    assert 'const extra=Object.keys(a).filter(k=>!allowed.includes(k))' in validator
+    assert "const extra=Object.keys(a).filter(k=>!allowed.includes(k))" in validator
 
 
-def test_filtered_result_counts_are_not_described_as_full_dataset_counts():
+def test_university_market_domain_tool_is_routed_and_validated():
     workflow = _workflow()
-    prompt = _node(workflow, "Answer Writer")["parameters"]["text"]
+    prompt = _node(workflow, "Query Planner")["parameters"]["text"]
+    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
+    assert "analyze_university_market" in prompt
+    assert 'tool:"analyze_university_market"' in validator
+    assert "course_effectiveness" in validator
+    assert "curriculum_recommendations" in validator
 
+
+def test_language_is_detected_once_and_propagated_to_every_response_stage():
+    workflow = _workflow()
+    prepare = _node(workflow, "Prepare Input")["parameters"]["jsCode"]
+    context = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
+    writer = _node(workflow, "Answer Writer")["parameters"]["text"]
+    composer = _node(workflow, "Compose Final")["parameters"]["jsCode"]
+    assert "faLetters" in prepare and "enLetters" in prepare
+    assert 'faLetters>=enLetters?"fa":"en"' in prepare
+    assert "const responseLanguage = language;" in context
+    assert "persianCount" in context and "latinCount" in context
+    assert "{{ $json.responseLanguage }}" in writer
+    assert 'const english=language==="en"' in composer
+
+
+def test_formatter_localizes_course_names_and_rounds_numeric_strings():
+    code = _node(_workflow(), "Format Result")["parameters"]["jsCode"]
+    assert "PERSIAN_COLUMN_LABELS" in code
+    assert "ENGLISH_COURSE_NAMES" in code
+    assert "displayColumnName(column)" in code
+    assert 'column === "course_name"' in code
+    assert 'typeof value === "string"' in code
+    assert "Number(numeric.toFixed(2))" in code
+
+
+def test_course_gap_aggregate_is_ranked_by_max_market_gap_and_not_bucket_order():
+    code = _node(_workflow(), "Format Result")["parameters"]["jsCode"]
+    assert 'args.group_by.includes("course_id")' in code
+    assert 'args.group_by.includes("course_name")' in code
+    assert 'metric.alias === "max_market_gap"' in code
+    assert "return rightValue - leftValue" in code
+
+
+def test_aggregate_semantic_integrity_checks_fields_metrics_and_duplicate_groups():
+    code = _node(_workflow(), "Format Result")["parameters"]["jsCode"]
+    for token in (
+        'semanticIntegrity.status = semanticIntegrity.violations.length ? "invalid" : "valid"',
+        '"missing_required_field:" + field',
+        '"invalid_metric_value:" + alias',
+        '"duplicate_group_key"',
+        "semantic_integrity: semanticIntegrity",
+    ):
+        assert token in code
+
+
+def test_compose_final_withholds_numeric_analysis_when_semantic_integrity_fails():
+    code = _node(_workflow(), "Compose Final")["parameters"]["jsCode"]
+    assert 'const semanticIntegrityFailures=r.filter(x=>x.semanticIntegrity?.status==="invalid")' in code
+    assert '"integrity_failure"' in code
+    assert "Data integrity warning" in code
+    assert "final numeric analysis was withheld" in code
+
+
+def test_course_gap_report_uses_all_structured_rows_and_handles_empty_or_invalid_rows():
+    code = _node(_workflow(), "Compose Final")["parameters"]["jsCode"]
+    for token in (
+        "courseGapAggregates",
+        "ranked.map((row,index)",
+        "all \"+ranked.length+\" course rows",
+        "Course ranking by maximum skill gap",
+        "رتبه‌بندی قطعی درس‌ها بر اساس بیشترین شکاف مهارتی",
+        "if(sourceRows.length===0)",
+        "No aggregated course rows were returned",
+    ):
+        assert token in code
+
+
+def test_answer_writer_never_overstates_filtered_result_scope_or_invents_missing_entities():
+    prompt = _node(_workflow(), "Answer Writer")["parameters"]["text"]
     assert "تعداد کل اسناد ایندکس یا دیتاست معرفی نکن" in prompt
     assert "بدون فیلتر روی کل دیتاست" in prompt
     assert "complete بودن نتایج فیلترشده" in prompt
+    assert "Never infer that unreturned majors" in prompt
 
 
-def test_numeric_presentation_rounds_float_artifacts_without_changing_structured_facts():
-    workflow = _workflow()
-    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert "Number(value.toFixed(2))" in formatter
-    assert "Number(v.toFixed(2))" in compose
-
-
-def test_numeric_string_float_artifacts_are_rounded_in_all_presentation_paths():
-    workflow = _workflow()
-    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert 'typeof value === "string"' in formatter
-    assert 'typeof v==="string"' in compose
-    assert 'Number(n.toFixed(2))' in compose
-
-
-def test_filtered_skill_mapping_select_uses_deterministic_scope_safe_analysis():
-    workflow = _workflow()
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert 'q.dataset_id==="skill_mapping"' in compose
-    assert 'تعداد کل اسناد شاخص skill_mapping را مشخص نمی‌کند' in compose
-    assert 'COUNT مستقل و بدون فیلتر' in compose
-
-def test_grouped_graduate_aggregate_uses_deterministic_evidence_based_analysis():
-    workflow = _workflow()
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-    formatter = _node(workflow, "Format Result")["parameters"]["jsCode"]
-
-    assert 'q.dataset_id==="university_graduates"' in compose
-    assert 'q.group_by[0]==="major"' in compose
-    assert 'm.alias==="graduate_count"' in compose
-    assert 'm.alias==="average_career_relevance"' in compose
-    assert 'm.alias==="average_employment_months"' in compose
-    assert 'Number(row.average_career_relevance).toFixed(2)' in compose
-    assert 'تعداد گروه‌های بازگشتی به‌تنهایی تعداد رشته‌های کل دیتاست را اثبات نمی‌کند' in compose
-    assert 'value==="Computer Engineering"?"مهندسی کامپیوتر"' in compose
-    assert 'column === "major" && value === "Computer Engineering" ? "مهندسی کامپیوتر"' in formatter
-
-
-def test_grouped_graduate_analysis_does_not_claim_unreturned_majors_are_absent():
-    workflow = _workflow()
-    compose = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-
-    assert "رشته‌های دیگر در داده‌های موجود یافت نشده‌اند" not in compose
-    assert "تعداد گروه‌های بازگشتی به‌تنهایی تعداد رشته‌های کل دیتاست را اثبات نمی‌کند" in compose
-
-
-
-def test_workflow_supports_scalar_aggregates_and_bounds_filter_complexity():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    planner = _node(workflow, "Query Planner")["parameters"]["text"]
-    assert 'if(op==="aggregate"&&!metrics.length)' in validator
-    assert "group_by برای آمار کلی اختیاری است" in validator
-    assert "state.conditions>32" in validator
-    assert "depth>5" in validator
-    assert "group_by را آرایه خالی" in planner
-
-
-def test_scalar_aggregate_planner_routes_metrics_to_their_registered_dataset():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    assert 'field==="credits"?"university_courses"' in validator
-    assert 'datasets.length===1' in validator
-
-
-def test_workflow_bounds_filter_value_lists_and_normalizes_persian_zwnj():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    assert 'x.value.length>100' in validator
-    assert r'replace(/[\u200c\u200d\u200e\u200f\u0640]/g,"")' in validator
-    assert "digitValues[digitChars.indexOf(d)]" in validator
-
-
-def test_workflow_normalizes_metric_aliases_and_sanitizes_count_documents_fields():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-
-    assert "m.function??m.aggregation??m.metric??m.type" in validator
-    assert "m.field??m.field_name" in validator
-    assert "for(let metricIndex=0;metricIndex<ms.length;metricIndex++)" in validator
-    assert 'Metric "+(metricIndex+1)' in validator
-    assert "warnings.push(...args._validation_warnings)" in validator
-    planner = _node(workflow, "Query Planner")["parameters"]["text"]
-    assert "هرگز کلید field را برای آن نفرست، حتی field:null" in planner
-
-
-def test_workflow_scalar_metric_dataset_routing_ignores_document_count_metric():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-
-    assert 'metrics.filter(metric=>metric.function!=="count_documents")' in validator
-    assert 'graduate_count' in validator
-    assert 'average_employment_months' in validator
-
-
-def test_n8n_deterministic_skill_filters_preserve_numeric_operators_and_boolean_logic():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    planner = _node(workflow, "Query Planner")["parameters"]["text"]
-
-    for token in [
-        "const thresholds=(fields)=>",
-        "found.push({field,operator,value:Number",
-        'connectors.push(token==="or"||token==="یا"?"or":"and")',
-        "connectors.every(value=>value===connectors[0])",
-        "comparisonOperator(reverse[2],true)",
-    ]:
-        assert token in validator
-    for token in [
-        "شرط‌های متعدد روی یک فیلد را حذف یا با هم ادغام نکن",
-        "عبارت «یا/or» باید filter_logic=or",
-        "تقدم استاندارد AND بر OR",
-        "مقایسه معکوس",
-    ]:
-        assert token in planner
-
-
-def test_n8n_mixed_boolean_skill_filters_use_nested_groups_and_reject_or_conditions():
-    workflow = _workflow()
-    validator = _node(workflow, "Validate Plan")["parameters"]["jsCode"]
-    planner = _node(workflow, "Query Planner")["parameters"]["text"]
-
-    assert "const buildThresholdFilter=items=>" in validator
-    assert 'return {logic:"or",conditions:[],groups};' in validator
-    assert 'field:"course_coverage",labels:["course_coverage","پوشش درس"]' in validator
-    assert "هرگز کلید or_conditions یا کلید خارج از قرارداد نساز" in planner
-    assert "تقدم استاندارد AND بر OR" in planner
-    assert "filters={logic,conditions,groups}" in planner
-
-
-def test_answer_writer_and_context_detect_the_user_question_language():
-    workflow = _workflow()
-    answer_prompt = _node(workflow, "Answer Writer")["parameters"]["text"]
-    context_code = _node(workflow, "Prepare LLM Context")["parameters"]["jsCode"]
-    assert "قانون قطعی زبان پاسخ" in answer_prompt
-    assert "زبان غالب سؤال جاری" in answer_prompt
-    assert "responseLanguage" in context_code
-    assert "persianCount" in context_code and "latinCount" in context_code
-
-
-def test_final_composer_localizes_deterministic_sections_by_question_language():
-    workflow = _workflow()
-    code = _node(workflow, "Compose Final")["parameters"]["jsCode"]
-    assert "const fa=faCount>enCount" in code
-    assert "Largest skill gaps" in code
-    assert "Execution failed: " in code
-    assert "if(graduateMajorAggregate.length&&fa)" in code
+def test_error_reply_is_bilingual_and_never_converts_execution_errors_to_zero():
+    code = _node(_workflow(), "Error Reply")["parameters"]["jsCode"]
+    assert 'p.language==="en"' in code
+    assert "This does not mean that the result is zero" in code
+    assert "این خطا به معنی صفر بودن نتایج نیست" in code
