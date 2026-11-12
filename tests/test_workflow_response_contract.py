@@ -60,6 +60,21 @@ def test_out_of_scope_and_error_replies_follow_request_language():
     assert 'p.language==="en"' in error_reply
 
 
+def test_tool_calls_and_results_preserve_session_identity():
+    build = _node("Build Tool Call")["parameters"]["jsCode"]
+    parse = _node("MCP Parse Result")["parameters"]["jsCode"]
+    format_result = _node("Format Result")["parameters"]["jsCode"]
+    context = _node("Prepare LLM Context")["parameters"]["jsCode"]
+    assert "chatSessionId:p.sessionId" in build
+    assert "mcpSessionId:init.sessionId" in build
+    assert "chatSessionId: request.chatSessionId" in parse
+    assert "mcpSessionId: request.mcpSessionId" in parse
+    assert "mixed chat sessions detected" in context
+    assert "mixed MCP sessions detected" in context
+    assert "MCP session identity mismatch" in context
+    assert "const chatSessionId = response.chatSessionId" in format_result
+
+
 def test_workflow_keeps_the_existing_execution_path():
     connections = _workflow()["connections"]
     assert connections["Prepare LLM Context"]["main"][0][0]["node"] == "Answer Writer"
