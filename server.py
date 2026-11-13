@@ -206,7 +206,7 @@ async def market_skill_details_tool(skills: list[str], ctx: Context) -> str:
     "because a question mentions market demand."
     ),
 )
-async def top_market_skills_tool(limit: int = 10, ctx: Context = None) -> str:
+async def top_market_skills_tool(ctx: Context, limit: int = 10) -> str:
     return await run_sync_tool("get_top_market_skills", get_top_market_skills, limit, context=ctx)
 
 
@@ -227,7 +227,7 @@ async def top_market_skills_tool(limit: int = 10, ctx: Context = None) -> str:
     "mentions a skill gap."
     ),
 )
-async def top_skill_gaps_tool(limit: int = 10, ctx: Context = None) -> str:
+async def top_skill_gaps_tool(ctx: Context, limit: int = 10) -> str:
     return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit, context=ctx)
 
 
