@@ -388,7 +388,8 @@
             "کافی نیست",
             "does not support",
             "cannot establish",
-            "insufficient"
+            "insufficient",
+            "قابل محاسبه نیست"
           ],
           "points": 25,
           "critical": false,
