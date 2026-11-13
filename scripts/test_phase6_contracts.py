@@ -141,25 +141,48 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         self.assertIn("len(selected) == 22", self.e2e_source)
 
 
-    def test_e2e_metadata_extractor_reads_nested_chat_response(self) -> None:
+    def test_a22_reads_metadata_from_matching_n8n_execution(self) -> None:
+        self.assertIn("/api/v1/executions", self.e2e_source)
+        self.assertIn("N8N_API_KEY", self.e2e_source)
+        self.assertIn("expected_session_id=session_id", self.e2e_source)
+        self.assertIn('"execution_id": execution_id', self.e2e_source)
+
         payload = {
+            "id": "710",
             "data": {
-                "output": "30",
-                "traceId": "nx-exec-123",
-                "timingsMs": {
-                    "pre_answer_pipeline": 1250,
-                    "answer_generation_and_compose": 400,
-                    "total_workflow": 1650,
-                },
-                "toolTimings": [
-                    {"plan_index": 0, "tool": "analytics_query", "duration_ms": 800}
-                ],
-            }
+                "resultData": {
+                    "runData": {
+                        "Prepare Input": [{
+                            "data": {"main": [[{"json": {
+                                "sessionId": "nexusops-e2e-session",
+                                "traceId": "nx-710",
+                            }}]]}
+                        }],
+                        "Compose Final": [{
+                            "data": {"main": [[{"json": {
+                                "traceId": "nx-710",
+                                "timingsMs": {
+                                    "pre_answer_pipeline": 1250,
+                                    "answer_generation_and_compose": 400,
+                                    "total_workflow": 1650,
+                                },
+                                "toolTimings": [
+                                    {"plan_index": 0, "tool": "analytics_query", "duration_ms": 800}
+                                ],
+                            }}]]}
+                        }],
+                    }
+                }
+            },
         }
-        metadata = extract_execution_metadata(payload)
-        self.assertEqual(metadata["trace_id"], "nx-exec-123")
+        metadata = extract_execution_metadata(payload, expected_session_id="nexusops-e2e-session")
+        self.assertEqual(metadata["execution_id"], "710")
+        self.assertEqual(metadata["trace_id"], "nx-710")
         self.assertEqual(metadata["timings_ms"]["total_workflow"], 1650)
         self.assertEqual(metadata["tool_timings"][0]["duration_ms"], 800)
+
+        unrelated = extract_execution_metadata(payload, expected_session_id="another-session")
+        self.assertEqual(unrelated, {})
 
     def test_runner_targets_the_main_workflow_file(self) -> None:
         self.assertIn(
