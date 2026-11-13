@@ -93,6 +93,12 @@ def evaluate_criterion(criterion: dict[str, Any], text: str) -> dict[str, Any]:
         pattern = criterion.get("pattern", "")
         passed = bool(re.search(pattern, text, re.IGNORECASE | re.MULTILINE))
         observed = pattern
+    elif kind == "numeric_only":
+        normalized = normalize_digits(text).strip()
+        compact = re.sub(r"[\\s*!.]", "", normalized)
+        expected = str(criterion.get("expected"))
+        passed = compact == expected
+        observed = {"expected": expected, "normalized": compact}
     elif kind == "language":
         expected = criterion.get("expected")
         passed = language_matches(text, expected)
