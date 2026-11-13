@@ -38,6 +38,7 @@ CASES: list[dict[str, Any]] = [
     {"id": "A19", "name": "Sequential stability — repeated graduate count", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را دوباره محاسبه کن.", "kind": "count", "count": 30},
     {"id": "A20", "name": "Sequential stability — English course lookup", "query": "What is the name of course C013?", "kind": "course_en", "course_id": "C013", "course_name": "Cloud Computing"},
     {"id": "A21", "name": "Sequential stability — repeated independent plans", "query": "تعداد فارغ‌التحصیلان را گزارش کن و مستقل از آن پنج مهارت با بیشترین شکاف بازار را رتبه‌بندی کن.", "kind": "multi_plan", "count": 30},
+    {"id": "A22", "name": "Trace ID and stage timing metadata", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را محاسبه کن.", "kind": "count", "count": 30, "require_trace_metadata": true},
 ]
 
 ERROR_MARKERS = re.compile(r"\b(error|exception|traceback|partial_failure)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر", re.I)
@@ -173,7 +174,41 @@ def evaluate(case: dict[str, Any], response_text: str, http_status: int) -> tupl
     return ("PASS" if passed else "FAIL"), reason + ("" if passed else f" Response: {text[:700]}")
 
 
-def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str]:
+def extract_execution_metadata(value: Any) -> dict[str, Any]:
+    """Find trace/timing metadata without changing the user-facing response text."""
+    if isinstance(value, str):
+        try:
+            return extract_execution_metadata(json.loads(value))
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(value, list):
+        for item in value:
+            found = extract_execution_metadata(item)
+            if found:
+                return found
+        return {}
+    if not isinstance(value, dict):
+        return {}
+
+    metadata: dict[str, Any] = {}
+    for source, target in (
+        ("traceId", "trace_id"),
+        ("timingsMs", "timings_ms"),
+        ("toolTimings", "tool_timings"),
+    ):
+        if source in value:
+            metadata[target] = value[source]
+    if metadata:
+        return metadata
+
+    for nested in value.values():
+        found = extract_execution_metadata(nested)
+        if found:
+            return found
+    return {}
+
+
+def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str, dict[str, Any]]:
     session_id = f"nexusops-e2e-{uuid.uuid4()}"
     payload = {
         "action": "sendMessage",
@@ -189,16 +224,16 @@ def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str]
     try:
         with urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8", errors="replace")
-            return response.status, extract_text(raw)
+            return response.status, extract_text(raw), extract_execution_metadata(raw)
     except HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")
-        return exc.code, extract_text(raw)
+        return exc.code, extract_text(raw), extract_execution_metadata(raw)
     except (URLError, TimeoutError, OSError) as exc:
-        return 0, f"{type(exc).__name__}: {exc}"
+        return 0, f"{type(exc).__name__}: {exc}", {}
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run NexusOps A01-A21 against the production n8n Chat Trigger.")
+    parser = argparse.ArgumentParser(description="Run NexusOps A01-A22 against the production n8n Chat Trigger.")
     parser.add_argument("--base-url", default="http://127.0.0.1:5678", help="n8n base URL (default: http://127.0.0.1:5678)")
     parser.add_argument("--webhook-url", help="Override the full Chat Trigger webhook URL.")
     parser.add_argument("--timeout", type=float, default=300, help="Per-case timeout in seconds (default: 300).")
@@ -221,7 +256,7 @@ def main() -> int:
         start = next(i for i, case in enumerate(CASES) if case["id"] == args.start_at)
         selected = CASES[start:]
 
-    print("NexusOps Full-System E2E — A01 through A21")
+    print("NexusOps Full-System E2E — A01 through A22")
     print(f"Target: {webhook_url}")
     print(f"Cases: {len(selected)} | per-case timeout: {args.timeout:.0f}s | sequential sessions")
     print("-" * 76)
@@ -230,8 +265,26 @@ def main() -> int:
     for index, case in enumerate(selected):
         started = time.monotonic()
         try:
-            status, text = post_chat(webhook_url, case, args.timeout)
+            status, text, metadata = post_chat(webhook_url, case, args.timeout)
             verdict, detail = evaluate(case, text, status)
+            if verdict == "PASS" and case.get("require_trace_metadata"):
+                trace_id = metadata.get("trace_id")
+                timings = metadata.get("timings_ms")
+                tool_timings = metadata.get("tool_timings")
+                valid_trace = isinstance(trace_id, str) and re.fullmatch(r"nx-[A-Za-z0-9._:-]{1,120}", trace_id)
+                valid_timings = isinstance(timings, dict) and all(
+                    isinstance(timings.get(key), (int, float)) and timings[key] >= 0
+                    for key in ("pre_answer_pipeline", "answer_generation_and_compose", "total_workflow")
+                )
+                valid_tools = isinstance(tool_timings, list) and len(tool_timings) > 0 and all(
+                    isinstance(item, dict)
+                    and isinstance(item.get("duration_ms"), (int, float))
+                    and item["duration_ms"] >= 0
+                    for item in tool_timings
+                )
+                if not (valid_trace and valid_timings and valid_tools):
+                    verdict = "FAIL"
+                    detail = "Trace metadata missing or invalid: expected trace_id, three non-negative stage timings, and per-tool durations."
         except Exception as exc:  # keep the suite running and preserve the failure
             status, text = 0, ""
             verdict, detail = "FAIL", f"{type(exc).__name__}: {exc}"
@@ -244,6 +297,9 @@ def main() -> int:
             "duration_seconds": elapsed,
             "query": case["query"],
             "response": text[:12000],
+            "trace_id": metadata.get("trace_id"),
+            "timings_ms": metadata.get("timings_ms"),
+            "tool_timings": metadata.get("tool_timings"),
             "detail": detail,
         }
         results.append(result)
@@ -256,10 +312,10 @@ def main() -> int:
     passed = sum(item["status"] == "PASS" for item in results)
     failed = len(results) - passed
     report = {
-        "suite": "NexusOps Full-System E2E A01-A21",
+        "suite": "NexusOps Full-System E2E A01-A22",
         "target": webhook_url,
         "executed_at": datetime.now(timezone.utc).isoformat(),
-        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 21 else "FAIL"},
+        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 22 else "FAIL"},
         "results": results,
         "limitations": [
             "Assertions are response-contract checks; inspect saved response text for semantic correctness.",
