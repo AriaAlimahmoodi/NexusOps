@@ -91,7 +91,7 @@ def test_non_success_http_fails_closed():
 def test_skill_comparison_reference_case_scores_full_marks():
     _, cases = benchmark.load_cases({"Q04"})
     response = (
-        "| Skill | Demand | Frequency |\n|---|---:|---:|\n"
+        "| مهارت | تقاضا | فراوانی |\n|---|---:|---:|\n"
         "| Python | 4.58 | 2910 |\n| SQL | 4.73 | 2480 |"
     )
     result = benchmark.evaluate_case(cases[0], 200, response)
@@ -122,8 +122,8 @@ def test_entity_numeric_pairs_reject_values_assigned_to_the_wrong_skill():
         "points": 100,
         "critical": True,
     }
-    correct = "| Python | 4.58 | 2910 |\\n| SQL | 4.73 | 2480 |"
-    swapped = "| Python | 4.73 | 2480 |\\n| SQL | 4.58 | 2910 |"
+    correct = "| Python | 4.58 | 2910 |\n| SQL | 4.73 | 2480 |"
+    swapped = "| Python | 4.73 | 2480 |\n| SQL | 4.58 | 2910 |"
     assert benchmark.evaluate_criterion(criterion, correct)["status"] == "PASS"
     assert benchmark.evaluate_criterion(criterion, swapped)["status"] == "FAIL"
 
@@ -137,15 +137,15 @@ def test_global_execution_error_marker_fails_every_benchmark_case():
              "points": 100, "critical": False},
         ],
     }
-    result = benchmark.evaluate_case(case, 200, "30\\nExecution status: partial_failure")
+    result = benchmark.evaluate_case(case, 200, "30\nExecution status: partial_failure")
     assert result["status"] == "FAIL"
     assert "global_execution_error_guard" in result["critical_failures"]
 
 def test_table_check_requires_at_least_one_data_row():
     criterion = {"id": "table", "type": "table_present", "points": 10}
-    assert benchmark.evaluate_criterion(criterion, "| Skill | Score |\\n|---|---:|")["status"] == "FAIL"
+    assert benchmark.evaluate_criterion(criterion, "| Skill | Score |\n|---|---:|")["status"] == "FAIL"
     assert benchmark.evaluate_criterion(
-        criterion, "| Skill | Score |\\n|---|---:|\\n| Python | 4.8 |"
+        criterion, "| Skill | Score |\n|---|---:|\n| Python | 4.8 |"
     )["status"] == "PASS"
 
 
@@ -161,7 +161,7 @@ def test_all_phase7_cases_have_a_100_point_rubric_and_known_exact_match_pattern(
     assert benchmark.evaluate_criterion(exact, "The answer is 30")["status"] == "FAIL"
 
 def test_ranked_entry_counter_normalizes_persian_numbering():
-    assert benchmark.ranked_entry_count("۱. Python\\n۲. SQL\\n۳. Java\\n۴. Go\\n۵. Rust") == 5
+    assert benchmark.ranked_entry_count("۱. Python\n۲. SQL\n۳. Java\n۴. Go\n۵. Rust") == 5
 
 def test_numeric_only_check_accepts_localized_digits_but_rejects_prose():
     criterion = {"id": "scalar", "type": "numeric_only", "expected": 30, "points": 100}
