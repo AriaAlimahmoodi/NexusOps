@@ -444,7 +444,6 @@ registered English field names in tool arguments and answer naturally.
     )
 )
 async def analytics_query_tool(
-    ctx: Context = None,
     dataset_id: str,
     operation: Literal["select", "count", "aggregate"],
     group_by: list[str] | None = None,
@@ -455,6 +454,7 @@ async def analytics_query_tool(
     sort: list[AnalyticsSortInput] | None = None,
     limit: int = 10,
     options: dict[str, Any] | None = None,
+    ctx: Context = None,
 ) -> str:
     request_id = resolve_request_id(ctx.headers if ctx is not None else None)
     started_at = time.perf_counter()
