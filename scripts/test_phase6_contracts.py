@@ -61,9 +61,9 @@ class Phase6WorkflowContractTests(unittest.TestCase):
     def test_original_e2e_cases_are_retained_and_phase6_cases_are_additive(self) -> None:
         for case_id in (f"A{i:02d}" for i in range(1, 19)):
             self.assertIn(f'"id": "{case_id}"', self.e2e_source)
-        for case_id in ("A19", "A20", "A21"):
+        for case_id in ("A19", "A20", "A21", "A22"):
             self.assertIn(f'"id": "{case_id}"', self.e2e_source)
-        self.assertIn("A01-A21", self.e2e_source)
+        self.assertIn("A01-A22", self.e2e_source)
 
 
     def test_request_id_header_is_preserved_case_insensitively(self) -> None:
@@ -129,6 +129,14 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         for signature in expected_signatures:
             with self.subTest(signature=signature):
                 self.assertIn(signature, server_source)
+
+
+    def test_e2e_runner_asserts_and_saves_trace_metadata(self) -> None:
+        self.assertIn("def extract_execution_metadata", self.e2e_source)
+        self.assertIn('"require_trace_metadata": True', self.e2e_source)
+        self.assertIn('"trace_id": metadata.get("trace_id")', self.e2e_source)
+        self.assertIn('"timings_ms": metadata.get("timings_ms")', self.e2e_source)
+        self.assertIn("len(selected) == 22", self.e2e_source)
 
     def test_runner_targets_the_main_workflow_file(self) -> None:
         self.assertIn(
