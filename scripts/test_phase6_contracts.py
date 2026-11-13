@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import re
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / "workflows" / "nexusops-agentic-workflow.json"
 E2E_RUNNER = ROOT / "scripts" / "run_agent_e2e.py"
+SERVER = ROOT / "server.py"
+sys.path.insert(0, str(ROOT))
+from runtime_logging import resolve_request_id
 
 
 class Phase6WorkflowContractTests(unittest.TestCase):
@@ -59,6 +64,56 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         for case_id in ("A19", "A20", "A21"):
             self.assertIn(f'"id": "{case_id}"', self.e2e_source)
         self.assertIn("A01-A21", self.e2e_source)
+
+
+    def test_request_id_header_is_preserved_case_insensitively(self) -> None:
+        self.assertEqual(
+            resolve_request_id({"X-Request-ID": "nx-exec-123"}),
+            "nx-exec-123",
+        )
+        self.assertEqual(
+            resolve_request_id({"x-request-id": "trace.abc_123:xyz"}),
+            "trace.abc_123:xyz",
+        )
+
+    def test_invalid_request_id_header_is_replaced_with_safe_generated_id(self) -> None:
+        generated = resolve_request_id({"X-Request-ID": "bad value\\nforged"})
+        self.assertRegex(generated, re.compile(r"^[0-9a-f]{32}$"))
+
+    def test_trace_id_and_stage_timing_are_propagated_by_main_workflow(self) -> None:
+        nodes = {node.get("name"): node for node in self.workflow.get("nodes", [])}
+        prepare = nodes["Prepare Input"]["parameters"]["jsCode"]
+        build = nodes["Build Tool Call"]["parameters"]["jsCode"]
+        parse = nodes["MCP Parse Result"]["parameters"]["jsCode"]
+        format_code = nodes["Format Result"]["parameters"]["jsCode"]
+        compose = nodes["Compose Final"]["parameters"]["jsCode"]
+        self.assertIn("$execution.id", prepare)
+        self.assertIn("traceId", prepare)
+        self.assertIn("toolCallStartedAt", build)
+        self.assertIn("toolRoundTripMs", parse)
+        self.assertIn("formatCompletedAt", format_code)
+        self.assertIn("timingsMs", compose)
+        self.assertIn("toolTimings", compose)
+
+    def test_request_id_header_is_sent_on_all_mcp_http_requests(self) -> None:
+        expected = {"MCP Initialize", "MCP Initialized Notify", "MCP Call Tool"}
+        nodes = {
+            node.get("name"): node
+            for node in self.workflow.get("nodes", [])
+            if node.get("name") in expected
+        }
+        self.assertEqual(set(nodes), expected)
+        for name, node in nodes.items():
+            with self.subTest(node=name):
+                headers = node["parameters"]["headerParameters"]["parameters"]
+                request_id_headers = [h for h in headers if h.get("name", "").lower() == "x-request-id"]
+                self.assertEqual(len(request_id_headers), 1)
+
+    def test_mcp_handlers_use_sdk_context_for_end_to_end_correlation(self) -> None:
+        server_source = SERVER.read_text(encoding="utf-8")
+        self.assertIn("from mcp.server.mcpserver.context import Context", server_source)
+        self.assertIn("resolve_request_id(context.headers", server_source)
+        self.assertIn("resolve_request_id(ctx.headers)", server_source)
 
     def test_runner_targets_the_main_workflow_file(self) -> None:
         self.assertIn(
