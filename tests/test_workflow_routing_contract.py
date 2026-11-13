@@ -45,3 +45,34 @@ def test_top_five_skill_gap_request_has_a_deterministic_route():
 
     assert 'has("پنج مهارت","۵ مهارت","five skills"' in code
     assert "return topSkillGapPlan(requestedLimit)" in code
+
+
+def test_grouped_count_and_average_preserve_job_field_dimension():
+    code = validate_plan_code()
+    grouped_override = code.index("const groupedByJobField=")
+    grouped_dimension = code.index('group_by:groupedByJobField?["job_field"]:[]', grouped_override)
+    scalar_and_grouped_metrics = code.index('{function:"count_documents",alias:"graduate_count"}', grouped_override)
+
+    assert grouped_dimension < scalar_and_grouped_metrics
+    assert 'groupedByJobField?"table":mode' in code
+    assert "for each job field" in code
+
+
+def test_domain_renderer_preserves_nested_payload_metadata():
+    workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
+    node = next(node for node in workflow["nodes"] if node.get("name") == "Format Result")
+    code = node["parameters"]["jsCode"]
+
+    assert "analysis_type: payload.analysis_type ?? data.analysis_type ?? null" in code
+    assert "sections: payload.sections ?? data.sections ?? null" in code
+    assert "recommendations: payload.recommendations ?? data.recommendations ?? null" in code
+
+
+def test_domain_report_composer_uses_plan_type_and_structured_rows_as_fallback():
+    workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
+    node = next(node for node in workflow["nodes"] if node.get("name") == "Compose Final")
+    code = node["parameters"]["jsCode"]
+
+    assert "facts.analysis_type??requestArguments.analysis_type??null" in code
+    assert "structuredRecommendations.length?structuredRecommendations:rows.filter" in code
+    assert "row.priority_rank!==undefined" in code
