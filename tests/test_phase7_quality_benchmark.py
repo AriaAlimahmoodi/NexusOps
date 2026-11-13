@@ -157,3 +157,6 @@ def test_all_phase7_cases_have_a_100_point_rubric_and_known_exact_match_pattern(
     exact = next(item for item in q01["criteria"] if item["id"] == "exact_value")
     assert benchmark.evaluate_criterion(exact, "30")["status"] == "PASS"
     assert benchmark.evaluate_criterion(exact, "The answer is 30")["status"] == "FAIL"
+
+def test_ranked_entry_counter_normalizes_persian_numbering():
+    assert benchmark.ranked_entry_count("۱. Python\\n۲. SQL\\n۳. Java\\n۴. Go\\n۵. Rust") == 5
