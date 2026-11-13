@@ -1,0 +1,444 @@
+{
+  "suite": "NexusOps Phase 7 — Response Quality Benchmark",
+  "version": "1.0",
+  "language": "fa",
+  "description": "Deterministic, evidence-based checks for factual correctness, completeness, language consistency, scope control, and response structure. No external or paid LLM judge is used.",
+  "cases": [
+    {
+      "id": "Q01",
+      "name": "Exact scalar answer",
+      "query": "فقط عدد: تعداد کل فارغ‌التحصیلان دانشگاه چند نفر است؟",
+      "kind": "numeric_count",
+      "reference": "university_graduates count = 30",
+      "criteria": [
+        {
+          "id": "exact_value",
+          "dimension": "factual_accuracy",
+          "type": "regex",
+          "pattern": "^\\\\s*(?:\\\\*\\\\*)?30(?:\\\\*\\\\*)?[.!]?\\\\s*$",
+          "points": 70,
+          "critical": true,
+          "description": "پاسخ فقط مقدار دقیق ۳۰ را برگرداند."
+        },
+        {
+          "id": "no_error",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "error",
+            "exception",
+            "partial_failure",
+            "خطای اجرایی",
+            "درخواست نامعتبر"
+          ],
+          "points": 30,
+          "critical": true,
+          "description": "پاسخ شامل نشانه خطای اجرا نباشد."
+        }
+      ]
+    },
+    {
+      "id": "Q02",
+      "name": "Persian course lookup",
+      "query": "نام درس با شناسه C002 چیست؟",
+      "kind": "course_lookup_fa",
+      "reference": "C002 = ساختمان داده",
+      "criteria": [
+        {
+          "id": "identity",
+          "dimension": "factual_accuracy",
+          "type": "contains_all",
+          "values": [
+            "C002",
+            "ساختمان داده"
+          ],
+          "points": 55,
+          "critical": true,
+          "description": "شناسه و نام فارسی درس هر دو درست باشند."
+        },
+        {
+          "id": "language",
+          "dimension": "language_consistency",
+          "type": "language",
+          "expected": "fa",
+          "points": 25,
+          "critical": true,
+          "description": "پاسخ به زبان فارسی باشد."
+        },
+        {
+          "id": "no_error",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "partial_failure",
+            "خطای اجرایی"
+          ],
+          "points": 20,
+          "critical": true,
+          "description": "پاسخ خطای اجرا گزارش نکند."
+        }
+      ]
+    },
+    {
+      "id": "Q03",
+      "name": "English course lookup",
+      "query": "What is the name of course C002?",
+      "kind": "course_lookup_en",
+      "reference": "C002 = Data Structures",
+      "criteria": [
+        {
+          "id": "identity",
+          "dimension": "factual_accuracy",
+          "type": "contains_all",
+          "values": [
+            "C002",
+            "Data Structures"
+          ],
+          "points": 55,
+          "critical": true,
+          "description": "شناسه و نام انگلیسی درس هر دو درست باشند."
+        },
+        {
+          "id": "language",
+          "dimension": "language_consistency",
+          "type": "language",
+          "expected": "en",
+          "points": 25,
+          "critical": true,
+          "description": "پاسخ انگلیسی باشد و متن فارسی نداشته باشد."
+        },
+        {
+          "id": "no_error",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "partial_failure",
+            "execution error"
+          ],
+          "points": 20,
+          "critical": true,
+          "description": "پاسخ خطای اجرا گزارش نکند."
+        }
+      ]
+    },
+    {
+      "id": "Q04",
+      "name": "Named skill comparison with numeric evidence",
+      "query": "تقاضا و فراوانی مهارت‌های Python و SQL را مقایسه کن.",
+      "kind": "skill_comparison",
+      "reference": "Python: demand 4.58, frequency 2910; SQL: demand 4.73, frequency 2480",
+      "criteria": [
+        {
+          "id": "entities",
+          "dimension": "factual_accuracy",
+          "type": "contains_all",
+          "values": [
+            "Python",
+            "SQL"
+          ],
+          "points": 15,
+          "critical": true,
+          "description": "هر دو مهارت بررسی شوند."
+        },
+        {
+          "id": "numeric_facts",
+          "dimension": "factual_accuracy",
+          "type": "numeric_values",
+          "values": [
+            4.58,
+            2910,
+            4.73,
+            2480
+          ],
+          "tolerance": 0.000001,
+          "points": 45,
+          "critical": true,
+          "description": "چهار مقدار مرجع تقاضا و فراوانی بدون جابه‌جایی یا حذف در پاسخ باشند."
+        },
+        {
+          "id": "structured_comparison",
+          "dimension": "completeness",
+          "type": "table_present",
+          "points": 20,
+          "critical": false,
+          "description": "مقایسه در قالب جدول یا ساختار ردیفی قابل خواندن ارائه شود."
+        },
+        {
+          "id": "scope",
+          "dimension": "groundedness",
+          "type": "contains_all",
+          "values": [
+            "تقاضا",
+            "فراوانی"
+          ],
+          "points": 20,
+          "critical": true,
+          "description": "دو معیار خواسته‌شده صریحاً گزارش شوند."
+        }
+      ]
+    },
+    {
+      "id": "Q05",
+      "name": "Top market skills ranking",
+      "query": "پنج مهارت با بیشترین تقاضای بازار کار را رتبه‌بندی کن.",
+      "kind": "top_skills",
+      "reference": "DevOps 4.9/790; Machine Learning 4.9/1380; Cloud Computing 4.8/700; Data Engineering 4.8/710; SQL 4.73/2480",
+      "criteria": [
+        {
+          "id": "top_entities",
+          "dimension": "factual_accuracy",
+          "type": "contains_all",
+          "values": [
+            "DevOps",
+            "Machine Learning",
+            "Cloud Computing",
+            "Data Engineering",
+            "SQL"
+          ],
+          "points": 35,
+          "critical": true,
+          "description": "پنج مهارت مرجع در پاسخ حضور داشته باشند."
+        },
+        {
+          "id": "numeric_facts",
+          "dimension": "factual_accuracy",
+          "type": "numeric_values",
+          "values": [
+            4.9,
+            790,
+            4.9,
+            1380,
+            4.8,
+            700,
+            4.8,
+            710,
+            4.73,
+            2480
+          ],
+          "tolerance": 0.000001,
+          "points": 35,
+          "critical": true,
+          "description": "امتیاز تقاضا و فراوانی مرجع گزارش شوند."
+        },
+        {
+          "id": "ranking_structure",
+          "dimension": "completeness",
+          "type": "ranked_entries_min",
+          "minimum": 5,
+          "points": 15,
+          "critical": false,
+          "description": "حداقل پنج ردیف رتبه‌بندی قابل تشخیص باشد."
+        },
+        {
+          "id": "metric_labels",
+          "dimension": "groundedness",
+          "type": "contains_any",
+          "values": [
+            "تقاضا",
+            "demand"
+          ],
+          "points": 7.5,
+          "critical": false,
+          "description": "معیار تقاضا مشخص باشد."
+        },
+        {
+          "id": "frequency_labels",
+          "dimension": "groundedness",
+          "type": "contains_any",
+          "values": [
+            "فراوانی",
+            "frequency"
+          ],
+          "points": 7.5,
+          "critical": false,
+          "description": "معیار فراوانی مشخص باشد."
+        }
+      ]
+    },
+    {
+      "id": "Q06",
+      "name": "Course-level skill-gap ranking",
+      "query": "بیشترین شکاف مهارتی در کدام درس‌ها مشاهده می‌شود؟",
+      "kind": "course_gap",
+      "reference": "Course C013 / رایانش ابری is present in the known course-level gap result",
+      "criteria": [
+        {
+          "id": "course_identity",
+          "dimension": "factual_accuracy",
+          "type": "contains_all",
+          "values": [
+            "C013",
+            "رایانش ابری"
+          ],
+          "points": 45,
+          "critical": true,
+          "description": "درس مرجع C013 و نام آن در نتیجه دیده شود."
+        },
+        {
+          "id": "gap_metric",
+          "dimension": "groundedness",
+          "type": "contains_any",
+          "values": [
+            "شکاف",
+            "market_gap"
+          ],
+          "points": 25,
+          "critical": true,
+          "description": "پاسخ به‌وضوح درباره شکاف مهارتی باشد."
+        },
+        {
+          "id": "structured_ranking",
+          "dimension": "completeness",
+          "type": "table_present",
+          "points": 20,
+          "critical": false,
+          "description": "نتیجه رتبه‌بندی ساختارمند ارائه شود."
+        },
+        {
+          "id": "no_error",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "partial_failure",
+            "خطای اجرایی"
+          ],
+          "points": 10,
+          "critical": true,
+          "description": "پاسخ نشانه شکست اجرا نداشته باشد."
+        }
+      ]
+    },
+    {
+      "id": "Q07",
+      "name": "Temporal limitation awareness",
+      "query": "روند زمانی تقاضای مهارت‌های بازار را تحلیل کن و محدودیت داده‌های زمانی را توضیح بده.",
+      "kind": "temporal_limit",
+      "reference": "Current dataset does not support a reliable time-series trend; answer must disclose temporal-data limitation",
+      "criteria": [
+        {
+          "id": "topic",
+          "dimension": "completeness",
+          "type": "contains_all",
+          "values": [
+            "روند",
+            "مهارت"
+          ],
+          "points": 20,
+          "critical": true,
+          "description": "پاسخ به موضوع روند تقاضای مهارت بپردازد."
+        },
+        {
+          "id": "limitation",
+          "dimension": "groundedness",
+          "type": "contains_any",
+          "values": [
+            "محدودیت",
+            "داده زمانی",
+            "داده‌های زمانی",
+            "اطلاعات زمانی",
+            "time-series",
+            "temporal data"
+          ],
+          "points": 45,
+          "critical": true,
+          "description": "محدودیت داده زمانی را صریح بیان کند."
+        },
+        {
+          "id": "no_fabricated_certainty",
+          "dimension": "reliability",
+          "type": "contains_any",
+          "values": [
+            "نمی‌توان",
+            "قابل تعیین نیست",
+            "کافی نیست",
+            "does not support",
+            "cannot establish",
+            "insufficient"
+          ],
+          "points": 25,
+          "critical": false,
+          "description": "از ادعای قطعی روند بدون داده کافی خودداری کند."
+        },
+        {
+          "id": "no_error",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "partial_failure",
+            "خطای اجرایی"
+          ],
+          "points": 10,
+          "critical": true,
+          "description": "پاسخ نشانه شکست اجرا نداشته باشد."
+        }
+      ]
+    },
+    {
+      "id": "Q08",
+      "name": "Independent multi-objective response",
+      "query": "تعداد کل فارغ‌التحصیلان را گزارش کن و مستقل از آن پنج مهارت با بیشترین شکاف بازار را رتبه‌بندی کن.",
+      "kind": "multi_objective",
+      "reference": "Both objectives must be answered: graduate count 30 and a five-entry skill-gap ranking",
+      "criteria": [
+        {
+          "id": "graduate_count",
+          "dimension": "factual_accuracy",
+          "type": "numeric_values",
+          "values": [
+            30
+          ],
+          "tolerance": 0,
+          "points": 25,
+          "critical": true,
+          "description": "تعداد فارغ‌التحصیلان ۳۰ گزارش شود."
+        },
+        {
+          "id": "skill_gap_topic",
+          "dimension": "groundedness",
+          "type": "contains_all",
+          "values": [
+            "شکاف",
+            "مهارت"
+          ],
+          "points": 20,
+          "critical": true,
+          "description": "نتیجه مستقل شکاف مهارتی ارائه شود."
+        },
+        {
+          "id": "five_entries",
+          "dimension": "completeness",
+          "type": "ranked_entries_min",
+          "minimum": 5,
+          "points": 35,
+          "critical": true,
+          "description": "حداقل پنج مهارت رتبه‌بندی‌شده در پاسخ وجود داشته باشد."
+        },
+        {
+          "id": "both_objectives",
+          "dimension": "completeness",
+          "type": "contains_any",
+          "values": [
+            "فارغ‌التحصیل",
+            "graduate"
+          ],
+          "points": 10,
+          "critical": true,
+          "description": "بخش شمارش فارغ‌التحصیلان نیز در پاسخ قابل تشخیص باشد."
+        },
+        {
+          "id": "no_partial_failure",
+          "dimension": "reliability",
+          "type": "contains_none",
+          "values": [
+            "partial_failure",
+            "incomplete",
+            "نتیجه ناقص"
+          ],
+          "points": 10,
+          "critical": true,
+          "description": "پاسخ نباید اجرای ناقص را پنهان کند."
+        }
+      ]
+    }
+  ]
+}
