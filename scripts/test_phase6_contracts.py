@@ -115,6 +115,21 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         self.assertIn("resolve_request_id(context.headers", server_source)
         self.assertIn("resolve_request_id(ctx.headers)", server_source)
 
+
+    def test_each_registered_tool_receives_mcp_context(self) -> None:
+        server_source = SERVER.read_text(encoding="utf-8")
+        expected_signatures = (
+            "async def market_skill_details_tool(skills: list[str], ctx: Context)",
+            "async def top_market_skills_tool(ctx: Context, limit: int = 10)",
+            "async def top_skill_gaps_tool(ctx: Context, limit: int = 10)",
+            "async def search_tool(query: str, ctx: Context)",
+            "async def university_market_analysis_tool(\\n    ctx: Context,",
+            "async def analytics_query_tool(\\n    ctx: Context,",
+        )
+        for signature in expected_signatures:
+            with self.subTest(signature=signature):
+                self.assertIn(signature, server_source)
+
     def test_runner_targets_the_main_workflow_file(self) -> None:
         self.assertIn(
             'WORKFLOW_PATH = ROOT / "workflows" / "nexusops-agentic-workflow.json"',
