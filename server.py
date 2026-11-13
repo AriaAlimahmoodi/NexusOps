@@ -293,7 +293,7 @@ async def university_market_analysis_tool(
     "explicitly named skills."
     ),
 )
-async def search_tool(query: str, ctx: Context) -> str:
+async def search_tool(query: str, ctx: Context = None) -> str:
     return await run_sync_tool("search_elasticsearch", search_elasticsearch, query, context=ctx)
 
 
@@ -444,7 +444,7 @@ registered English field names in tool arguments and answer naturally.
     )
 )
 async def analytics_query_tool(
-    ctx: Context,
+    ctx: Context = None,
     dataset_id: str,
     operation: Literal["select", "count", "aggregate"],
     group_by: list[str] | None = None,
@@ -456,7 +456,7 @@ async def analytics_query_tool(
     limit: int = 10,
     options: dict[str, Any] | None = None,
 ) -> str:
-    request_id = resolve_request_id(ctx.headers)
+    request_id = resolve_request_id(ctx.headers if ctx is not None else None)
     started_at = time.perf_counter()
 
     try:
