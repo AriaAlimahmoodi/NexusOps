@@ -6,10 +6,9 @@ import logging
 import os
 import sys
 import time
-import uuid
 from pathlib import Path
 from tools.market_skills import get_market_skill_details
-from runtime_logging import configure_logging
+from runtime_logging import configure_logging, resolve_request_id
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 from tools.analytics_engine.analytics_service import AnalyticsServiceError
@@ -18,6 +17,7 @@ from tools.analytics_engine.analytics_service import AnalyticsServiceError
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.context import Context
 
 from tools.search import search_elasticsearch
 from tools.analytics import (
@@ -123,9 +123,9 @@ async def run_sync_function(tool_name: str, function, *args):
             raise
 
 
-async def run_sync_tool(tool_name: str, function, *args) -> str:
-    """Run a blocking data tool without blocking the MCP event loop."""
-    request_id = uuid.uuid4().hex
+async def run_sync_tool(tool_name: str, function, *args, context: Context | None = None) -> str:
+    """Run a blocking data tool with the caller's end-to-end correlation ID."""
+    request_id = resolve_request_id(context.headers if context is not None else None)
     started_at = time.perf_counter()
     logger.info(
         "MCP tool started",
@@ -186,8 +186,8 @@ AnalyticsFilterGroupInput.model_rebuild()
         "metrics, or custom sorting."
     ),
 )
-async def market_skill_details_tool(skills: list[str]) -> str:
-    return await run_sync_tool("get_market_skill_details", get_market_skill_details, skills)
+async def market_skill_details_tool(skills: list[str], ctx: Context) -> str:
+    return await run_sync_tool("get_market_skill_details", get_market_skill_details, skills, context=ctx)
 
 @server.tool(
     name="get_top_market_skills",
@@ -206,8 +206,8 @@ async def market_skill_details_tool(skills: list[str]) -> str:
     "because a question mentions market demand."
     ),
 )
-async def top_market_skills_tool(limit: int = 10) -> str:
-    return await run_sync_tool("get_top_market_skills", get_top_market_skills, limit)
+async def top_market_skills_tool(limit: int = 10, ctx: Context = None) -> str:
+    return await run_sync_tool("get_top_market_skills", get_top_market_skills, limit, context=ctx)
 
 
 @server.tool(
@@ -227,8 +227,8 @@ async def top_market_skills_tool(limit: int = 10) -> str:
     "mentions a skill gap."
     ),
 )
-async def top_skill_gaps_tool(limit: int = 10) -> str:
-    return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit)
+async def top_skill_gaps_tool(limit: int = 10, ctx: Context = None) -> str:
+    return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit, context=ctx)
 
 
 @server.tool(
@@ -254,6 +254,7 @@ async def top_skill_gaps_tool(limit: int = 10) -> str:
     ),
 )
 async def university_market_analysis_tool(
+    ctx: Context,
     analysis_type: Literal[
         "skill_demand",
         "skill_trends",
@@ -274,6 +275,7 @@ async def university_market_analysis_tool(
         limit,
         major,
         course_id,
+        context=ctx,
     )
 
 
@@ -291,8 +293,8 @@ async def university_market_analysis_tool(
     "explicitly named skills."
     ),
 )
-async def search_tool(query: str) -> str:
-    return await run_sync_tool("search_elasticsearch", search_elasticsearch, query)
+async def search_tool(query: str, ctx: Context) -> str:
+    return await run_sync_tool("search_elasticsearch", search_elasticsearch, query, context=ctx)
 
 
 
@@ -442,6 +444,7 @@ registered English field names in tool arguments and answer naturally.
     )
 )
 async def analytics_query_tool(
+    ctx: Context,
     dataset_id: str,
     operation: Literal["select", "count", "aggregate"],
     group_by: list[str] | None = None,
@@ -453,7 +456,7 @@ async def analytics_query_tool(
     limit: int = 10,
     options: dict[str, Any] | None = None,
 ) -> str:
-    request_id = uuid.uuid4().hex
+    request_id = resolve_request_id(ctx.headers)
     started_at = time.perf_counter()
 
     try:
