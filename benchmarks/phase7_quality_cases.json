@@ -14,11 +14,11 @@
         {
           "id": "exact_value",
           "dimension": "factual_accuracy",
-          "type": "regex",
-          "pattern": "^\\s*(?:\\*\\*)?30(?:\\*\\*)?[.!]?\\s*$",
+          "type": "numeric_only",
           "points": 70,
           "critical": true,
-          "description": "پاسخ فقط مقدار دقیق ۳۰ را برگرداند."
+          "description": "پاسخ فقط مقدار دقیق ۳۰ را برگرداند.",
+          "expected": 30
         },
         {
           "id": "no_error",
