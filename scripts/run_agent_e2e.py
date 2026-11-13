@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -406,12 +407,19 @@ def main() -> int:
                 tool_timings = metadata.get("tool_timings")
                 valid_trace = isinstance(trace_id, str) and re.fullmatch(r"nx-[A-Za-z0-9._:-]{1,120}", trace_id)
                 valid_timings = isinstance(timings, dict) and all(
-                    isinstance(timings.get(key), (int, float)) and timings[key] >= 0
+                    isinstance(timings.get(key), (int, float))
+                    and not isinstance(timings.get(key), bool)
+                    and math.isfinite(timings[key])
+                    and timings[key] >= 0
                     for key in ("pre_answer_pipeline", "answer_generation_and_compose", "total_workflow")
                 )
                 valid_tools = isinstance(tool_timings, list) and len(tool_timings) > 0 and all(
                     isinstance(item, dict)
+                    and isinstance(item.get("tool"), str)
+                    and bool(item["tool"].strip())
                     and isinstance(item.get("duration_ms"), (int, float))
+                    and not isinstance(item.get("duration_ms"), bool)
+                    and math.isfinite(item["duration_ms"])
                     and item["duration_ms"] >= 0
                     for item in tool_timings
                 )
