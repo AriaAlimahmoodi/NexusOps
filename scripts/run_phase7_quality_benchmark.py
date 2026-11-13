@@ -114,6 +114,31 @@ def evaluate_criterion(criterion: dict[str, Any], text: str) -> dict[str, Any]:
                 unmatched.pop(match_index)
         passed = not missing
         observed = {"missing_values": missing, "numeric_tokens": actual}
+    elif kind == "entity_numeric_pairs":
+        tolerance = float(criterion.get("tolerance", 0))
+        missing_pairs = []
+        observed_pairs = []
+        for pair in criterion.get("pairs", []):
+            entity = str(pair.get("entity", ""))
+            entity_lines = [line for line in text.splitlines() if entity.casefold() in line.casefold()]
+            actual_values = [value for line in entity_lines for value in numeric_tokens(line)]
+            unmatched = list(actual_values)
+            missing_values = []
+            for expected_value in pair.get("values", []):
+                match_index = next(
+                    (index for index, actual_value in enumerate(unmatched)
+                     if abs(actual_value - float(expected_value)) <= tolerance),
+                    None,
+                )
+                if match_index is None:
+                    missing_values.append(expected_value)
+                else:
+                    unmatched.pop(match_index)
+            if missing_values or not entity_lines:
+                missing_pairs.append({"entity": entity, "missing_values": missing_values})
+            observed_pairs.append({"entity": entity, "values": actual_values})
+        passed = not missing_pairs
+        observed = {"missing_pairs": missing_pairs, "observed_pairs": observed_pairs}
     elif kind == "table_present":
         table_lines = [line for line in text.splitlines() if line.strip().startswith("|") and line.count("|") >= 3]
         passed = len(table_lines) >= 2
@@ -164,6 +189,16 @@ def evaluate_case(case: dict[str, Any], status_code: int, response_text: str) ->
         }]
     else:
         checks = [evaluate_criterion(item, text) for item in criteria]
+        if ERROR_MARKERS.search(text):
+            checks.append({
+                "id": "global_execution_error_guard",
+                "dimension": "reliability",
+                "description": "Response must not contain an execution failure marker.",
+                "points": 0.0,
+                "critical": True,
+                "status": "FAIL",
+                "observed": ERROR_MARKERS.search(text).group(0),
+            })
 
     total_points = sum(item["points"] for item in checks)
     earned_points = sum(item["points"] for item in checks if item["status"] == "PASS")
