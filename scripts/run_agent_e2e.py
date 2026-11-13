@@ -38,7 +38,7 @@ CASES: list[dict[str, Any]] = [
     {"id": "A19", "name": "Sequential stability — repeated graduate count", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را دوباره محاسبه کن.", "kind": "count", "count": 30},
     {"id": "A20", "name": "Sequential stability — English course lookup", "query": "What is the name of course C013?", "kind": "course_en", "course_id": "C013", "course_name": "Cloud Computing"},
     {"id": "A21", "name": "Sequential stability — repeated independent plans", "query": "تعداد فارغ‌التحصیلان را گزارش کن و مستقل از آن پنج مهارت با بیشترین شکاف بازار را رتبه‌بندی کن.", "kind": "multi_plan", "count": 30},
-    {"id": "A22", "name": "Trace ID and stage timing metadata", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را محاسبه کن.", "kind": "count", "count": 30, "require_trace_metadata": true},
+    {"id": "A22", "name": "Trace ID and stage timing metadata", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را محاسبه کن.", "kind": "count", "count": 30, "require_trace_metadata": True},
 ]
 
 ERROR_MARKERS = re.compile(r"\b(error|exception|traceback|partial_failure)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر", re.I)
