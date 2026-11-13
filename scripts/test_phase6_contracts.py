@@ -11,7 +11,9 @@ WORKFLOW = ROOT / "workflows" / "nexusops-agentic-workflow.json"
 E2E_RUNNER = ROOT / "scripts" / "run_agent_e2e.py"
 SERVER = ROOT / "server.py"
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
 from runtime_logging import resolve_request_id
+from run_agent_e2e import extract_execution_metadata
 
 
 class Phase6WorkflowContractTests(unittest.TestCase):
@@ -137,6 +139,27 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         self.assertIn('"trace_id": metadata.get("trace_id")', self.e2e_source)
         self.assertIn('"timings_ms": metadata.get("timings_ms")', self.e2e_source)
         self.assertIn("len(selected) == 22", self.e2e_source)
+
+
+    def test_e2e_metadata_extractor_reads_nested_chat_response(self) -> None:
+        payload = {
+            "data": {
+                "output": "30",
+                "traceId": "nx-exec-123",
+                "timingsMs": {
+                    "pre_answer_pipeline": 1250,
+                    "answer_generation_and_compose": 400,
+                    "total_workflow": 1650,
+                },
+                "toolTimings": [
+                    {"plan_index": 0, "tool": "analytics_query", "duration_ms": 800}
+                ],
+            }
+        }
+        metadata = extract_execution_metadata(payload)
+        self.assertEqual(metadata["trace_id"], "nx-exec-123")
+        self.assertEqual(metadata["timings_ms"]["total_workflow"], 1650)
+        self.assertEqual(metadata["tool_timings"][0]["duration_ms"], 800)
 
     def test_runner_targets_the_main_workflow_file(self) -> None:
         self.assertIn(
