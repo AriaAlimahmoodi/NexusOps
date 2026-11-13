@@ -15,7 +15,7 @@
           "id": "exact_value",
           "dimension": "factual_accuracy",
           "type": "regex",
-          "pattern": "^\\\\s*(?:\\\\*\\\\*)?30(?:\\\\*\\\\*)?[.!]?\\\\s*$",
+          "pattern": "^\\s*(?:\\*\\*)?30(?:\\*\\*)?[.!]?\\s*$",
           "points": 70,
           "critical": true,
           "description": "پاسخ فقط مقدار دقیق ۳۰ را برگرداند."
