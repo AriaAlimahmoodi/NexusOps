@@ -168,7 +168,10 @@
         -224
       ],
       "id": "1c62e1c6-c6c3-485a-ae6d-970107f730e0",
-      "name": "MCP Initialize"
+      "name": "MCP Initialize",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -229,7 +232,10 @@
         -240
       ],
       "id": "73de6f0e-606d-4a22-ac7a-c28d33cd424c",
-      "name": "MCP Initialized Notify"
+      "name": "MCP Initialized Notify",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
@@ -290,7 +296,10 @@
         -240
       ],
       "id": "fc674dec-ddae-418b-8af1-bd874911b80f",
-      "name": "MCP Call Tool"
+      "name": "MCP Call Tool",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
     },
     {
       "parameters": {
