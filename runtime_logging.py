@@ -3,7 +3,25 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
+import uuid
 from datetime import datetime, timezone
+
+
+
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+def resolve_request_id(headers: object | None = None) -> str:
+    """Return a safe correlation ID from an untrusted HTTP header or generate one."""
+    if headers is not None and hasattr(headers, "items"):
+        for key, value in headers.items():
+            if str(key).lower() == "x-request-id":
+                candidate = str(value).strip()
+                if _REQUEST_ID_RE.fullmatch(candidate):
+                    return candidate
+                break
+    return uuid.uuid4().hex
 
 
 class JsonLogFormatter(logging.Formatter):
