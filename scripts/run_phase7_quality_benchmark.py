@@ -141,7 +141,7 @@ def evaluate_criterion(criterion: dict[str, Any], text: str) -> dict[str, Any]:
         observed = {"missing_pairs": missing_pairs, "observed_pairs": observed_pairs}
     elif kind == "table_present":
         table_lines = [line for line in text.splitlines() if line.strip().startswith("|") and line.count("|") >= 3]
-        passed = len(table_lines) >= 2
+        passed = len(table_lines) >= 3
         observed = {"table_lines": len(table_lines)}
     elif kind == "ranked_entries_min":
         count = ranked_entry_count(text)
