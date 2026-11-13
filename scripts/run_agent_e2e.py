@@ -259,7 +259,7 @@ def main() -> int:
         "suite": "NexusOps Full-System E2E A01-A21",
         "target": webhook_url,
         "executed_at": datetime.now(timezone.utc).isoformat(),
-        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 18 else "FAIL"},
+        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 21 else "FAIL"},
         "results": results,
         "limitations": [
             "Assertions are response-contract checks; inspect saved response text for semantic correctness.",
