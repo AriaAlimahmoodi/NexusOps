@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -10,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
@@ -174,42 +176,152 @@ def evaluate(case: dict[str, Any], response_text: str, http_status: int) -> tupl
     return ("PASS" if passed else "FAIL"), reason + ("" if passed else f" Response: {text[:700]}")
 
 
-def extract_execution_metadata(value: Any) -> dict[str, Any]:
-    """Find trace/timing metadata without changing the user-facing response text."""
+def find_workflow_id() -> str:
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    workflow_id = workflow.get("id")
+    if not workflow_id:
+        raise RuntimeError("Production workflow JSON has no n8n workflow ID.")
+    return str(workflow_id)
+
+
+def _walk_dicts(value: Any):
+    if isinstance(value, dict):
+        yield value
+        for nested in value.values():
+            yield from _walk_dicts(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _walk_dicts(nested)
+
+
+def extract_execution_metadata(value: Any, expected_session_id: str | None = None) -> dict[str, Any]:
+    """Extract trace metadata from one n8n execution's stored node run data."""
     if isinstance(value, str):
         try:
-            return extract_execution_metadata(json.loads(value))
+            return extract_execution_metadata(json.loads(value), expected_session_id)
         except json.JSONDecodeError:
             return {}
-    if isinstance(value, list):
-        for item in value:
-            found = extract_execution_metadata(item)
+    if not isinstance(value, (dict, list)):
+        return {}
+
+    execution = value if isinstance(value, dict) else {}
+    execution_data = execution.get("data", execution)
+    if not isinstance(execution_data, dict):
+        return {}
+    result_data = execution_data.get("resultData", {})
+    run_data = result_data.get("runData", {}) if isinstance(result_data, dict) else {}
+    if not isinstance(run_data, dict):
+        return {}
+
+    records = list(_walk_dicts(run_data))
+    prepare_records = [
+        item for item in records
+        if isinstance(item.get("sessionId"), str)
+        and (expected_session_id is None or item.get("sessionId") == expected_session_id)
+        and isinstance(item.get("traceId"), str)
+    ]
+    if not prepare_records:
+        return {}
+    prepare = prepare_records[0]
+    trace_id = prepare["traceId"]
+
+    metadata_records = [
+        item for item in records
+        if item.get("traceId") == trace_id
+        and isinstance(item.get("timingsMs"), dict)
+        and isinstance(item.get("toolTimings"), list)
+    ]
+    if not metadata_records:
+        return {}
+
+    metadata = metadata_records[-1]
+    return {
+        "execution_id": str(execution.get("id")) if execution.get("id") is not None else None,
+        "trace_id": trace_id,
+        "timings_ms": metadata["timingsMs"],
+        "tool_timings": metadata["toolTimings"],
+        "session_id": prepare["sessionId"],
+    }
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _n8n_api_get(url: str, api_key: str, timeout: float) -> dict[str, Any]:
+    request = Request(
+        url,
+        headers={"Accept": "application/json", "X-N8N-API-KEY": api_key},
+        method="GET",
+    )
+    with urlopen(request, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("n8n Executions API returned a non-object JSON response.")
+    return payload
+
+
+def fetch_execution_metadata(
+    base_url: str,
+    workflow_id: str,
+    session_id: str,
+    request_started_at: datetime,
+    api_key: str,
+    timeout: float,
+    wait_seconds: float = 15.0,
+) -> dict[str, Any]:
+    """Find the exact Chat Trigger execution by its unique sessionId, then read stored node data."""
+    list_url = f"{base_url.rstrip('/')}/api/v1/executions?{urlencode({'workflowId': workflow_id, 'limit': 100})}"
+    deadline = time.monotonic() + wait_seconds
+    last_error = "No matching execution was found in the n8n execution list."
+
+    while True:
+        listing = _n8n_api_get(list_url, api_key, min(timeout, 20.0))
+        executions = listing.get("data", [])
+        if not isinstance(executions, list):
+            raise RuntimeError("Unexpected n8n Executions API response: 'data' is not a list.")
+
+        candidates = []
+        for item in executions:
+            if not isinstance(item, dict) or str(item.get("workflowId", "")) != workflow_id:
+                continue
+            started = _parse_timestamp(item.get("startedAt"))
+            if started is not None and started >= request_started_at - __import__("datetime").timedelta(seconds=5):
+                candidates.append(item)
+
+        for item in candidates[:20]:
+            execution_id = item.get("id")
+            if execution_id is None:
+                continue
+            detail_url = f"{base_url.rstrip('/')}/api/v1/executions/{execution_id}?includeData=true"
+            try:
+                detail = _n8n_api_get(detail_url, api_key, min(timeout, 20.0))
+            except (HTTPError, URLError, TimeoutError, OSError, ValueError) as exc:
+                last_error = f"Could not read execution {execution_id}: {type(exc).__name__}: {exc}"
+                continue
+            found = extract_execution_metadata(detail, expected_session_id=session_id)
             if found:
                 return found
-        return {}
-    if not isinstance(value, dict):
-        return {}
 
-    metadata: dict[str, Any] = {}
-    for source, target in (
-        ("traceId", "trace_id"),
-        ("timingsMs", "timings_ms"),
-        ("toolTimings", "tool_timings"),
-    ):
-        if source in value:
-            metadata[target] = value[source]
-    if metadata:
-        return metadata
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(0.5)
 
-    for nested in value.values():
-        found = extract_execution_metadata(nested)
-        if found:
-            return found
-    return {}
+    raise RuntimeError(
+        f"{last_error} Confirm N8N_API_KEY has execution:list and execution:read access "
+        "and that execution data is retained and not redacted."
+    )
 
 
-def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str, dict[str, Any]]:
+def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str, str, datetime]:
     session_id = f"nexusops-e2e-{uuid.uuid4()}"
+    request_started_at = datetime.now(timezone.utc)
     payload = {
         "action": "sendMessage",
         "sessionId": session_id,
@@ -224,12 +336,12 @@ def post_chat(url: str, case: dict[str, Any], timeout: float) -> tuple[int, str,
     try:
         with urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8", errors="replace")
-            return response.status, extract_text(raw), extract_execution_metadata(raw)
+            return response.status, extract_text(raw), session_id, request_started_at
     except HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")
-        return exc.code, extract_text(raw), extract_execution_metadata(raw)
+        return exc.code, extract_text(raw), session_id, request_started_at
     except (URLError, TimeoutError, OSError) as exc:
-        return 0, f"{type(exc).__name__}: {exc}", {}
+        return 0, f"{type(exc).__name__}: {exc}", session_id, request_started_at
 
 
 def main() -> int:
@@ -237,16 +349,18 @@ def main() -> int:
     parser.add_argument("--base-url", default="http://127.0.0.1:5678", help="n8n base URL (default: http://127.0.0.1:5678)")
     parser.add_argument("--webhook-url", help="Override the full Chat Trigger webhook URL.")
     parser.add_argument("--timeout", type=float, default=300, help="Per-case timeout in seconds (default: 300).")
+    parser.add_argument("--execution-lookup-timeout", type=float, default=15, help="Maximum seconds to locate A22 in n8n execution history (default: 15).")
     parser.add_argument("--pause-seconds", type=float, default=1, help="Delay between requests (default: 1).")
     parser.add_argument("--report", default="reports/agent-e2e-latest.json", help="JSON report path.")
     parser.add_argument("--start-at", choices=[case["id"] for case in CASES], help="Start from a case ID, e.g. A09.")
     args = parser.parse_args()
 
-    if args.timeout <= 0 or args.pause_seconds < 0:
-        parser.error("--timeout must be positive and --pause-seconds cannot be negative.")
+    if args.timeout <= 0 or args.pause_seconds < 0 or args.execution_lookup_timeout <= 0:
+        parser.error("--timeout and --execution-lookup-timeout must be positive; --pause-seconds cannot be negative.")
 
     try:
         webhook_url = args.webhook_url or f"{args.base_url.rstrip('/')}/webhook/{find_webhook_id()}/chat"
+        workflow_id = find_workflow_id()
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
         print(f"SETUP FAIL: {exc}", file=sys.stderr)
         return 2
@@ -258,17 +372,34 @@ def main() -> int:
 
     print("NexusOps Full-System E2E — A01 through A22")
     print(f"Target: {webhook_url}")
+    print(f"Workflow ID: {workflow_id}")
     print(f"Cases: {len(selected)} | per-case timeout: {args.timeout:.0f}s | sequential sessions")
+    if any(case.get("require_trace_metadata") for case in selected):
+        print("A22 metadata source: n8n Executions API (N8N_API_KEY)")
     print("-" * 76)
 
     results = []
     for index, case in enumerate(selected):
         started = time.monotonic()
         metadata: dict[str, Any] = {}
+        execution_id = None
         try:
-            status, text, metadata = post_chat(webhook_url, case, args.timeout)
+            status, text, session_id, request_started_at = post_chat(webhook_url, case, args.timeout)
             verdict, detail = evaluate(case, text, status)
             if verdict == "PASS" and case.get("require_trace_metadata"):
+                api_key = os.getenv("N8N_API_KEY", "").strip()
+                if not api_key:
+                    raise RuntimeError("A22 requires N8N_API_KEY in the environment; response text is not used as a metadata source.")
+                metadata = fetch_execution_metadata(
+                    args.base_url,
+                    workflow_id,
+                    session_id,
+                    request_started_at,
+                    api_key,
+                    args.timeout,
+                    wait_seconds=args.execution_lookup_timeout,
+                )
+                execution_id = metadata.get("execution_id")
                 trace_id = metadata.get("trace_id")
                 timings = metadata.get("timings_ms")
                 tool_timings = metadata.get("tool_timings")
@@ -298,6 +429,7 @@ def main() -> int:
             "duration_seconds": elapsed,
             "query": case["query"],
             "response": text[:12000],
+            "execution_id": execution_id,
             "trace_id": metadata.get("trace_id"),
             "timings_ms": metadata.get("timings_ms"),
             "tool_timings": metadata.get("tool_timings"),
@@ -319,7 +451,9 @@ def main() -> int:
         "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 22 else "FAIL"},
         "results": results,
         "limitations": [
-            "Assertions are response-contract checks; inspect saved response text for semantic correctness.",
+            "A22 reads trace/timing metadata from the matching stored n8n execution, correlated by the unique Chat Trigger sessionId; it never expects metadata in the user-facing chat response.",
+            "A22 requires N8N_API_KEY with execution:list and execution:read access, and retained, readable execution data.",
+            "Assertions for A01-A21 are response-contract checks; inspect saved response text for semantic correctness.",
             "This suite exercises serial independent Chat Trigger sessions; it does not test concurrent requests.",
             "It does not replace independent Kibana comparisons for numeric results.",
             "A partial run (--start-at) is never reported as an overall full-suite PASS.",
