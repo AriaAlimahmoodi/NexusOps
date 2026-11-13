@@ -21,7 +21,7 @@ from scripts.run_agent_e2e import find_webhook_id, post_chat
 
 
 ERROR_MARKERS = re.compile(
-    r"\\b(error|exception|traceback|partial_failure|incomplete)\\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر",
+    r"\b(error|exception|traceback|partial_failure|incomplete)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر",
     re.IGNORECASE,
 )
 
@@ -34,7 +34,7 @@ def normalize_digits(value: str) -> str:
 
 def numeric_tokens(text: str) -> list[float]:
     normalized = normalize_digits(text).replace(",", "")
-    tokens = re.findall(r"(?<![\\w.])-?\\d+(?:\\.\\d+)?(?![\\w.])", normalized)
+    tokens = re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])", normalized)
     values: list[float] = []
     for token in tokens:
         try:
@@ -45,7 +45,7 @@ def numeric_tokens(text: str) -> list[float]:
 
 
 def language_matches(text: str, expected: str) -> bool:
-    persian = len(re.findall(r"[\\u0600-\\u06FF]", text))
+    persian = len(re.findall(r"[\u0600-\u06FF]", text))
     latin = len(re.findall(r"[A-Za-z]", text))
     if expected == "fa":
         return persian > 0
@@ -58,15 +58,15 @@ def ranked_entry_count(text: str) -> int:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     numbered = [
         line for line in lines
-        if re.match(r"^(?:[-*]\\s*)?\\d{1,2}[.)]\\s+\\S", line)
+        if re.match(r"^(?:[-*]\s*)?\d{1,2}[.)]\s+\S", line)
     ]
-    bullets = [line for line in lines if re.match(r"^[-*]\\s+\\S", line)]
+    bullets = [line for line in lines if re.match(r"^[-*]\s+\S", line)]
     table_rows = [
         line for line in lines
         if line.startswith("|")
         and line.count("|") >= 3
-        and not re.match(r"^\\|\\s*:?-{2,}", line)
-        and not re.search(r"\\b(skill|rank)\\b|مهارت|رتبه", line, re.IGNORECASE)
+        and not re.match(r"^\|\s*:?-{2,}", line)
+        and not re.search(r"\b(skill|rank)\b|مهارت|رتبه", line, re.IGNORECASE)
     ]
     return max(len(numbered), len(bullets), len(table_rows))
 
@@ -304,7 +304,7 @@ def main(argv: list[str] | None = None) -> int:
     if not report_path.is_absolute():
         report_path = ROOT / report_path
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print("-" * 76)
     print(f"QUALITY SCORE: {overall_score:.2f}/100")
