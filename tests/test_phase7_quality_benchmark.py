@@ -140,3 +140,20 @@ def test_global_execution_error_marker_fails_every_benchmark_case():
     result = benchmark.evaluate_case(case, 200, "30\\nExecution status: partial_failure")
     assert result["status"] == "FAIL"
     assert "global_execution_error_guard" in result["critical_failures"]
+
+def test_table_check_requires_at_least_one_data_row():
+    criterion = {"id": "table", "type": "table_present", "points": 10}
+    assert benchmark.evaluate_criterion(criterion, "| Skill | Score |\\n|---|---:|")["status"] == "FAIL"
+    assert benchmark.evaluate_criterion(
+        criterion, "| Skill | Score |\\n|---|---:|\\n| Python | 4.8 |"
+    )["status"] == "PASS"
+
+
+def test_all_phase7_cases_have_a_100_point_rubric_and_known_exact_match_pattern():
+    _, cases = benchmark.load_cases()
+    for case in cases:
+        assert sum(item["points"] for item in case["criteria"]) == 100
+    q01 = next(case for case in cases if case["id"] == "Q01")
+    exact = next(item for item in q01["criteria"] if item["id"] == "exact_value")
+    assert benchmark.evaluate_criterion(exact, "30")["status"] == "PASS"
+    assert benchmark.evaluate_criterion(exact, "The answer is 30")["status"] == "FAIL"
