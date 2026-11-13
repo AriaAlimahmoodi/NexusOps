@@ -264,6 +264,7 @@ def main() -> int:
     results = []
     for index, case in enumerate(selected):
         started = time.monotonic()
+        metadata: dict[str, Any] = {}
         try:
             status, text, metadata = post_chat(webhook_url, case, args.timeout)
             verdict, detail = evaluate(case, text, status)
