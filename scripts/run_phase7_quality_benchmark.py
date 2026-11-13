@@ -55,6 +55,7 @@ def language_matches(text: str, expected: str) -> bool:
 
 
 def ranked_entry_count(text: str) -> int:
+    text = normalize_digits(text)
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     numbered = [
         line for line in lines
