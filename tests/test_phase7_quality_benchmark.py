@@ -109,3 +109,34 @@ def test_multi_objective_case_requires_both_objectives_and_five_ranked_items():
     incomplete = "تعداد فارغ‌التحصیلان: ۳۰\nشکاف مهارتی: Python و SQL"
     assert benchmark.evaluate_case(cases[0], 200, complete)["status"] == "PASS"
     assert benchmark.evaluate_case(cases[0], 200, incomplete)["status"] == "FAIL"
+
+def test_entity_numeric_pairs_reject_values_assigned_to_the_wrong_skill():
+    criterion = {
+        "id": "skill_metrics",
+        "type": "entity_numeric_pairs",
+        "pairs": [
+            {"entity": "Python", "values": [4.58, 2910]},
+            {"entity": "SQL", "values": [4.73, 2480]},
+        ],
+        "tolerance": 0.000001,
+        "points": 100,
+        "critical": True,
+    }
+    correct = "| Python | 4.58 | 2910 |\\n| SQL | 4.73 | 2480 |"
+    swapped = "| Python | 4.73 | 2480 |\\n| SQL | 4.58 | 2910 |"
+    assert benchmark.evaluate_criterion(criterion, correct)["status"] == "PASS"
+    assert benchmark.evaluate_criterion(criterion, swapped)["status"] == "FAIL"
+
+
+def test_global_execution_error_marker_fails_every_benchmark_case():
+    case = {
+        "id": "QX",
+        "name": "Global error guard",
+        "criteria": [
+            {"id": "content", "type": "contains_all", "values": ["30"],
+             "points": 100, "critical": False},
+        ],
+    }
+    result = benchmark.evaluate_case(case, 200, "30\\nExecution status: partial_failure")
+    assert result["status"] == "FAIL"
+    assert "global_execution_error_guard" in result["critical_failures"]
