@@ -125,8 +125,8 @@ class Phase6WorkflowContractTests(unittest.TestCase):
             "async def top_market_skills_tool(ctx: Context, limit: int = 10)",
             "async def top_skill_gaps_tool(ctx: Context, limit: int = 10)",
             "async def search_tool(query: str, ctx: Context)",
-            "async def university_market_analysis_tool(\\n    ctx: Context,",
-            "async def analytics_query_tool(\\n    ctx: Context,",
+            "async def university_market_analysis_tool(\n    ctx: Context,",
+            "async def analytics_query_tool(\n    ctx: Context,",
         )
         for signature in expected_signatures:
             with self.subTest(signature=signature):
