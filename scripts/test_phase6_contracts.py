@@ -77,7 +77,7 @@ class Phase6WorkflowContractTests(unittest.TestCase):
         )
 
     def test_invalid_request_id_header_is_replaced_with_safe_generated_id(self) -> None:
-        generated = resolve_request_id({"X-Request-ID": "bad value\\nforged"})
+        generated = resolve_request_id({"X-Request-ID": "bad value\nforged"})
         self.assertRegex(generated, re.compile(r"^[0-9a-f]{32}$"))
 
     def test_trace_id_and_stage_timing_are_propagated_by_main_workflow(self) -> None:
