@@ -143,17 +143,27 @@
         {
           "id": "numeric_facts",
           "dimension": "factual_accuracy",
-          "type": "numeric_values",
-          "values": [
-            4.58,
-            2910,
-            4.73,
-            2480
-          ],
+          "type": "entity_numeric_pairs",
           "tolerance": 0.000001,
           "points": 45,
           "critical": true,
-          "description": "چهار مقدار مرجع تقاضا و فراوانی بدون جابه‌جایی یا حذف در پاسخ باشند."
+          "description": "امتیاز تقاضا و فراوانی هر مهارت در همان ردیف مربوط به آن مهارت گزارش شوند.",
+          "pairs": [
+            {
+              "entity": "Python",
+              "values": [
+                4.58,
+                2910
+              ]
+            },
+            {
+              "entity": "SQL",
+              "values": [
+                4.73,
+                2480
+              ]
+            }
+          ]
         },
         {
           "id": "structured_comparison",
@@ -202,23 +212,48 @@
         {
           "id": "numeric_facts",
           "dimension": "factual_accuracy",
-          "type": "numeric_values",
-          "values": [
-            4.9,
-            790,
-            4.9,
-            1380,
-            4.8,
-            700,
-            4.8,
-            710,
-            4.73,
-            2480
-          ],
+          "type": "entity_numeric_pairs",
           "tolerance": 0.000001,
           "points": 35,
           "critical": true,
-          "description": "امتیاز تقاضا و فراوانی مرجع گزارش شوند."
+          "description": "امتیاز تقاضا و فراوانی هر مهارت در ردیف خودش گزارش شوند؛ جابه‌جایی مقادیر بین مهارت‌ها مردود است.",
+          "pairs": [
+            {
+              "entity": "DevOps",
+              "values": [
+                4.9,
+                790
+              ]
+            },
+            {
+              "entity": "Machine Learning",
+              "values": [
+                4.9,
+                1380
+              ]
+            },
+            {
+              "entity": "Cloud Computing",
+              "values": [
+                4.8,
+                700
+              ]
+            },
+            {
+              "entity": "Data Engineering",
+              "values": [
+                4.8,
+                710
+              ]
+            },
+            {
+              "entity": "SQL",
+              "values": [
+                4.73,
+                2480
+              ]
+            }
+          ]
         },
         {
           "id": "ranking_structure",
