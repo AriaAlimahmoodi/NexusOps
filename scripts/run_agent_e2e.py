@@ -7,7 +7,7 @@ import re
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -292,7 +292,7 @@ def fetch_execution_metadata(
             if not isinstance(item, dict) or str(item.get("workflowId", "")) != workflow_id:
                 continue
             started = _parse_timestamp(item.get("startedAt"))
-            if started is not None and started >= request_started_at - __import__("datetime").timedelta(seconds=5):
+            if started is not None and started >= request_started_at - timedelta(seconds=5):
                 candidates.append(item)
 
         for item in candidates[:20]:
@@ -383,6 +383,7 @@ def main() -> int:
         started = time.monotonic()
         metadata: dict[str, Any] = {}
         execution_id = None
+        status, text = 0, ""
         try:
             status, text, session_id, request_started_at = post_chat(webhook_url, case, args.timeout)
             verdict, detail = evaluate(case, text, status)
@@ -418,7 +419,6 @@ def main() -> int:
                     verdict = "FAIL"
                     detail = "Trace metadata missing or invalid: expected trace_id, three non-negative stage timings, and per-tool durations."
         except Exception as exc:  # keep the suite running and preserve the failure
-            status, text = 0, ""
             verdict, detail = "FAIL", f"{type(exc).__name__}: {exc}"
         elapsed = round(time.monotonic() - started, 2)
         result = {
