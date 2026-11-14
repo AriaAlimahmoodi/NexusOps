@@ -38,11 +38,16 @@ CASES: list[dict[str, Any]] = [
     {"id": "A16", "name": "Major employment comparison", "query": "وضعیت اشتغال مهندسی کامپیوتر را با سایر رشته‌های موجود در داده‌ها مقایسه کن.", "kind": "major_comparison"},
     {"id": "A17", "name": "Curriculum recommendations", "query": "برای بهبود برنامه درسی مهندسی کامپیوتر بر اساس شکاف مهارتی بازار پیشنهادهای اجرایی ارائه کن.", "kind": "curriculum"},
     {"id": "A18", "name": "Skill trends and temporal limitation", "query": "روند زمانی تقاضای مهارت‌های بازار را تحلیل کن و محدودیت داده‌های زمانی را توضیح بده.", "kind": "trends"},
+]
+
+EXTENDED_CASES: list[dict[str, Any]] = [
     {"id": "A19", "name": "Sequential stability — repeated graduate count", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را دوباره محاسبه کن.", "kind": "count", "count": 30},
     {"id": "A20", "name": "Sequential stability — English course lookup", "query": "What is the name of course C013?", "kind": "course_en", "course_id": "C013", "course_name": "Cloud Computing"},
     {"id": "A21", "name": "Sequential stability — repeated independent plans", "query": "تعداد فارغ‌التحصیلان را گزارش کن و مستقل از آن پنج مهارت با بیشترین شکاف بازار را رتبه‌بندی کن.", "kind": "multi_plan", "count": 30},
     {"id": "A22", "name": "Trace ID and stage timing metadata", "query": "فقط عدد: تعداد فارغ‌التحصیلان دانشگاه را محاسبه کن.", "kind": "count", "count": 30, "require_trace_metadata": True},
 ]
+
+ALL_CASES: list[dict[str, Any]] = CASES + EXTENDED_CASES
 
 ERROR_MARKERS = re.compile(r"\b(error|exception|traceback|partial_failure)\b|خطای اجرایی|خطا در اجرای|درخواست نامعتبر", re.I)
 
@@ -353,7 +358,7 @@ def main() -> int:
     parser.add_argument("--execution-lookup-timeout", type=float, default=15, help="Maximum seconds to locate A22 in n8n execution history (default: 15).")
     parser.add_argument("--pause-seconds", type=float, default=1, help="Delay between requests (default: 1).")
     parser.add_argument("--report", default="reports/agent-e2e-latest.json", help="JSON report path.")
-    parser.add_argument("--start-at", choices=[case["id"] for case in CASES], help="Start from a case ID, e.g. A09.")
+    parser.add_argument("--start-at", choices=[case["id"] for case in ALL_CASES], help="Start from a case ID, e.g. A09.")
     args = parser.parse_args()
 
     if args.timeout <= 0 or args.pause_seconds < 0 or args.execution_lookup_timeout <= 0:
@@ -366,21 +371,25 @@ def main() -> int:
         print(f"SETUP FAIL: {exc}", file=sys.stderr)
         return 2
 
+    # CASES remains the stable A01-A18 core contract. The default run
+    # executes the complete A01-A22 suite, including the four extensions.
     selected = CASES
+    execution_cases = ALL_CASES
     if args.start_at:
-        start = next(i for i, case in enumerate(CASES) if case["id"] == args.start_at)
-        selected = CASES[start:]
+        start = next(i for i, case in enumerate(ALL_CASES) if case["id"] == args.start_at)
+        selected = CASES[start:] if start < len(CASES) else []
+        execution_cases = ALL_CASES[start:]
 
     print("NexusOps Full-System E2E — A01 through A22")
     print(f"Target: {webhook_url}")
     print(f"Workflow ID: {workflow_id}")
-    print(f"Cases: {len(selected)} | per-case timeout: {args.timeout:.0f}s | sequential sessions")
-    if any(case.get("require_trace_metadata") for case in selected):
+    print(f"Cases: {len(execution_cases)} | per-case timeout: {args.timeout:.0f}s | sequential sessions")
+    if any(case.get("require_trace_metadata") for case in execution_cases):
         print("A22 metadata source: n8n Executions API (N8N_API_KEY)")
     print("-" * 76)
 
     results = []
-    for index, case in enumerate(selected):
+    for index, case in enumerate(execution_cases):
         started = time.monotonic()
         metadata: dict[str, Any] = {}
         execution_id = None
@@ -447,7 +456,7 @@ def main() -> int:
         print(f"{case['id']}  {verdict:<4}  {elapsed:>7.2f}s  {case['name']}")
         if verdict == "FAIL":
             print(f"     {detail[:500]}")
-        if index < len(selected) - 1 and args.pause_seconds:
+        if index < len(execution_cases) - 1 and args.pause_seconds:
             time.sleep(args.pause_seconds)
 
     passed = sum(item["status"] == "PASS" for item in results)
@@ -456,7 +465,7 @@ def main() -> int:
         "suite": "NexusOps Full-System E2E A01-A22",
         "target": webhook_url,
         "executed_at": datetime.now(timezone.utc).isoformat(),
-        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 22 else "FAIL"},
+        "summary": {"total": len(results), "passed": passed, "failed": failed, "overall": "PASS" if failed == 0 and len(selected) == 18 else "FAIL"},
         "results": results,
         "limitations": [
             "A22 reads trace/timing metadata from the matching stored n8n execution, correlated by the unique Chat Trigger sessionId; it never expects metadata in the user-facing chat response.",
