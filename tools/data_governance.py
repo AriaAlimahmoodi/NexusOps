@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Any, Iterable, Mapping
 
 
-REQUIRED_PROVENANCE_FIELDS = ("source", "observed_at", "collection_batch")
-OPTIONAL_PROVENANCE_FIELDS = ("published_at",)
+REQUIRED_PROVENANCE_FIELDS = ("source", "observed_at", "collection_batch", "time_granularity")
+OPTIONAL_PROVENANCE_FIELDS = ("published_at", "valid_from", "valid_until")
 DEFAULT_GAP_TOLERANCE = 1e-6
 
 
@@ -80,6 +80,16 @@ def validate_record_provenance(
             field="published_at",
             record_id=record_id,
         ))
+    validity_values = {field: _timestamp(record.get(field)) for field in ("valid_from", "valid_until")}
+    supplied_validity = {field for field in validity_values if record.get(field) is not None}
+    if supplied_validity and supplied_validity != {"valid_from", "valid_until"}:
+        issues.append(_issue("INCOMPLETE_VALIDITY_WINDOW", "'valid_from' and 'valid_until' must be supplied together.", field="valid_from" if "valid_from" not in supplied_validity else "valid_until", record_id=record_id))
+    for field, parsed in validity_values.items():
+        if record.get(field) is not None and parsed is None:
+            issues.append(_issue("INVALID_TIMESTAMP", f"'{field}' must be ISO-8601 with an explicit timezone.", field=field, record_id=record_id))
+    valid_from, valid_until = validity_values["valid_from"], validity_values["valid_until"]
+    if valid_from is not None and valid_until is not None and valid_until < valid_from:
+        issues.append(_issue("INVALID_VALIDITY_WINDOW", "'valid_until' cannot be earlier than 'valid_from'.", field="valid_until", record_id=record_id))
     return issues
 
 
@@ -87,8 +97,20 @@ def audit_dataset_provenance(
     records: Iterable[Mapping[str, Any]],
     *,
     dataset_id: str,
+    classification: str = "real",
 ) -> dict[str, Any]:
-    """Return record-level provenance coverage and actionable issue details."""
+    """Audit real provenance; keep synthetic fixtures explicitly separate."""
+    if classification not in {"synthetic", "real"}:
+        raise ValueError("classification must be 'synthetic' or 'real'.")
+    if classification == "synthetic":
+        total = sum(1 for _ in records)
+        return {
+            "dataset_id": dataset_id, "classification": "synthetic",
+            "total_records": total, "verified_records": 0,
+            "unverified_records": 0, "invalid_records": 0,
+            "synthetic_records": total, "provenance_coverage": None,
+            "issues": [],
+        }
     total = verified = unverified = invalid = 0
     issues: list[dict[str, str]] = []
 
@@ -111,7 +133,9 @@ def audit_dataset_provenance(
 
     return {
         "dataset_id": dataset_id,
+        "classification": "real",
         "total_records": total,
+        "synthetic_records": 0,
         "verified_records": verified,
         "unverified_records": unverified,
         "invalid_records": invalid,
