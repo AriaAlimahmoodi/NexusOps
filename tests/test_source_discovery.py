@@ -81,3 +81,29 @@ def test_rejects_invalid_memory_limits():
             top_values_limit=5,
             max_distinct_values=2,
         )
+
+
+def test_auto_detects_tab_delimited_files():
+    source = StringIO("id\\tregion\\n1\\tMadrid\\n2\\tTehran\\n")
+
+    report = profile_csv_stream(source)
+
+    assert report["delimiter"] == "\\t"
+    assert report["row_count"] == 2
+
+
+def test_bounds_nested_json_key_cardinality():
+    source = StringIO(
+        'payload\\n'
+        '"[{\"alpha\": 1, \"beta\": 2}]"\\n'
+    )
+
+    report = profile_csv_stream(
+        source,
+        top_values_limit=1,
+        max_distinct_values=1,
+    )
+
+    column = report["columns"]["payload"]
+    assert len(column["json_object_keys"]) == 1
+    assert column["json_object_keys_truncated"] is True
