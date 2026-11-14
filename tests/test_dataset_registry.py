@@ -52,3 +52,13 @@ def test_profile_is_returned_as_deep_copy():
 def test_unknown_dataset_is_rejected():
     with pytest.raises(ValueError, match="not registered"):
         get_dataset_profile("unknown_dataset")
+
+
+def test_registered_profiles_separate_synthetic_and_real_indexes():
+    from tools.dataset_registry import get_dataset_index
+
+    for dataset_id, profile in DATASET_PROFILES.items():
+        assert profile["data_classification"] == "synthetic"
+        assert profile["real_index"] == f"{dataset_id}_real"
+        assert get_dataset_index(dataset_id, "synthetic") == dataset_id
+        assert get_dataset_index(dataset_id, "real") == f"{dataset_id}_real"
