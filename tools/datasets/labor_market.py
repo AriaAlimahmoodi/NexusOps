@@ -28,6 +28,7 @@ LABOR_MARKET_PROFILE = {
 
     "source_type": "elasticsearch",
     "data_classification": "synthetic",
+    "document_id_fields": ["market_record_id"],
     "real_index": "labor_market_real",
     "provenance_contract": {
         "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
