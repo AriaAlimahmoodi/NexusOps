@@ -189,3 +189,31 @@ def test_bulk_failure_never_publishes_staging_index(monkeypatch):
 
     assert "labor_market_real" not in client.aliases
     assert client.documents == {}
+
+
+def test_atomic_publisher_preserves_composite_registry_identity(monkeypatch):
+    install_fake_bulk(monkeypatch)
+    client = FakeClient()
+    relationship_manifest = manifest()
+    relationship = {
+        "course_id": "C001",
+        "course_name": "Algorithms",
+        "graduate_id": "G0001",
+        "job_field": "Software",
+        "related_skills": ["Python"],
+        "source": "https://example.org/relationship/1",
+        "observed_at": "2026-11-14T09:00:00Z",
+        "collection_batch": relationship_manifest["collection_batch"],
+        "time_granularity": "annual",
+    }
+
+    result = ingest_real_records_atomically(
+        client,
+        "course_graduate_records",
+        [relationship],
+        relationship_manifest,
+    )
+
+    stored = client.documents[result["physical_index"]]
+    assert list(stored) == ["C001::G0001"]
+    assert stored["C001::G0001"]["data_classification"] == "real"
