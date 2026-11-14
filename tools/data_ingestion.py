@@ -75,7 +75,11 @@ def prepare_real_records(dataset_id, records, manifest):
             })
             continue
 
-        record_id = str(record.get(primary_key) or record.get("id") or position)
+        identity_values = [record.get(field) for field in id_fields]
+        record_id = (
+            "::".join(str(value).strip() for value in identity_values if value is not None and str(value).strip())
+            or str(record.get("id") or position)
+        )
         for field in profile.get("validation", {}).get("required_fields", []):
             value = record.get(field)
             if value is None or (isinstance(value, str) and not value.strip()):
