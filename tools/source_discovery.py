@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 
-DEFAULT_DELIMITERS = (",", ";", "\\t", "|")
+DEFAULT_DELIMITERS = (",", ";", "\t", "|")
 _EXTRA_COLUMNS_KEY = "__nexusops_extra_columns__"
 
 
