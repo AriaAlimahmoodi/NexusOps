@@ -82,7 +82,7 @@ def detect_bilingual_field_pairs(source_columns: dict[str, Any]) -> list[dict[st
     Value-level equivalence must be checked against source records separately.
     """
     language_suffix = re.compile(
-        r"(?:[_\-\s])(fa|en|persian|english)$", flags=re.IGNORECASE
+        r"(?:[_\-\s]|(?<=[a-z0-9]))(fa|en|persian|english)$", flags=re.IGNORECASE
     )
     grouped: dict[str, dict[str, list[tuple[str, dict[str, Any]]]]] = {}
 
