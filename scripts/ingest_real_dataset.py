@@ -6,19 +6,20 @@ import sys
 from pathlib import Path
 
 from config import get_elasticsearch_client
-from tools.data_ingestion import ingest_real_records, prepare_real_records
+from tools.atomic_data_publisher import ingest_real_records_atomically
+from tools.data_ingestion import prepare_real_records
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate or explicitly ingest one real-data collection batch."
+        description="Validate or atomically publish one real-data collection batch."
     )
     parser.add_argument("--dataset", required=True, help="Registered dataset ID.")
     parser.add_argument("--input", required=True, help="JSON file with manifest and records.")
     parser.add_argument(
         "--apply",
         action="store_true",
-        help="Write to the dedicated *_real index; without this flag validation only runs.",
+        help="Atomically publish to the dedicated real-data Registry alias.",
     )
     args = parser.parse_args()
 
@@ -41,7 +42,9 @@ def main() -> int:
 
     client = get_elasticsearch_client()
     try:
-        result = ingest_real_records(client, args.dataset, records, manifest)
+        result = ingest_real_records_atomically(
+            client, args.dataset, iter(records), manifest
+        )
     finally:
         client.close()
     print(json.dumps(result, ensure_ascii=False, indent=2))
