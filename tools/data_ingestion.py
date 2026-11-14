@@ -60,7 +60,7 @@ def prepare_real_records(dataset_id, records, manifest):
         raise ValueError("At least one record is required for ingestion.")
 
     issues = validate_collection_manifest(manifest, records)
-    primary_key = profile.get("primary_key")
+    id_fields = profile.get("document_id_fields") or ([profile["primary_key"]] if profile.get("primary_key") else [])
     seen_ids = set()
     prepared = []
 
@@ -86,23 +86,23 @@ def prepare_real_records(dataset_id, records, manifest):
 
         issues.extend(validate_record_provenance(record, record_id=record_id))
 
-        if primary_key:
-            key_value = record.get(primary_key)
-            if not isinstance(key_value, (str, int)) or not str(key_value).strip():
+        if id_fields:
+            key_values = [record.get(field) for field in id_fields]
+            if any(not isinstance(value, (str, int)) or not str(value).strip() for value in key_values):
                 issues.append({
                     "code": "MISSING_PRIMARY_KEY",
-                    "field": primary_key,
+                    "field": ",".join(id_fields),
                     "record_id": record_id,
-                    "message": f"Primary key '{primary_key}' is required.",
+                    "message": f"Document identity fields {id_fields} are required.",
                 })
             else:
-                normalized_id = str(key_value)
+                normalized_id = "::".join(str(value).strip() for value in key_values)
                 if normalized_id in seen_ids:
                     issues.append({
                         "code": "DUPLICATE_PRIMARY_KEY",
-                        "field": primary_key,
+                        "field": ",".join(id_fields),
                         "record_id": normalized_id,
-                        "message": "Duplicate primary key in the collection batch.",
+                        "message": "Duplicate document identity in the collection batch.",
                     })
                 seen_ids.add(normalized_id)
 
@@ -128,7 +128,7 @@ def ingest_real_records(client, dataset_id, records, manifest):
     prepared = prepare_real_records(dataset_id, records, manifest)
     profile = get_dataset_profile(dataset_id)
     target_index = get_dataset_index(dataset_id, "real")
-    primary_key = profile.get("primary_key")
+    id_fields = profile.get("document_id_fields") or ([profile["primary_key"]] if profile.get("primary_key") else [])
 
     actions = []
     for record in prepared:
@@ -137,8 +137,8 @@ def ingest_real_records(client, dataset_id, records, manifest):
             "_index": target_index,
             "_source": record,
         }
-        if primary_key:
-            action["_id"] = str(record[primary_key])
+        if id_fields:
+            action["_id"] = "::".join(str(record[field]).strip() for field in id_fields)
         actions.append(action)
 
     indexed_count, errors = bulk(
