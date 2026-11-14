@@ -46,6 +46,19 @@ def test_prepare_real_records_marks_real_and_preserves_source_values():
     assert prepared[0]["source"] == "https://example.org/data/LM0001"
 
 
+def test_prepare_real_records_discards_source_only_fields():
+    source = record(
+        salary_range="not-supported-by-labor-market",
+        remote_policy="not-supported-by-labor-market",
+    )
+
+    prepared = prepare_real_records("labor_market", [source], manifest())
+
+    assert "salary_range" not in prepared[0]
+    assert "remote_policy" not in prepared[0]
+    assert prepared[0]["market_record_id"] == "LM0001"
+
+
 def test_real_batch_is_rejected_atomically_when_provenance_is_missing():
     with pytest.raises(ValueError) as exc:
         prepare_real_records(
