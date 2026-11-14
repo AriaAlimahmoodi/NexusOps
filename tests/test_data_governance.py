@@ -134,3 +134,15 @@ def test_skill_mapping_rejects_boolean_metrics_and_duplicate_pairs():
 def test_skill_mapping_rejects_invalid_gap_tolerance():
     with pytest.raises(ValueError, match="gap_tolerance"):
         audit_skill_mapping([], [], [], gap_tolerance=-1)
+
+
+def test_all_dataset_profiles_register_queryable_provenance_fields():
+    from tools.dataset_registry import DATASET_PROFILES
+
+    for dataset_id, profile in DATASET_PROFILES.items():
+        fields = profile["fields"]
+        assert {"source", "observed_at", "published_at", "collection_batch"} <= set(fields)
+        assert "filter" in fields["source"]["roles"]
+        assert "filter" in fields["observed_at"]["roles"]
+        assert "filter" in fields["published_at"]["roles"]
+        assert "filter" in fields["collection_batch"]["roles"]
