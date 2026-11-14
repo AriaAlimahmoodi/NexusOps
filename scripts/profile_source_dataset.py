@@ -37,8 +37,17 @@ def main() -> int:
 
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output:
-        Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-    print(rendered)
+        output_path = Path(args.output)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        print(json.dumps({
+            "status": "profiled",
+            "source_name": report["source_name"],
+            "row_count": report["row_count"],
+            "column_count": report["column_count"],
+            "report_path": str(output_path),
+        }, ensure_ascii=False, indent=2))
+    else:
+        print(rendered)
     return 0
 
 
