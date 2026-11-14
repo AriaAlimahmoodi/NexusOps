@@ -131,3 +131,75 @@ def test_equal_matches_across_datasets_are_flagged_as_ambiguous():
     assert match["status"] == "manual_review"
     assert match["ambiguous"] is True
     assert "ambiguous_top_candidates" in match["best_candidate"]["warnings"]
+
+def test_detects_persian_english_header_pairs_without_claiming_value_equality():
+    from tools.semantic_matching import detect_bilingual_field_pairs
+
+    pairs = detect_bilingual_field_pairs({
+        "Jobpost_ProvinceFa": {"inferred_type": "string"},
+        "Jobpost_ProvinceEn": {"inferred_type": "string"},
+        "Company_IndustryFa": {"inferred_type": "string"},
+        "Company_IndustryEn": {"inferred_type": "string"},
+        "Jobpost_IndustryFa": {"inferred_type": "string"},
+        "Jobpost_IndustryEn": {"inferred_type": "string"},
+    })
+
+    assert len(pairs) == 3
+    assert all(pair["status"] == "bilingual_semantic_pair_candidate" for pair in pairs)
+    assert all(pair["value_equivalence_verified"] is False for pair in pairs)
+    assert all(pair["safe_to_drop"] is False for pair in pairs)
+    assert all(pair["requires_value_level_validation"] is True for pair in pairs)
+
+
+def test_bilingual_pair_detector_does_not_pair_different_base_names():
+    from tools.semantic_matching import detect_bilingual_field_pairs
+
+    pairs = detect_bilingual_field_pairs({
+        "Jobpost_ProvinceFa": {"inferred_type": "string"},
+        "Company_ProvinceEn": {"inferred_type": "string"},
+        "Jobpost_IndustryFa": {"inferred_type": "string"},
+    })
+
+    assert pairs == []
+
+
+def test_bilingual_pair_detector_flags_incompatible_physical_types():
+    from tools.semantic_matching import detect_bilingual_field_pairs
+
+    pairs = detect_bilingual_field_pairs({
+        "Company_SizeFa": {"inferred_type": "string"},
+        "Company_SizeEn": {"inferred_type": "integer"},
+    })
+
+    assert len(pairs) == 1
+    assert pairs[0]["physical_types_compatible"] is False
+    assert pairs[0]["safe_to_drop"] is False
+
+
+def test_match_report_includes_bilingual_pairs_as_separate_diagnostics():
+    result = match_source_profile(
+        {"columns": {
+            "Jobpost_ProvinceFa": {"inferred_type": "string"},
+            "Jobpost_ProvinceEn": {"inferred_type": "string"},
+        }},
+        _profiles(),
+    )
+
+    assert result["matching_version"] == 2
+    assert result["summary"]["bilingual_field_pair_candidates"] == 1
+    assert len(result["bilingual_field_pairs"]) == 1
+    assert result["policy"]["automatic_schema_mutation"] is False
+
+
+def test_expanded_domain_synonym_matches_only_review_candidate_when_ambiguous():
+    result = match_source_profile(
+        {"columns": {
+            "عنوان موقعیت شغلی": {"inferred_type": "string"},
+        }},
+        _profiles(),
+    )
+
+    match = result["matches"][0]
+    assert match["status"] == "manual_review"
+    assert match["ambiguous"] is True
+
