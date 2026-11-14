@@ -307,11 +307,17 @@ def ingest_real_records_atomically(
             }
         finally:
             if not published:
-                # A failed candidate is private; deleting it cannot affect readers.
+                # The alias API may have completed even if its response was lost.
+                # Confirm the live target before considering candidate cleanup.
                 try:
-                    if client.indices.exists(index=staging_index):
-                        client.indices.delete(index=staging_index)
+                    active_index = _current_alias_target(client, target_alias)
                 except Exception:
-                    # Preserve the original exception; an orphan staging index is
-                    # safer than masking the cause or touching the published alias.
-                    pass
+                    active_index = staging_index  # Unknown state: never risk deleting it.
+                if active_index != staging_index:
+                    try:
+                        if client.indices.exists(index=staging_index):
+                            client.indices.delete(index=staging_index)
+                    except Exception:
+                        # Preserve the original exception; an orphan staging index is
+                        # safer than masking the cause or touching the published alias.
+                        pass
