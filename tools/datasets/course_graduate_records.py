@@ -42,22 +42,6 @@ COURSE_GRADUATE_RECORDS_PROFILE = {
             "roles": ["dimension", "filter", "group_by"],
         },
 
-        "source": {
-            "type": "keyword",
-            "roles": ["dimension", "filter", "group_by"],
-        },
-        "observed_at": {
-            "type": "date",
-            "roles": ["dimension", "filter", "group_by", "sort"],
-        },
-        "published_at": {
-            "type": "date",
-            "roles": ["dimension", "filter", "group_by", "sort"],
-        },
-        "collection_batch": {
-            "type": "keyword",
-            "roles": ["dimension", "filter", "group_by"],
-        },
     },
     "default_group_by": "course_name",
     "default_metrics": {
