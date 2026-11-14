@@ -97,7 +97,19 @@ def _new_column_stats() -> dict[str, Any]:
         "sample_values": [],
         "value_counts": Counter(),
         "distinct_values_truncated": False,
+        "json_object_keys_truncated": False,
+        "json_array_item_types_truncated": False,
     }
+
+
+def _increment_bounded(counter: Counter, key: str, limit: int) -> bool:
+    if key in counter:
+        counter[key] += 1
+        return True
+    if len(counter) >= limit:
+        return False
+    counter[key] += 1
+    return True
 
 
 def _observe_column(
@@ -129,13 +141,23 @@ def _observe_column(
 
     if inferred_type == "json_object":
         for key in parsed:
-            stats["json_object_keys"][str(key)] += 1
+            if not _increment_bounded(
+                stats["json_object_keys"], str(key), max_distinct_values
+            ):
+                stats["json_object_keys_truncated"] = True
     elif inferred_type == "json_array":
         for item in parsed:
-            stats["json_array_item_types"][type(item).__name__] += 1
+            if not _increment_bounded(
+                stats["json_array_item_types"], type(item).__name__,
+                max_distinct_values,
+            ):
+                stats["json_array_item_types_truncated"] = True
             if isinstance(item, dict):
                 for key in item:
-                    stats["json_object_keys"][str(key)] += 1
+                    if not _increment_bounded(
+                        stats["json_object_keys"], str(key), max_distinct_values
+                    ):
+                        stats["json_object_keys_truncated"] = True
 
 
 def _finalize_column(stats: dict[str, Any], top_values_limit: int) -> dict[str, Any]:
@@ -164,7 +186,9 @@ def _finalize_column(stats: dict[str, Any], top_values_limit: int) -> dict[str, 
         "distinct_values_observed": len(stats["value_counts"]),
         "distinct_values_truncated": stats["distinct_values_truncated"],
         "json_object_keys": dict(stats["json_object_keys"].most_common()),
+        "json_object_keys_truncated": stats["json_object_keys_truncated"],
         "json_array_item_types": dict(stats["json_array_item_types"].most_common()),
+        "json_array_item_types_truncated": stats["json_array_item_types_truncated"],
     }
 
 
