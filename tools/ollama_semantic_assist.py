@@ -107,6 +107,9 @@ class OllamaSemanticAssistant:
         self,
         source_profile: dict[str, Any],
         dataset_profiles: Iterable[dict[str, Any]],
+        *,
+        existing_matches: Iterable[dict[str, Any]] = (),
+        existing_bilingual_pairs: Iterable[dict[str, Any]] = (),
     ) -> dict[str, Any]:
         """Return registry-validated LLM suggestions for profiled headers.
 
@@ -129,9 +132,51 @@ class OllamaSemanticAssistant:
         ]
         catalog, allowed_targets = _build_catalog(dataset_profiles)
         source_names = {item["field"] for item in source_fields}
+
+        existing_mapping_keys: set[tuple[str, str, str]] = set()
+        existing_mapping_context = []
+        for match in existing_matches:
+            if not isinstance(match, dict):
+                continue
+            source_name = match.get("source_field")
+            candidate = match.get("best_candidate")
+            if not isinstance(candidate, dict):
+                candidate = match
+            dataset_id = candidate.get("dataset_id", candidate.get("candidate_dataset_id"))
+            target_field = candidate.get("target_field", candidate.get("candidate_field"))
+            if (
+                isinstance(source_name, str)
+                and isinstance(dataset_id, str)
+                and isinstance(target_field, str)
+            ):
+                key = (source_name, dataset_id, target_field)
+                existing_mapping_keys.add(key)
+                existing_mapping_context.append({
+                    "source_field": source_name,
+                    "candidate_dataset_id": dataset_id,
+                    "candidate_field": target_field,
+                })
+
+        existing_pair_keys: set[tuple[str, str]] = set()
+        existing_pair_context = []
+        for pair in existing_bilingual_pairs:
+            if not isinstance(pair, dict):
+                continue
+            fields = pair.get("fields", pair.get("source_fields"))
+            if (
+                isinstance(fields, list)
+                and len(fields) == 2
+                and all(isinstance(field, str) for field in fields)
+            ):
+                key = tuple(sorted(fields))
+                existing_pair_keys.add(key)
+                existing_pair_context.append({"source_fields": list(fields)})
+
         prompt_payload = {
             "source_fields": source_fields,
             "canonical_fields": catalog,
+            "already_identified_mappings": existing_mapping_context,
+            "already_identified_bilingual_pairs": existing_pair_context,
         }
         system_prompt = (
             "You are a conservative data-schema semantic reviewer. "
@@ -145,14 +190,26 @@ class OllamaSemanticAssistant:
             "Return only valid JSON with exactly these top-level keys: "
             "suggestions and bilingual_pair_suggestions. Use the exact key "
             "bilingual_pair_suggestions, not an abbreviation or synonym. "
-            "Each suggestion has source_field, candidate_dataset_id, "
-            "candidate_field, relation, confidence, rationale. relation must be "
-            "one of exact_equivalent, synonym, related_not_equivalent, "
-            "not_equivalent, uncertain. Each bilingual pair has source_fields "
-            "(exactly two supplied header names), relation, confidence, rationale. "
-            "Pair relation must be one of translation, possible_translation, "
+            "Use this exact structure and include every required key: "
+            '{"suggestions":[{"source_field":"<supplied header>",'
+            '"candidate_dataset_id":"<registry dataset_id>",'
+            '"candidate_field":"<registry field>","relation":"synonym",'
+            '"confidence":0.8,"rationale":"brief reason"}],'
+            '"bilingual_pair_suggestions":[{"source_fields":["<header Fa>",'
+            '"<header En>"],"relation":"possible_translation",'
+            '"confidence":0.8,"rationale":"brief reason"}]}. '
+            "Do not use candidate_dataset; the exact key is candidate_dataset_id. "
+            "Every suggestion MUST include rationale. Every bilingual pair MUST "
+            "include both confidence and rationale. If no new item exists, return "
+            "an empty array. Do not repeat any item listed in "
+            "already_identified_mappings or already_identified_bilingual_pairs. "
+            "The application also removes duplicates after generation. "
+            "Each suggestion relation must be one of exact_equivalent, synonym, "
+            "related_not_equivalent, not_equivalent, uncertain. Each pair relation "
+            "must be one of translation, possible_translation, "
             "related_not_equivalent, not_equivalent, uncertain. confidence is "
-            "a number from 0 to 1. Do not claim value equivalence from header names."
+            "a finite number from 0 to 1. Do not claim value equivalence from "
+            "header names."
         )
         request_body = {
             "model": self.model,
@@ -212,30 +269,50 @@ class OllamaSemanticAssistant:
             return self._unavailable("invalid_model_output")
 
         suggestions = []
-        rejected_items = 0
-        for item in raw_suggestions:
+        pair_suggestions = []
+        rejection_details = []
+        duplicate_details = []
+
+        for index, item in enumerate(raw_suggestions):
+            reasons = []
             if not isinstance(item, dict):
-                rejected_items += 1
+                reasons.append("item_not_object")
+            else:
+                source_field = item.get("source_field")
+                dataset_id = item.get("candidate_dataset_id")
+                target_field = item.get("candidate_field")
+                relation = item.get("relation")
+                confidence = item.get("confidence")
+                rationale = item.get("rationale")
+                if not isinstance(source_field, str) or source_field not in source_names:
+                    reasons.append("unknown_or_invalid_source_field")
+                if not isinstance(dataset_id, str):
+                    reasons.append("missing_or_invalid_candidate_dataset_id")
+                if not isinstance(target_field, str):
+                    reasons.append("missing_or_invalid_candidate_field")
+                elif isinstance(dataset_id, str) and (dataset_id, target_field) not in allowed_targets:
+                    reasons.append("candidate_target_not_in_registry")
+                if not isinstance(relation, str) or relation not in _MATCH_RELATIONS:
+                    reasons.append("invalid_relation")
+                if not _valid_confidence(confidence):
+                    reasons.append("invalid_confidence")
+                if not isinstance(rationale, str) or not rationale.strip():
+                    reasons.append("missing_or_invalid_rationale")
+
+            if reasons:
+                rejection_details.append({
+                    "kind": "suggestion", "index": index, "reasons": reasons,
+                })
                 continue
-            source_field = item.get("source_field")
-            dataset_id = item.get("candidate_dataset_id")
-            target_field = item.get("candidate_field")
-            relation = item.get("relation")
-            confidence = item.get("confidence")
-            rationale = item.get("rationale")
-            if (
-                not isinstance(source_field, str)
-                or source_field not in source_names
-                or not isinstance(dataset_id, str)
-                or not isinstance(target_field, str)
-                or (dataset_id, target_field) not in allowed_targets
-                or not isinstance(relation, str)
-                or relation not in _MATCH_RELATIONS
-                or not _valid_confidence(confidence)
-                or not isinstance(rationale, str)
-            ):
-                rejected_items += 1
+
+            mapping_key = (source_field, dataset_id, target_field)
+            if mapping_key in existing_mapping_keys:
+                duplicate_details.append({
+                    "kind": "suggestion", "index": index,
+                    "reason": "already_identified_by_deterministic_matcher",
+                })
                 continue
+
             suggestions.append({
                 "source_field": source_field,
                 "candidate_dataset_id": dataset_id,
@@ -247,28 +324,47 @@ class OllamaSemanticAssistant:
                 "automatically_accepted": False,
             })
 
-        pair_suggestions = []
-        for item in raw_pairs:
+        for index, item in enumerate(raw_pairs):
+            reasons = []
             if not isinstance(item, dict):
-                rejected_items += 1
+                reasons.append("item_not_object")
+            else:
+                pair_fields = item.get("source_fields")
+                relation = item.get("relation")
+                confidence = item.get("confidence")
+                rationale = item.get("rationale")
+                if (
+                    not isinstance(pair_fields, list)
+                    or len(pair_fields) != 2
+                    or any(not isinstance(field, str) for field in pair_fields)
+                ):
+                    reasons.append("source_fields_must_contain_exactly_two_strings")
+                elif (
+                    pair_fields[0] == pair_fields[1]
+                    or any(field not in source_names for field in pair_fields)
+                ):
+                    reasons.append("unknown_or_duplicate_source_field_in_pair")
+                if not isinstance(relation, str) or relation not in _PAIR_RELATIONS:
+                    reasons.append("invalid_pair_relation")
+                if not _valid_confidence(confidence):
+                    reasons.append("invalid_confidence")
+                if not isinstance(rationale, str) or not rationale.strip():
+                    reasons.append("missing_or_invalid_rationale")
+
+            if reasons:
+                rejection_details.append({
+                    "kind": "bilingual_pair", "index": index, "reasons": reasons,
+                })
                 continue
-            pair_fields = item.get("source_fields")
-            relation = item.get("relation")
-            confidence = item.get("confidence")
-            rationale = item.get("rationale")
-            if (
-                not isinstance(pair_fields, list)
-                or len(pair_fields) != 2
-                or any(not isinstance(field, str) for field in pair_fields)
-                or pair_fields[0] == pair_fields[1]
-                or any(field not in source_names for field in pair_fields)
-                or not isinstance(relation, str)
-                or relation not in _PAIR_RELATIONS
-                or not _valid_confidence(confidence)
-                or not isinstance(rationale, str)
-            ):
-                rejected_items += 1
+
+            pair_key = tuple(sorted(pair_fields))
+            if pair_key in existing_pair_keys:
+                duplicate_details.append({
+                    "kind": "bilingual_pair", "index": index,
+                    "reason": "already_identified_by_deterministic_matcher",
+                })
                 continue
+
             pair_suggestions.append({
                 "source_fields": list(pair_fields),
                 "relation": relation,
@@ -284,7 +380,10 @@ class OllamaSemanticAssistant:
             "model": self.model,
             "suggestions": suggestions,
             "bilingual_pair_suggestions": pair_suggestions,
-            "rejected_model_items": rejected_items,
+            "rejected_model_items": len(rejection_details),
+            "rejection_details": rejection_details,
+            "duplicate_model_items": len(duplicate_details),
+            "duplicate_details": duplicate_details,
             "policy": {
                 "automatic_schema_mutation": False,
                 "automatic_ingestion": False,
