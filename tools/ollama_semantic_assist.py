@@ -33,6 +33,29 @@ _PAIR_RELATIONS = {
     "uncertain",
 }
 
+# These source/target combinations are known concept mismatches. Keep this
+# guard explicit so an LLM cannot promote a related concept to a mapping.
+_KNOWN_NON_EQUIVALENT_TARGETS = {
+    "Jobpost_RequiredExperienceYears": {
+        ("labor_market", "experience_level"),
+        ("university_graduates", "employment_months"),
+    },
+    "Jobpost_RequiredRelatedExperienceInThisIndustry": {
+        ("labor_market", "experience_level"),
+    },
+    "Jobpost_RequiredMinAge": {
+        ("university_graduates", "graduation_year"),
+        ("labor_market", "experience_level"),
+    },
+    "Jobpost_RequiredMaxAge": {
+        ("university_graduates", "graduation_year"),
+        ("labor_market", "experience_level"),
+    },
+    "Jobpost_RequiredMilitaryServiceCard": {
+        ("university_graduates", "additional_training"),
+    },
+}
+
 
 def _valid_confidence(value: Any) -> bool:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
@@ -207,6 +230,12 @@ class OllamaSemanticAssistant:
             "an empty array. Do not repeat any item listed in "
             "already_identified_mappings or already_identified_bilingual_pairs. "
             "The application also removes duplicates after generation. "
+            "Only exact_equivalent or synonym suggestions may be returned as mapping candidates. "
+            "Do not return related_not_equivalent, not_equivalent, or uncertain items as suggestions. "
+            "A required numeric years-of-experience field is not a categorical experience_level "
+            "and is not employment_months. A required related-industry-experience flag is not "
+            "experience_level. Minimum/maximum age is not graduation_year or experience_level. "
+            "Military-service-card requirements are not additional_training. "
             "Each suggestion relation must be one of exact_equivalent, synonym, "
             "related_not_equivalent, not_equivalent, uncertain. Each pair relation "
             "must be one of translation, possible_translation, "
@@ -298,6 +327,16 @@ class OllamaSemanticAssistant:
                     reasons.append("candidate_target_not_in_registry")
                 if not isinstance(relation, str) or relation not in _MATCH_RELATIONS:
                     reasons.append("invalid_relation")
+                elif relation not in {"exact_equivalent", "synonym"}:
+                    reasons.append("relation_not_eligible_for_mapping")
+                if (
+                    isinstance(source_field, str)
+                    and isinstance(dataset_id, str)
+                    and isinstance(target_field, str)
+                    and (dataset_id, target_field)
+                    in _KNOWN_NON_EQUIVALENT_TARGETS.get(source_field, set())
+                ):
+                    reasons.append("known_non_equivalent_source_target_pair")
                 if not _valid_confidence(confidence):
                     reasons.append("invalid_confidence")
                 if not isinstance(rationale, str) or not rationale.strip():
