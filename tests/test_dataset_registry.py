@@ -62,3 +62,24 @@ def test_registered_profiles_separate_synthetic_and_real_indexes():
         assert profile["real_index"] == f"{dataset_id}_real"
         assert get_dataset_index(dataset_id, "synthetic") == dataset_id
         assert get_dataset_index(dataset_id, "real") == f"{dataset_id}_real"
+
+def test_provenance_contract_is_separate_from_analytical_schema():
+    provenance_fields = {
+        "source",
+        "observed_at",
+        "published_at",
+        "collection_batch",
+        "time_granularity",
+        "valid_from",
+        "valid_until",
+    }
+
+    for profile in DATASET_PROFILES.values():
+        assert provenance_fields.isdisjoint(profile["fields"])
+        assert set(profile["provenance_contract"]["required_fields"]) == {
+            "source",
+            "observed_at",
+            "collection_batch",
+            "time_granularity",
+        }
+
