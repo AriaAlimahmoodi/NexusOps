@@ -128,9 +128,9 @@ def test_equal_matches_across_datasets_are_flagged_as_ambiguous():
     )
 
     match = result["matches"][0]
-    assert match["status"] == "auto_match_candidate"
+    assert match["status"] == "manual_review"
     assert match["best_candidate"]["target_field"] == "job_title"
-    assert match["ambiguous"] is False
+    assert match["ambiguous"] is True
     assert "ambiguous_top_candidates" in match["best_candidate"]["warnings"]
 
 def test_detects_persian_english_header_pairs_without_claiming_value_equality():
@@ -201,6 +201,7 @@ def test_expanded_domain_synonym_proposes_a_candidate_for_the_expected_concept()
     )
 
     match = result["matches"][0]
-    assert match["status"] == "manual_review"
-    assert match["ambiguous"] is True
+    assert match["status"] == "auto_match_candidate"
+    assert match["ambiguous"] is False
+    assert match["best_candidate"]["target_field"] == "job_title"
 
