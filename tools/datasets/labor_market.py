@@ -27,6 +27,12 @@ LABOR_MARKET_PROFILE = {
     ),
 
     "source_type": "elasticsearch",
+    "data_classification": "synthetic",
+    "real_index": "labor_market_real",
+    "provenance_contract": {
+        "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
+        "optional_fields": ["published_at", "valid_from", "valid_until"],
+    },
 
     "primary_key": "market_record_id",
 
