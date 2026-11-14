@@ -56,6 +56,8 @@ def validate_collection_manifest(manifest, records):
 def prepare_real_records(dataset_id, records, manifest):
     """Validate the whole batch before returning any document for indexing."""
     profile = get_dataset_profile(dataset_id)
+    if not isinstance(manifest, Mapping):
+        raise ValueError("Collection manifest must be a JSON object.")
     if not isinstance(records, Sequence) or isinstance(records, (str, bytes)) or not records:
         raise ValueError("At least one record is required for ingestion.")
 
@@ -88,7 +90,12 @@ def prepare_real_records(dataset_id, records, manifest):
 
         if id_fields:
             key_values = [record.get(field) for field in id_fields]
-            if any(not isinstance(value, (str, int)) or not str(value).strip() for value in key_values):
+            if any(
+                not isinstance(value, (str, int))
+                or isinstance(value, bool)
+                or not str(value).strip()
+                for value in key_values
+            ):
                 issues.append({
                     "code": "MISSING_PRIMARY_KEY",
                     "field": ",".join(id_fields),
@@ -145,10 +152,13 @@ def ingest_real_records(client, dataset_id, records, manifest):
         client, actions, raise_on_error=False, stats_only=False
     )
     if errors:
-        raise RuntimeError(
+        error = RuntimeError(
             f"Elasticsearch reported {len(errors)} bulk error(s); "
-            f"{indexed_count} record(s) were indexed."
+            f"{indexed_count} record(s) were indexed before the errors."
         )
+        error.indexed_count = indexed_count
+        error.errors = errors
+        raise error
     return {
         "dataset_id": dataset_id,
         "classification": "real",
