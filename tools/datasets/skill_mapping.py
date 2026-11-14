@@ -13,6 +13,12 @@ SKILL_MAPPING_PROFILE = {
         "associated course and precomputed coverage, demand, and gap."
     ),
     "source_type": "elasticsearch",
+    "data_classification": "synthetic",
+    "real_index": "skill_mapping_real",
+    "provenance_contract": {
+        "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
+        "optional_fields": ["published_at", "valid_from", "valid_until"],
+    },
     "fields": {
         "skill": {
             "type": "keyword",
