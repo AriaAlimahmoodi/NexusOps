@@ -29,8 +29,8 @@ def main() -> int:
     if not isinstance(manifest, dict) or not isinstance(records, list):
         parser.error("Input JSON must contain an object 'manifest' and array 'records'.")
 
-    prepared = prepare_real_records(args.dataset, records, manifest)
     if not args.apply:
+        prepared = prepare_real_records(args.dataset, records, manifest)
         print(json.dumps({
             "status": "validated_not_written",
             "dataset_id": args.dataset,
