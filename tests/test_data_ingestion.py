@@ -68,23 +68,32 @@ def test_batch_manifest_must_match_every_record():
     assert any(issue["code"] == "COLLECTION_BATCH_MISMATCH" for issue in issues)
 
 
-def test_real_ingestion_only_targets_real_index(monkeypatch):
+def test_real_ingestion_routes_through_atomic_publisher(monkeypatch):
     captured = {}
 
-    def fake_bulk(client, actions, **kwargs):
-        captured["actions"] = list(actions)
-        captured["kwargs"] = kwargs
-        return len(captured["actions"]), []
+    def fake_atomic(client, dataset_id, records, manifest_value):
+        captured["client"] = client
+        captured["dataset_id"] = dataset_id
+        captured["records"] = list(records)
+        captured["manifest"] = manifest_value
+        return {
+            "index": "labor_market_real",
+            "classification": "real",
+            "publication": "atomic_alias_switch",
+        }
 
-    monkeypatch.setattr("tools.data_ingestion.bulk", fake_bulk)
-    result = ingest_real_records(object(), "labor_market", [record()], manifest())
+    monkeypatch.setattr(
+        "tools.atomic_data_publisher.ingest_real_records_atomically",
+        fake_atomic,
+    )
+    client = object()
+    result = ingest_real_records(client, "labor_market", [record()], manifest())
 
-    assert result["index"] == "labor_market_real"
-    assert result["classification"] == "real"
-    assert captured["actions"][0]["_index"] == "labor_market_real"
-    assert captured["actions"][0]["_id"] == "LM0001"
-    assert captured["actions"][0]["_source"]["data_classification"] == "real"
-    assert captured["kwargs"]["raise_on_error"] is False
+    assert result["publication"] == "atomic_alias_switch"
+    assert captured["client"] is client
+    assert captured["dataset_id"] == "labor_market"
+    assert captured["records"][0]["market_record_id"] == "LM0001"
+    assert captured["manifest"]["collection_batch"] == "lm-2026-11-14-001"
 
 
 def test_real_ingestion_rejects_synthetic_classification():
@@ -113,14 +122,21 @@ def test_real_ingestion_rejects_duplicate_primary_keys_in_one_batch():
     )
 
 
-def test_composite_document_identity_is_used_for_relationship_records(monkeypatch):
+def test_relationship_ingestion_routes_to_atomic_publisher(monkeypatch):
     captured = {}
 
-    def fake_bulk(client, actions, **kwargs):
-        captured["actions"] = list(actions)
-        return len(captured["actions"]), []
+    def fake_atomic(client, dataset_id, records, manifest_value):
+        captured["dataset_id"] = dataset_id
+        captured["records"] = list(records)
+        return {
+            "index": "course_graduate_records_real",
+            "publication": "atomic_alias_switch",
+        }
 
-    monkeypatch.setattr("tools.data_ingestion.bulk", fake_bulk)
+    monkeypatch.setattr(
+        "tools.atomic_data_publisher.ingest_real_records_atomically",
+        fake_atomic,
+    )
     manifest_value = manifest()
     relationship = {
         "course_id": "C001",
@@ -133,8 +149,12 @@ def test_composite_document_identity_is_used_for_relationship_records(monkeypatc
         "collection_batch": manifest_value["collection_batch"],
         "time_granularity": "annual",
     }
+
     result = ingest_real_records(
         object(), "course_graduate_records", [relationship], manifest_value
     )
-    assert result["index"] == "course_graduate_records_real"
-    assert captured["actions"][0]["_id"] == "C001::G0001"
+
+    assert result["publication"] == "atomic_alias_switch"
+    assert captured["dataset_id"] == "course_graduate_records"
+    assert captured["records"][0]["course_id"] == "C001"
+    assert captured["records"][0]["graduate_id"] == "G0001"
