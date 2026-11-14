@@ -57,6 +57,9 @@ def normalize_semantic_text(value: str) -> str:
     """Normalize Persian/English identifiers without transliterating meaning."""
     text = unicodedata.normalize("NFKC", str(value)).casefold()
     text = text.replace("ي", "ی").replace("ك", "ک")
+    # Remove Arabic/Persian vowel marks before punctuation cleanup; otherwise
+    # combining marks are converted to spaces and split a single word.
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
     text = re.sub(r"[_\-./\\]+", " ", text)
     text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
     return " ".join(text.split())
