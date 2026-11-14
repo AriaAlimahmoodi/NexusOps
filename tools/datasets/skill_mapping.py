@@ -14,6 +14,7 @@ SKILL_MAPPING_PROFILE = {
     ),
     "source_type": "elasticsearch",
     "data_classification": "synthetic",
+    "document_id_fields": ["skill","course_id"],
     "real_index": "skill_mapping_real",
     "provenance_contract": {
         "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
