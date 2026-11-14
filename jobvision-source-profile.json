@@ -1,0 +1,2380 @@
+{
+  "profile_version": 1,
+  "source_name": "JobVision_Jobposts_Dataset.csv",
+  "format": "csv",
+  "delimiter": ",",
+  "row_count": 364838,
+  "column_count": 43,
+  "blank_rows": 0,
+  "rows_with_extra_columns": 0,
+  "rows_with_missing_cells": 364629,
+  "columns": {
+    "RowNumber": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "integer",
+      "type_counts": {
+        "integer": 364838
+      },
+      "sample_values": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "top_values": [
+        {
+          "value": "1",
+          "count": 1
+        },
+        {
+          "value": "2",
+          "count": 1
+        },
+        {
+          "value": "3",
+          "count": 1
+        },
+        {
+          "value": "4",
+          "count": 1
+        },
+        {
+          "value": "5",
+          "count": 1
+        },
+        {
+          "value": "6",
+          "count": 1
+        },
+        {
+          "value": "7",
+          "count": 1
+        },
+        {
+          "value": "8",
+          "count": 1
+        },
+        {
+          "value": "9",
+          "count": 1
+        },
+        {
+          "value": "10",
+          "count": 1
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RawTitle": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "مهندس مکانیک",
+        "طراح و گرافیست",
+        "برنامه نویس full-stack",
+        "بازاریاب - خانم",
+        "برنامه نویس React Native"
+      ],
+      "top_values": [
+        {
+          "value": "کارشناس فروش",
+          "count": 7375
+        },
+        {
+          "value": "حسابدار",
+          "count": 6146
+        },
+        {
+          "value": "کارشناس حسابداری",
+          "count": 5500
+        },
+        {
+          "value": "کارشناس فروش و بازاریابی",
+          "count": 2584
+        },
+        {
+          "value": "حسابدار - خانم",
+          "count": 2469
+        },
+        {
+          "value": "کارمند اداری - خانم",
+          "count": 2142
+        },
+        {
+          "value": "کارشناس فروش تلفنی",
+          "count": 2114
+        },
+        {
+          "value": "کارشناس فروش - خانم",
+          "count": 2098
+        },
+        {
+          "value": "انباردار - آقا",
+          "count": 1895
+        },
+        {
+          "value": "طراح گرافیک",
+          "count": 1805
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_PreferredGender": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "تفاوتی ندارد",
+        "تفاوتی ندارد",
+        "تفاوتی ندارد",
+        "فقط خانم",
+        "تفاوتی ندارد"
+      ],
+      "top_values": [
+        {
+          "value": "تفاوتی ندارد",
+          "count": 203147
+        },
+        {
+          "value": "فقط آقا",
+          "count": 75638
+        },
+        {
+          "value": "فقط خانم",
+          "count": 46855
+        },
+        {
+          "value": "ترجیحاً آقا",
+          "count": 20472
+        },
+        {
+          "value": "ترجیحاً خانم",
+          "count": 18726
+        }
+      ],
+      "distinct_values_observed": 5,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_ProvinceFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "تهران",
+        "تهران",
+        "خراسان رضوی",
+        "البرز",
+        "اصفهان"
+      ],
+      "top_values": [
+        {
+          "value": "تهران",
+          "count": 235537
+        },
+        {
+          "value": "اصفهان",
+          "count": 19445
+        },
+        {
+          "value": "البرز",
+          "count": 18983
+        },
+        {
+          "value": "خراسان رضوی",
+          "count": 12471
+        },
+        {
+          "value": "مازندران",
+          "count": 7612
+        },
+        {
+          "value": "فارس",
+          "count": 6986
+        },
+        {
+          "value": "قزوین",
+          "count": 5706
+        },
+        {
+          "value": "آذربایجان شرقی",
+          "count": 5341
+        },
+        {
+          "value": "گیلان",
+          "count": 5338
+        },
+        {
+          "value": "خوزستان",
+          "count": 5257
+        }
+      ],
+      "distinct_values_observed": 32,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_ProvinceEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "Tehran",
+        "Tehran",
+        "Khorasan Razavi",
+        "Alborz",
+        "Isfahan"
+      ],
+      "top_values": [
+        {
+          "value": "Tehran",
+          "count": 235537
+        },
+        {
+          "value": "Isfahan",
+          "count": 19445
+        },
+        {
+          "value": "Alborz",
+          "count": 18983
+        },
+        {
+          "value": "Khorasan Razavi",
+          "count": 12471
+        },
+        {
+          "value": "Mazandaran",
+          "count": 7612
+        },
+        {
+          "value": "Fars",
+          "count": 6986
+        },
+        {
+          "value": "Ghazvin",
+          "count": 5706
+        },
+        {
+          "value": "Azarbayjan Sharghi",
+          "count": 5341
+        },
+        {
+          "value": "Gilan",
+          "count": 5338
+        },
+        {
+          "value": "Khoozestan",
+          "count": 5257
+        }
+      ],
+      "distinct_values_observed": 32,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_WorkTypeFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "پاره وقت",
+        "تمام وقت",
+        "تمام وقت",
+        "تمام وقت",
+        "پاره وقت"
+      ],
+      "top_values": [
+        {
+          "value": "تمام وقت",
+          "count": 318659
+        },
+        {
+          "value": "تمام وقت یا پاره وقت",
+          "count": 23538
+        },
+        {
+          "value": "پاره وقت",
+          "count": 12715
+        },
+        {
+          "value": "قراردادی / پروژه ای",
+          "count": 9926
+        }
+      ],
+      "distinct_values_observed": 4,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_WorkTypeEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "Part Time",
+        "Full Time",
+        "Full Time",
+        "Full Time",
+        "Part Time"
+      ],
+      "top_values": [
+        {
+          "value": "Full Time",
+          "count": 318659
+        },
+        {
+          "value": "Full Time Or Part Time",
+          "count": 23538
+        },
+        {
+          "value": "Part Time",
+          "count": 12715
+        },
+        {
+          "value": "Project - based",
+          "count": 9926
+        }
+      ],
+      "distinct_values_observed": 4,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_SalaryCanBeShown": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "False",
+        "False",
+        "False",
+        "False"
+      ],
+      "top_values": [
+        {
+          "value": "False",
+          "count": 244030
+        },
+        {
+          "value": "True",
+          "count": 120808
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_MinSalary": {
+      "total_values": 364838,
+      "null_count": 244030,
+      "non_null_count": 120808,
+      "null_ratio": 0.6688722117761856,
+      "inferred_type": "float",
+      "type_counts": {
+        "float": 120808
+      },
+      "sample_values": [
+        "12.0",
+        "2.0",
+        "4.0",
+        "15.0",
+        "3.0"
+      ],
+      "top_values": [
+        {
+          "value": "12.0",
+          "count": 25683
+        },
+        {
+          "value": "8.0",
+          "count": 22980
+        },
+        {
+          "value": "10.0",
+          "count": 19351
+        },
+        {
+          "value": "15.0",
+          "count": 18713
+        },
+        {
+          "value": "6.0",
+          "count": 13857
+        },
+        {
+          "value": "20.0",
+          "count": 7292
+        },
+        {
+          "value": "5.0",
+          "count": 5243
+        },
+        {
+          "value": "25.0",
+          "count": 4036
+        },
+        {
+          "value": "35.0",
+          "count": 1770
+        },
+        {
+          "value": "4.0",
+          "count": 746
+        }
+      ],
+      "distinct_values_observed": 27,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_MaxSalary": {
+      "total_values": 364838,
+      "null_count": 244030,
+      "non_null_count": 120808,
+      "null_ratio": 0.6688722117761856,
+      "inferred_type": "float",
+      "type_counts": {
+        "float": 120808
+      },
+      "sample_values": [
+        "15.0",
+        "3.0",
+        "5.0",
+        "20.0",
+        "4.0"
+      ],
+      "top_values": [
+        {
+          "value": "15.0",
+          "count": 25683
+        },
+        {
+          "value": "10.0",
+          "count": 22979
+        },
+        {
+          "value": "12.0",
+          "count": 19346
+        },
+        {
+          "value": "20.0",
+          "count": 18715
+        },
+        {
+          "value": "8.0",
+          "count": 13857
+        },
+        {
+          "value": "25.0",
+          "count": 7288
+        },
+        {
+          "value": "6.0",
+          "count": 5243
+        },
+        {
+          "value": "35.0",
+          "count": 4033
+        },
+        {
+          "value": "45.0",
+          "count": 1771
+        },
+        {
+          "value": "5.0",
+          "count": 746
+        }
+      ],
+      "distinct_values_observed": 29,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_MainJobCategory": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "مهندسی مکانیک / مهندسی هوا و فضا",
+        "طراحی گرافیک / طراحی انیمیشن و موشن گرافیک",
+        "توسعه نرم افزار و برنامه نویسی",
+        "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار",
+        "توسعه نرم افزار و برنامه نویسی"
+      ],
+      "top_values": [
+        {
+          "value": "مالی و حسابداری",
+          "count": 42863
+        },
+        {
+          "value": "فروش و بازاریابی - سطوح کارشناسی و مدیریتی",
+          "count": 38400
+        },
+        {
+          "value": "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار",
+          "count": 35576
+        },
+        {
+          "value": "مسئول دفتر / کارمند اداری و ثبت اطلاعات / تایپیست",
+          "count": 24725
+        },
+        {
+          "value": "مهندسی صنایع / مدیریت تولید / مدیریت پروژه / مدیریت عملیات",
+          "count": 18742
+        },
+        {
+          "value": "توسعه نرم افزار و برنامه نویسی",
+          "count": 15302
+        },
+        {
+          "value": "کارگر ساده / نیروی خدماتی",
+          "count": 14538
+        },
+        {
+          "value": "شبکه / DevOps / پشتیبانی سخت افزاری و نرم افزاری",
+          "count": 14285
+        },
+        {
+          "value": "دیجیتال مارکتینگ و سئو",
+          "count": 13009
+        },
+        {
+          "value": "تکنسین فنی / تعمیرکار / کارگر ماهر",
+          "count": 12678
+        }
+      ],
+      "distinct_values_observed": 77,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_SecondaryJobCategories": {
+      "total_values": 364838,
+      "null_count": 283525,
+      "non_null_count": 81313,
+      "null_ratio": 0.777125737998783,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 81313
+      },
+      "sample_values": [
+        "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار",
+        "مسئول دفتر / کارمند اداری و ثبت اطلاعات / تایپیست",
+        "مسئول دفتر / کارمند اداری و ثبت اطلاعات / تایپیست",
+        "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار",
+        "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار"
+      ],
+      "top_values": [
+        {
+          "value": "فروش و بازاریابی - سطوح کارشناسی و مدیریتی",
+          "count": 21187
+        },
+        {
+          "value": "فروش و بازاریابی - فروشنده / بازاریاب و ویزیتور / صندوقدار",
+          "count": 18352
+        },
+        {
+          "value": "تحلیل و توسعه کسب و کار / استراتژی / برنامه ریزی",
+          "count": 4227
+        },
+        {
+          "value": "ترجمه / تولید محتوا / نویسندگی و ویراستاری",
+          "count": 3305
+        },
+        {
+          "value": "مهندسی صنایع / مدیریت تولید / مدیریت پروژه / مدیریت عملیات",
+          "count": 2956
+        },
+        {
+          "value": "دیجیتال مارکتینگ و سئو",
+          "count": 2731
+        },
+        {
+          "value": "مهندسی مکانیک / مهندسی هوا و فضا",
+          "count": 2544
+        },
+        {
+          "value": "مهندسی برق",
+          "count": 1936
+        },
+        {
+          "value": "تکنسین فنی / تعمیرکار / کارگر ماهر",
+          "count": 1866
+        },
+        {
+          "value": "توسعه نرم افزار و برنامه نویسی",
+          "count": 1218
+        }
+      ],
+      "distinct_values_observed": 589,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_IndustryFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "تولیدی / صنعتی",
+        "طراحی / گرافیک / هنر",
+        "اینترنت / تجارت الکترونیک / خدمات آنلاین",
+        "اینترنت / تجارت الکترونیک / خدمات آنلاین",
+        "فناوری اطلاعات / نرم افزار و سخت افزار"
+      ],
+      "top_values": [
+        {
+          "value": "تولیدی / صنعتی",
+          "count": 71350
+        },
+        {
+          "value": "فناوری اطلاعات / نرم افزار و سخت افزار",
+          "count": 30251
+        },
+        {
+          "value": "تجارت / بازرگانی",
+          "count": 25419
+        },
+        {
+          "value": "کالاهای مصرفی و تند گردش",
+          "count": 25028
+        },
+        {
+          "value": "اینترنت / تجارت الکترونیک / خدمات آنلاین",
+          "count": 24789
+        },
+        {
+          "value": "خدمات مهندسی و تخصصی",
+          "count": 15668
+        },
+        {
+          "value": "خودرو و صنایع وابسته",
+          "count": 15385
+        },
+        {
+          "value": "دارو",
+          "count": 14514
+        },
+        {
+          "value": "نفت، گاز و پتروشیمی",
+          "count": 13418
+        },
+        {
+          "value": "خرده فروشی / مرکز خرید / فروشگاه",
+          "count": 11751
+        }
+      ],
+      "distinct_values_observed": 44,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_IndustryEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "Manufacturing & Production",
+        "Design / Arts",
+        "Internet Provider / E-commerce / Online Services",
+        "Internet Provider / E-commerce / Online Services",
+        "IT / Software / Hardware"
+      ],
+      "top_values": [
+        {
+          "value": "Manufacturing & Production",
+          "count": 71350
+        },
+        {
+          "value": "IT / Software / Hardware",
+          "count": 30251
+        },
+        {
+          "value": "Trading / International Affairs",
+          "count": 25419
+        },
+        {
+          "value": "Consumer Goods / FMCG",
+          "count": 25028
+        },
+        {
+          "value": "Internet Provider / E-commerce / Online Services",
+          "count": 24789
+        },
+        {
+          "value": "Engineering Services / Technical Services & Solutions",
+          "count": 15668
+        },
+        {
+          "value": "Automotive",
+          "count": 15385
+        },
+        {
+          "value": "Pharmaceutical",
+          "count": 14514
+        },
+        {
+          "value": "Oil & Gas / Petrochemical",
+          "count": 13418
+        },
+        {
+          "value": "Retail / Shopping center / Store",
+          "count": 11751
+        }
+      ],
+      "distinct_values_observed": 44,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RequiredExperienceYears": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "integer",
+      "type_counts": {
+        "integer": 364838
+      },
+      "sample_values": [
+        "1",
+        "3",
+        "3",
+        "0",
+        "1"
+      ],
+      "top_values": [
+        {
+          "value": "2",
+          "count": 96486
+        },
+        {
+          "value": "1",
+          "count": 86979
+        },
+        {
+          "value": "3",
+          "count": 68725
+        },
+        {
+          "value": "0",
+          "count": 57532
+        },
+        {
+          "value": "5",
+          "count": 26682
+        },
+        {
+          "value": "4",
+          "count": 14733
+        },
+        {
+          "value": "10",
+          "count": 4481
+        },
+        {
+          "value": "7",
+          "count": 3313
+        },
+        {
+          "value": "6",
+          "count": 2656
+        },
+        {
+          "value": "8",
+          "count": 2395
+        }
+      ],
+      "distinct_values_observed": 24,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RequiredRelatedExperienceInThisIndustry": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "False",
+        "True",
+        "False",
+        "True"
+      ],
+      "top_values": [
+        {
+          "value": "False",
+          "count": 283056
+        },
+        {
+          "value": "True",
+          "count": 81782
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_CompanyWorkTimesDescription": {
+      "total_values": 364838,
+      "null_count": 57,
+      "non_null_count": 364781,
+      "null_ratio": 0.00015623372565357776,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364646,
+        "integer": 133,
+        "float": 2
+      },
+      "sample_values": [
+        "نیمه وقت",
+        "تمام وقت",
+        "8",
+        "26 روز و ساعت 8.30 الی 16.30",
+        "شناور"
+      ],
+      "top_values": [
+        {
+          "value": "شنبه تا چهارشنبه",
+          "count": 12238
+        },
+        {
+          "value": "شنبه تا پنجشنبه",
+          "count": 9847
+        },
+        {
+          "value": "شنبه تا پنج شنبه",
+          "count": 6472
+        },
+        {
+          "value": "شنبه تا چهارشنبه 8 الی 17",
+          "count": 4894
+        },
+        {
+          "value": "توافقی",
+          "count": 4567
+        },
+        {
+          "value": "شنبه تا چهارشنبه 8 تا 17",
+          "count": 4031
+        },
+        {
+          "value": "منعطف",
+          "count": 3690
+        },
+        {
+          "value": "تمام وقت",
+          "count": 3136
+        },
+        {
+          "value": "Saturday to Wednesday",
+          "count": 1265
+        },
+        {
+          "value": "شنبه تا چهارشنبه ساعت 8 تا 17",
+          "count": 1228
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_LanguageSkills": {
+      "total_values": 364838,
+      "null_count": 235240,
+      "non_null_count": 129598,
+      "null_ratio": 0.6447793267148707,
+      "inferred_type": "json_array",
+      "type_counts": {
+        "json_array": 129598
+      },
+      "sample_values": [
+        "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"بالاتر از متوسط ۷۰٪\"}]",
+        "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"متوسط ۵۰٪\"}]",
+        "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"متوسط ۵۰٪\"}]",
+        "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"متوسط ۵۰٪\"}]",
+        "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"متوسط ۵۰٪\"}]"
+      ],
+      "top_values": [
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"متوسط ۵۰٪\"}]",
+          "count": 66499
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"بالاتر از متوسط ۷۰٪\"}]",
+          "count": 28852
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"پایین تر از متوسط ۳۰٪\"}]",
+          "count": 16390
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"پیشرفته ۹۰٪\"}]",
+          "count": 7831
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"مقدماتی ۱۰٪\"}]",
+          "count": 6168
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"انگلیسی\",\"Languages_TitleEn\":\"English\",\"Level\":\"در حد زبان مادری ۱۰۰٪\"}]",
+          "count": 844
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"روسی\",\"Languages_TitleEn\":\"Russian\",\"Level\":\"بالاتر از متوسط ۷۰٪\"}]",
+          "count": 177
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"عربی\",\"Languages_TitleEn\":\"Arabic\",\"Level\":\"پیشرفته ۹۰٪\"}]",
+          "count": 148
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"عربی\",\"Languages_TitleEn\":\"Arabic\",\"Level\":\"بالاتر از متوسط ۷۰٪\"}]",
+          "count": 120
+        },
+        {
+          "value": "[{\"Languages_TitleFa\":\"ترکی\",\"Languages_TitleEn\":\"Turkish\",\"Level\":\"بالاتر از متوسط ۷۰٪\"}]",
+          "count": 115
+        }
+      ],
+      "distinct_values_observed": 396,
+      "distinct_values_truncated": false,
+      "json_object_keys": {
+        "Languages_TitleFa": 131127,
+        "Languages_TitleEn": 131127,
+        "Level": 131127
+      },
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {
+        "dict": 131127
+      },
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_SoftwareSkills": {
+      "total_values": 364838,
+      "null_count": 168264,
+      "non_null_count": 196574,
+      "null_ratio": 0.46120195812936154,
+      "inferred_type": "json_array",
+      "type_counts": {
+        "json_array": 196574
+      },
+      "sample_values": [
+        "[{\"TitleFa\":\"ایلاستریتور,ایلوستریتور\",\"TitleEn\":\"Adobe Illustrator\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ایندیزاین,این دیزاین\",\"TitleEn\":\"Adobe Indesign\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پریمیر\",\"TitleEn\":\"Adobe Premiere\",\"Level\":\"متوسط\"},{\"TitleFa\":\"فتوشاپ,فوتوشاپ\",\"TitleEn\":\"Adobe Photoshop\",\"Level\":\"متوسط\"},{\"TitleFa\":\"کورل,کرل\",\"TitleEn\":\"Corel Draw\",\"Level\":\"متوسط\"}]",
+        "[{\"TitleFa\":\"اچ تی ام ال,سی اس اس\",\"TitleEn\":\"Html & CSS\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"جاوا اسکریپت\",\"TitleEn\":\"JavaScript\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"\",\"TitleEn\":\"PostgreSql\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"ری اکت\",\"TitleEn\":\"React\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"\",\"TitleEn\":\"Rest API\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"انگولار\",\"TitleEn\":\"Angular\",\"Level\":\"پیشرفته\"},{\"TitleFa\":\"پی اچ پی\",\"TitleEn\":\"PHP\",\"Level\":\"پیشرفته\"}]",
+        "[{\"TitleFa\":\"ری اکت\",\"TitleEn\":\"React\",\"Level\":\"پیشرفته\"}]",
+        "[{\"TitleFa\":\"اکسس\",\"TitleEn\":\"Microsoft Access\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ویزیو\",\"TitleEn\":\"Microsoft Visio\",\"Level\":\"متوسط\"},{\"TitleFa\":\"فتوشاپ,فوتوشاپ\",\"TitleEn\":\"Adobe Photoshop\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پی اچ پی\",\"TitleEn\":\"PHP\",\"Level\":\"متوسط\"}]",
+        "[{\"TitleFa\":\"وردپرس\",\"TitleEn\":\"Wordpress\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اچ تی ام ال,سی اس اس\",\"TitleEn\":\"Html & CSS\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پی اچ پی\",\"TitleEn\":\"PHP\",\"Level\":\"متوسط\"}]"
+      ],
+      "top_values": [
+        {
+          "value": "[{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"}]",
+          "count": 20198
+        },
+        {
+          "value": "[{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"}]",
+          "count": 8799
+        },
+        {
+          "value": "[{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پاورپوینت\",\"TitleEn\":\"Microsoft Powerpoint\",\"Level\":\"متوسط\"}]",
+          "count": 5510
+        },
+        {
+          "value": "[{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"}]",
+          "count": 4638
+        },
+        {
+          "value": "[{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اوت لوک\",\"TitleEn\":\"Microsoft Outlook\",\"Level\":\"متوسط\"}]",
+          "count": 4433
+        },
+        {
+          "value": "[{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"مقدماتی\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"مقدماتی\"}]",
+          "count": 2874
+        },
+        {
+          "value": "[{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پاورپوینت\",\"TitleEn\":\"Microsoft Powerpoint\",\"Level\":\"متوسط\"},{\"",
+          "count": 2236
+        },
+        {
+          "value": "[{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"پاورپوینت\",\"TitleEn\":\"Microsoft Powerpoint\",\"Level\":\"متوسط\"}]",
+          "count": 1848
+        },
+        {
+          "value": "[{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"پیشرفته\"}]",
+          "count": 1678
+        },
+        {
+          "value": "[{\"TitleFa\":\"اکسل\",\"TitleEn\":\"Microsoft Excel\",\"Level\":\"متوسط\"},{\"TitleFa\":\"ورد\",\"TitleEn\":\"Microsoft Word\",\"Level\":\"متوسط\"},{\"TitleFa\":\"اوت لوک\",\"TitleEn\":\"Microsoft Outlook\",\"Level\":\"متوسط\"}]",
+          "count": 1529
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {
+        "TitleFa": 600679,
+        "TitleEn": 600679,
+        "Level": 600679
+      },
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {
+        "dict": 600679
+      },
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_AcademicFields": {
+      "total_values": 364838,
+      "null_count": 193088,
+      "non_null_count": 171750,
+      "null_ratio": 0.5292431161227723,
+      "inferred_type": "json_array",
+      "type_counts": {
+        "json_array": 171750
+      },
+      "sample_values": [
+        "[{\"FieldType\":\"مهندسی مکانیک\",\"DegreeLevel\":\"کارشناسی\"}]",
+        "[{\"FieldType\":\"هنر\",\"DegreeLevel\":\"کارشناسی\"}]",
+        "[{\"FieldType\":\"کامپیوتر - فناوری اطلاعات\",\"DegreeLevel\":\"کارشناسی ارشد\"}]",
+        "[{\"FieldType\":\"کامپیوتر - فناوری اطلاعات\",\"DegreeLevel\":\"کارشناسی\"}]",
+        "[{\"FieldType\":\"کامپیوتر - فناوری اطلاعات\",\"DegreeLevel\":\"کارشناسی\"}]"
+      ],
+      "top_values": [
+        {
+          "value": "[{\"FieldType\":\"مالی و حسابداری\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 27641
+        },
+        {
+          "value": "[{\"FieldType\":\"کامپیوتر - فناوری اطلاعات\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 15871
+        },
+        {
+          "value": "[{\"FieldType\":\"مدیریت - بازرگانی - کسب و کار\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 15572
+        },
+        {
+          "value": "[{\"FieldType\":\"مهندسی صنایع\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 8186
+        },
+        {
+          "value": "[{\"FieldType\":\"مهندسی مکانیک\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 6836
+        },
+        {
+          "value": "[{\"FieldType\":\"مهندسی برق\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 5858
+        },
+        {
+          "value": "[{\"FieldType\":\"مدیریت - بازرگانی - کسب و کار\",\"DegreeLevel\":\"کارشناسی\"},{\"FieldType\":\"مهندسی صنایع\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 2989
+        },
+        {
+          "value": "[{\"FieldType\":\"مهندسی عمران - مهندسی راه آهن\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 2794
+        },
+        {
+          "value": "[{\"FieldType\":\"مدیریت - بازرگانی - کسب و کار\",\"DegreeLevel\":\"کاردانی\"}]",
+          "count": 2451
+        },
+        {
+          "value": "[{\"FieldType\":\"مهندسی صنایع\",\"DegreeLevel\":\"کارشناسی\"},{\"FieldType\":\"مدیریت - بازرگانی - کسب و کار\",\"DegreeLevel\":\"کارشناسی\"}]",
+          "count": 2327
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {
+        "FieldType": 280600,
+        "DegreeLevel": 280600
+      },
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {
+        "dict": 280600
+      },
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_BenefitFa": {
+      "total_values": 364838,
+      "null_count": 90938,
+      "non_null_count": 273900,
+      "null_ratio": 0.249255834096229,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 273900
+      },
+      "sample_values": [
+        "پاداش,پورسانت",
+        "پاداش",
+        "ناهار,صبحانه,پورسانت",
+        "پاداش",
+        "پاداش"
+      ],
+      "top_values": [
+        {
+          "value": "بیمه درمان تکمیلی",
+          "count": 11790
+        },
+        {
+          "value": "پورسانت",
+          "count": 11556
+        },
+        {
+          "value": "پاداش",
+          "count": 10381
+        },
+        {
+          "value": "پاداش,پورسانت",
+          "count": 7867
+        },
+        {
+          "value": "بیمه درمان تکمیلی,بسته ها و هدایای مناسبتی",
+          "count": 3722
+        },
+        {
+          "value": "وام,پاداش,بیمه درمان تکمیلی,بسته ها و هدایای مناسبتی",
+          "count": 3299
+        },
+        {
+          "value": "پاداش,بیمه درمان تکمیلی",
+          "count": 2630
+        },
+        {
+          "value": "وام,بیمه درمان تکمیلی,بسته ها و هدایای مناسبتی",
+          "count": 2580
+        },
+        {
+          "value": "ساعت کاری منعطف",
+          "count": 2507
+        },
+        {
+          "value": "وام,پاداش,بیمه درمان تکمیلی",
+          "count": 2452
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_BenefitEn": {
+      "total_values": 364838,
+      "null_count": 90938,
+      "non_null_count": 273900,
+      "null_ratio": 0.249255834096229,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 273900
+      },
+      "sample_values": [
+        "Bonus,Commision",
+        "Bonus",
+        "Lunch\r\n,Breakfast\r\n,Commision",
+        "Bonus",
+        "Bonus"
+      ],
+      "top_values": [
+        {
+          "value": "Health insurance",
+          "count": 11790
+        },
+        {
+          "value": "Commision",
+          "count": 11556
+        },
+        {
+          "value": "Bonus",
+          "count": 10381
+        },
+        {
+          "value": "Bonus,Commision",
+          "count": 7867
+        },
+        {
+          "value": "Health insurance\r\n,Occasional packages and gifts",
+          "count": 3722
+        },
+        {
+          "value": "Loan,Bonus,Health insurance\r\n,Occasional packages and gifts",
+          "count": 3299
+        },
+        {
+          "value": "Bonus,Health insurance",
+          "count": 2630
+        },
+        {
+          "value": "Loan,Health insurance\r\n,Occasional packages and gifts",
+          "count": 2580
+        },
+        {
+          "value": "Flexible working hours",
+          "count": 2507
+        },
+        {
+          "value": "Loan,Bonus,Health insurance",
+          "count": 2452
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_HasDisabilitySupport": {
+      "total_values": 364838,
+      "null_count": 346909,
+      "non_null_count": 17929,
+      "null_ratio": 0.9508576409255615,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 17929
+      },
+      "sample_values": [
+        "True",
+        "True",
+        "True",
+        "True",
+        "True"
+      ],
+      "top_values": [
+        {
+          "value": "True",
+          "count": 16148
+        },
+        {
+          "value": "False",
+          "count": 1781
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RequiredMinAge": {
+      "total_values": 364838,
+      "null_count": 96363,
+      "non_null_count": 268475,
+      "null_ratio": 0.2641254474588722,
+      "inferred_type": "float",
+      "type_counts": {
+        "float": 268475
+      },
+      "sample_values": [
+        "25.0",
+        "23.0",
+        "23.0",
+        "18.0",
+        "18.0"
+      ],
+      "top_values": [
+        {
+          "value": "25.0",
+          "count": 71005
+        },
+        {
+          "value": "20.0",
+          "count": 43990
+        },
+        {
+          "value": "22.0",
+          "count": 35062
+        },
+        {
+          "value": "18.0",
+          "count": 24188
+        },
+        {
+          "value": "30.0",
+          "count": 19730
+        },
+        {
+          "value": "24.0",
+          "count": 19650
+        },
+        {
+          "value": "23.0",
+          "count": 17270
+        },
+        {
+          "value": "28.0",
+          "count": 8073
+        },
+        {
+          "value": "27.0",
+          "count": 7794
+        },
+        {
+          "value": "26.0",
+          "count": 5189
+        }
+      ],
+      "distinct_values_observed": 31,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RequiredMaxAge": {
+      "total_values": 364838,
+      "null_count": 87282,
+      "non_null_count": 277556,
+      "null_ratio": 0.23923494811395743,
+      "inferred_type": "float",
+      "type_counts": {
+        "float": 277556
+      },
+      "sample_values": [
+        "35.0",
+        "33.0",
+        "35.0",
+        "40.0",
+        "30.0"
+      ],
+      "top_values": [
+        {
+          "value": "35.0",
+          "count": 83705
+        },
+        {
+          "value": "40.0",
+          "count": 63911
+        },
+        {
+          "value": "45.0",
+          "count": 30220
+        },
+        {
+          "value": "50.0",
+          "count": 19613
+        },
+        {
+          "value": "30.0",
+          "count": 19304
+        },
+        {
+          "value": "38.0",
+          "count": 10775
+        },
+        {
+          "value": "32.0",
+          "count": 9679
+        },
+        {
+          "value": "36.0",
+          "count": 7318
+        },
+        {
+          "value": "37.0",
+          "count": 6574
+        },
+        {
+          "value": "34.0",
+          "count": 5432
+        }
+      ],
+      "distinct_values_observed": 36,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_RequiredMilitaryServiceCard": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "False",
+        "True",
+        "False",
+        "False"
+      ],
+      "top_values": [
+        {
+          "value": "False",
+          "count": 227336
+        },
+        {
+          "value": "True",
+          "count": 137502
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_IsRemote": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "False",
+        "False",
+        "False",
+        "False"
+      ],
+      "top_values": [
+        {
+          "value": "False",
+          "count": 339772
+        },
+        {
+          "value": "True",
+          "count": 25066
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_IsInternship": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "False",
+        "False",
+        "False",
+        "False"
+      ],
+      "top_values": [
+        {
+          "value": "False",
+          "count": 342741
+        },
+        {
+          "value": "True",
+          "count": 22097
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_PriorityWithLocalCandidate": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "boolean",
+      "type_counts": {
+        "boolean": 364838
+      },
+      "sample_values": [
+        "False",
+        "True",
+        "False",
+        "True",
+        "True"
+      ],
+      "top_values": [
+        {
+          "value": "True",
+          "count": 193558
+        },
+        {
+          "value": "False",
+          "count": 171280
+        }
+      ],
+      "distinct_values_observed": 2,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Jobpost_ActivationTime_YEAR_MONTH": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "2022-04",
+        "2023-03",
+        "2022-04",
+        "2023-12",
+        "2022-07"
+      ],
+      "top_values": [
+        {
+          "value": "2023-10",
+          "count": 24017
+        },
+        {
+          "value": "2024-01",
+          "count": 23417
+        },
+        {
+          "value": "2023-11",
+          "count": 22807
+        },
+        {
+          "value": "2023-12",
+          "count": 21939
+        },
+        {
+          "value": "2023-07",
+          "count": 20265
+        },
+        {
+          "value": "2023-08",
+          "count": 20166
+        },
+        {
+          "value": "2023-05",
+          "count": 18376
+        },
+        {
+          "value": "2023-04",
+          "count": 18217
+        },
+        {
+          "value": "2023-09",
+          "count": 18176
+        },
+        {
+          "value": "2024-02",
+          "count": 16529
+        }
+      ],
+      "distinct_values_observed": 25,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_AgeFromEstablishmentYear": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "more than 20 years",
+        "10 - 14 years",
+        "5 - 9 years",
+        "10 - 14 years",
+        "more than 20 years"
+      ],
+      "top_values": [
+        {
+          "value": "more than 20 years",
+          "count": 207760
+        },
+        {
+          "value": "10 - 14 years",
+          "count": 48006
+        },
+        {
+          "value": "5 - 9 years",
+          "count": 44092
+        },
+        {
+          "value": "15 - 19 years",
+          "count": 43002
+        },
+        {
+          "value": "0 - 4 years",
+          "count": 21978
+        }
+      ],
+      "distinct_values_observed": 5,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_ProvinceFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "تهران",
+        "تهران",
+        "خراسان رضوی",
+        "البرز",
+        "اصفهان"
+      ],
+      "top_values": [
+        {
+          "value": "تهران",
+          "count": 292012
+        },
+        {
+          "value": "اصفهان",
+          "count": 17114
+        },
+        {
+          "value": "البرز",
+          "count": 14024
+        },
+        {
+          "value": "خراسان رضوی",
+          "count": 9869
+        },
+        {
+          "value": "فارس",
+          "count": 3943
+        },
+        {
+          "value": "مازندران",
+          "count": 3652
+        },
+        {
+          "value": "قم",
+          "count": 3255
+        },
+        {
+          "value": "قزوین",
+          "count": 3010
+        },
+        {
+          "value": "گیلان",
+          "count": 2913
+        },
+        {
+          "value": "خوزستان",
+          "count": 2512
+        }
+      ],
+      "distinct_values_observed": 31,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_ProvinceEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "Tehran",
+        "Tehran",
+        "Khorasan Razavi",
+        "Alborz",
+        "Isfahan"
+      ],
+      "top_values": [
+        {
+          "value": "Tehran",
+          "count": 292012
+        },
+        {
+          "value": "Isfahan",
+          "count": 17114
+        },
+        {
+          "value": "Alborz",
+          "count": 14024
+        },
+        {
+          "value": "Khorasan Razavi",
+          "count": 9869
+        },
+        {
+          "value": "Fars",
+          "count": 3943
+        },
+        {
+          "value": "Mazandaran",
+          "count": 3652
+        },
+        {
+          "value": "Ghom",
+          "count": 3255
+        },
+        {
+          "value": "Ghazvin",
+          "count": 3010
+        },
+        {
+          "value": "Gilan",
+          "count": 2913
+        },
+        {
+          "value": "Khoozestan",
+          "count": 2512
+        }
+      ],
+      "distinct_values_observed": 31,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_CityFa": {
+      "total_values": 364838,
+      "null_count": 179,
+      "non_null_count": 364659,
+      "null_ratio": 0.0004906287174033406,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364659
+      },
+      "sample_values": [
+        "تهران",
+        "تهران",
+        "مشهد",
+        "کرج",
+        "اصفهان"
+      ],
+      "top_values": [
+        {
+          "value": "تهران",
+          "count": 279392
+        },
+        {
+          "value": "اصفهان",
+          "count": 15512
+        },
+        {
+          "value": "مشهد",
+          "count": 9551
+        },
+        {
+          "value": "کرج",
+          "count": 8894
+        },
+        {
+          "value": "شیراز",
+          "count": 3816
+        },
+        {
+          "value": "قم",
+          "count": 3128
+        },
+        {
+          "value": "شهر قدس",
+          "count": 2413
+        },
+        {
+          "value": "تبریز",
+          "count": 2370
+        },
+        {
+          "value": "قزوین",
+          "count": 2321
+        },
+        {
+          "value": "رشت",
+          "count": 2296
+        }
+      ],
+      "distinct_values_observed": 323,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_CityEn": {
+      "total_values": 364838,
+      "null_count": 179,
+      "non_null_count": 364659,
+      "null_ratio": 0.0004906287174033406,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364659
+      },
+      "sample_values": [
+        "Tehran",
+        "Tehran",
+        "Mashhad",
+        "Karaj",
+        "Isfahan"
+      ],
+      "top_values": [
+        {
+          "value": "Tehran",
+          "count": 279392
+        },
+        {
+          "value": "Isfahan",
+          "count": 15512
+        },
+        {
+          "value": "Mashhad",
+          "count": 9551
+        },
+        {
+          "value": "Karaj",
+          "count": 8894
+        },
+        {
+          "value": "Shiraz",
+          "count": 3816
+        },
+        {
+          "value": "Qom",
+          "count": 3128
+        },
+        {
+          "value": "Shahre ghods",
+          "count": 2413
+        },
+        {
+          "value": "Tabriz",
+          "count": 2370
+        },
+        {
+          "value": "Ghazvin",
+          "count": 2321
+        },
+        {
+          "value": "Rasht",
+          "count": 2296
+        }
+      ],
+      "distinct_values_observed": 323,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Comany_CompanyOwnershipTypesFa": {
+      "total_values": 364838,
+      "null_count": 85912,
+      "non_null_count": 278926,
+      "null_ratio": 0.23547985681316091,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 278926
+      },
+      "sample_values": [
+        "خصوصی",
+        "خصوصی",
+        "خصوصی",
+        "خصوصی",
+        "خصوصی"
+      ],
+      "top_values": [
+        {
+          "value": "خصوصی",
+          "count": 273039
+        },
+        {
+          "value": "غیرانتفاعی / مردم نهاد / خیریه",
+          "count": 3607
+        },
+        {
+          "value": "دولتی",
+          "count": 2280
+        }
+      ],
+      "distinct_values_observed": 3,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_CompanyOwnershipTypesEn": {
+      "total_values": 364838,
+      "null_count": 85912,
+      "non_null_count": 278926,
+      "null_ratio": 0.23547985681316091,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 278926
+      },
+      "sample_values": [
+        "Privately held",
+        "Privately held",
+        "Privately held",
+        "Privately held",
+        "Privately held"
+      ],
+      "top_values": [
+        {
+          "value": "Privately held",
+          "count": 273039
+        },
+        {
+          "value": "Non - profit / NGO / Charity",
+          "count": 3607
+        },
+        {
+          "value": "Governmental",
+          "count": 2280
+        }
+      ],
+      "distinct_values_observed": 3,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_SizeFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "11 تا 50 نفر",
+        "11 تا 50 نفر",
+        "زیر 10 نفر",
+        "زیر 10 نفر",
+        "501 تا 1000 نفر"
+      ],
+      "top_values": [
+        {
+          "value": "11 تا 50 نفر",
+          "count": 94959
+        },
+        {
+          "value": "51 تا 200 نفر",
+          "count": 91058
+        },
+        {
+          "value": "201 تا 500 نفر",
+          "count": 51810
+        },
+        {
+          "value": "501 تا 1000 نفر",
+          "count": 40314
+        },
+        {
+          "value": "زیر 10 نفر",
+          "count": 38192
+        },
+        {
+          "value": "1001 تا 5000 نفر",
+          "count": 36200
+        },
+        {
+          "value": "بیش از 5000 نفر",
+          "count": 12305
+        }
+      ],
+      "distinct_values_observed": 7,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_SizeEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "11 - 50 employees",
+        "11 - 50 employees",
+        "Less than 10 employees",
+        "Less than 10 employees",
+        "501 - 1000 employees"
+      ],
+      "top_values": [
+        {
+          "value": "11 - 50 employees",
+          "count": 94959
+        },
+        {
+          "value": "51 - 200 employees",
+          "count": 91058
+        },
+        {
+          "value": "201 - 500 employees",
+          "count": 51810
+        },
+        {
+          "value": "501 - 1000 employees",
+          "count": 40314
+        },
+        {
+          "value": "Less than 10 employees",
+          "count": 38192
+        },
+        {
+          "value": "1001 - 5000 employees",
+          "count": 36200
+        },
+        {
+          "value": "More than 5001 employees",
+          "count": 12305
+        }
+      ],
+      "distinct_values_observed": 7,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_ActivityTypeFa": {
+      "total_values": 364838,
+      "null_count": 87512,
+      "non_null_count": 277326,
+      "null_ratio": 0.2398653649016824,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 277326
+      },
+      "sample_values": [
+        "شرکت ایرانی دارای مشتریان داخلی",
+        "شرکت ایرانی دارای مشتریان داخلی و خارجی",
+        "شرکت ایرانی دارای مشتریان داخلی و خارجی",
+        "شرکت ایرانی دارای مشتریان داخلی",
+        "شرکت ایرانی دارای مشتریان داخلی و خارجی"
+      ],
+      "top_values": [
+        {
+          "value": "شرکت ایرانی دارای مشتریان داخلی و خارجی",
+          "count": 146047
+        },
+        {
+          "value": "شرکت ایرانی دارای مشتریان داخلی",
+          "count": 125232
+        },
+        {
+          "value": "شعبه ای از یک شرکت خارجی / سفارتخانه",
+          "count": 6047
+        }
+      ],
+      "distinct_values_observed": 3,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_ActivityTypeEn": {
+      "total_values": 364838,
+      "null_count": 87512,
+      "non_null_count": 277326,
+      "null_ratio": 0.2398653649016824,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 277326
+      },
+      "sample_values": [
+        "Iranian company dealing only with Iranian entities",
+        "Iranian company dealing with Iranian and foreign customers",
+        "Iranian company dealing with Iranian and foreign customers",
+        "Iranian company dealing only with Iranian entities",
+        "Iranian company dealing with Iranian and foreign customers"
+      ],
+      "top_values": [
+        {
+          "value": "Iranian company dealing with Iranian and foreign customers",
+          "count": 146047
+        },
+        {
+          "value": "Iranian company dealing only with Iranian entities",
+          "count": 125232
+        },
+        {
+          "value": "Branch of non - Iranian company / Embassy",
+          "count": 6047
+        }
+      ],
+      "distinct_values_observed": 3,
+      "distinct_values_truncated": false,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_IndustryFa": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "ساختمان / مصالح و تجهیزات ساختمانی,تولیدی / صنعتی",
+        "طراحی / گرافیک / هنر",
+        "اینترنت / تجارت الکترونیک / خدمات آنلاین,شرکت های خدماتی / پیمانکاران",
+        "اینترنت / تجارت الکترونیک / خدمات آنلاین,خرده فروشی / مرکز خرید / فروشگاه,بازاریابی و تبلیغات",
+        "فناوری اطلاعات / نرم افزار و سخت افزار"
+      ],
+      "top_values": [
+        {
+          "value": "تولیدی / صنعتی",
+          "count": 43848
+        },
+        {
+          "value": "فناوری اطلاعات / نرم افزار و سخت افزار",
+          "count": 18565
+        },
+        {
+          "value": "اینترنت / تجارت الکترونیک / خدمات آنلاین",
+          "count": 15823
+        },
+        {
+          "value": "کالاهای مصرفی و تند گردش",
+          "count": 15427
+        },
+        {
+          "value": "تجارت / بازرگانی",
+          "count": 12517
+        },
+        {
+          "value": "خودرو و صنایع وابسته",
+          "count": 11346
+        },
+        {
+          "value": "دارو",
+          "count": 10769
+        },
+        {
+          "value": "خدمات مهندسی و تخصصی",
+          "count": 8820
+        },
+        {
+          "value": "بیمه",
+          "count": 7212
+        },
+        {
+          "value": "آموزش / پژوهش",
+          "count": 6521
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    },
+    "Company_IndustryEn": {
+      "total_values": 364838,
+      "null_count": 0,
+      "non_null_count": 364838,
+      "null_ratio": 0.0,
+      "inferred_type": "string",
+      "type_counts": {
+        "string": 364838
+      },
+      "sample_values": [
+        "Construction / Building Materials & Equipment,Manufacturing & Production",
+        "Design / Arts",
+        "Internet Provider / E-commerce / Online Services,General Services / Contractor",
+        "Internet Provider / E-commerce / Online Services,Retail / Shopping center / Store,Marketing / Advertising",
+        "IT / Software / Hardware"
+      ],
+      "top_values": [
+        {
+          "value": "Manufacturing & Production",
+          "count": 43848
+        },
+        {
+          "value": "IT / Software / Hardware",
+          "count": 18565
+        },
+        {
+          "value": "Internet Provider / E-commerce / Online Services",
+          "count": 15823
+        },
+        {
+          "value": "Consumer Goods / FMCG",
+          "count": 15427
+        },
+        {
+          "value": "Trading / International Affairs",
+          "count": 12517
+        },
+        {
+          "value": "Automotive",
+          "count": 11346
+        },
+        {
+          "value": "Pharmaceutical",
+          "count": 10769
+        },
+        {
+          "value": "Engineering Services / Technical Services & Solutions",
+          "count": 8820
+        },
+        {
+          "value": "Insurance",
+          "count": 7212
+        },
+        {
+          "value": "Education / Research",
+          "count": 6521
+        }
+      ],
+      "distinct_values_observed": 1000,
+      "distinct_values_truncated": true,
+      "json_object_keys": {},
+      "json_object_keys_truncated": false,
+      "json_array_item_types": {},
+      "json_array_item_types_truncated": false
+    }
+  },
+  "file_size_bytes": 391868079
+}
