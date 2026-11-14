@@ -46,6 +46,7 @@ def test_provenance_rejects_publication_after_observation():
         "published_at": "2026-10-02T00:00:00Z",
         "observed_at": "2026-10-01T00:00:00Z",
         "collection_batch": "batch-1",
+        "time_granularity": "daily",
     })
     assert any(item["code"] == "PUBLICATION_AFTER_OBSERVATION" for item in issues)
 
@@ -57,6 +58,7 @@ def test_dataset_audit_distinguishes_verified_unverified_and_invalid_records():
             "source": "source:one",
             "observed_at": "2026-10-01T00:00:00Z",
             "collection_batch": "batch-1",
+            "time_granularity": "daily",
         },
         {"_id": "legacy"},
         {
