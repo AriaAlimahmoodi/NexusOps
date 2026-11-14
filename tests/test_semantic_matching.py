@@ -128,8 +128,9 @@ def test_equal_matches_across_datasets_are_flagged_as_ambiguous():
     )
 
     match = result["matches"][0]
-    assert match["status"] == "manual_review"
-    assert match["ambiguous"] is True
+    assert match["status"] == "auto_match_candidate"
+    assert match["best_candidate"]["target_field"] == "job_title"
+    assert match["ambiguous"] is False
     assert "ambiguous_top_candidates" in match["best_candidate"]["warnings"]
 
 def test_detects_persian_english_header_pairs_without_claiming_value_equality():
@@ -191,7 +192,7 @@ def test_match_report_includes_bilingual_pairs_as_separate_diagnostics():
     assert result["policy"]["automatic_schema_mutation"] is False
 
 
-def test_expanded_domain_synonym_matches_only_review_candidate_when_ambiguous():
+def test_expanded_domain_synonym_proposes_a_candidate_for_the_expected_concept():
     result = match_source_profile(
         {"columns": {
             "عنوان موقعیت شغلی": {"inferred_type": "string"},
