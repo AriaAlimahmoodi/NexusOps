@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -31,7 +32,7 @@ def main() -> int:
             top_values_limit=args.top_values,
             max_distinct_values=args.max_distinct_values,
         )
-    except (OSError, UnicodeError, ValueError) as error:
+    except (OSError, UnicodeError, ValueError, csv.Error) as error:
         parser.error(str(error))
 
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
