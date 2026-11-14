@@ -169,10 +169,20 @@ def match_source_profile(
         )
         candidates = candidates[:top_k]
         best = candidates[0] if candidates else None
-        if best and best["confidence"] >= auto_match_threshold and not best["warning"]:
+        tied_candidates = [
+            item for item in candidates
+            if best and item["confidence"] == best["confidence"]
+        ]
+        is_ambiguous = len({
+            (item["dataset_id"], item["target_field"])
+            for item in tied_candidates
+        }) > 1
+        if best and best["confidence"] >= auto_match_threshold and not best["warning"] and not is_ambiguous:
             status = "auto_match_candidate"
         elif best:
             status = "manual_review"
+            if is_ambiguous:
+                best = {**best, "warning": "ambiguous_top_candidates"}
         else:
             status = "unmatched"
 
@@ -182,6 +192,7 @@ def match_source_profile(
             "null_ratio": source_stats.get("null_ratio"),
             "status": status,
             "best_candidate": best,
+            "ambiguous": is_ambiguous,
             "candidates": candidates,
         })
 
