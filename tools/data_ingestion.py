@@ -1,7 +1,7 @@
 """Validated ingestion boundary for provenance-backed real datasets.
 
-Existing synthetic indexes are never write targets. Every accepted batch is
-written only to its registered '<dataset_id>_real' index.
+Existing synthetic indexes are never write targets. Source adapters normalize
+their source data into Registry contracts before records reach this module.
 """
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ from typing import Any
 
 from elasticsearch.helpers import bulk
 
-from tools.data_governance import _timestamp, validate_record_provenance
+from tools.data_governance import _timestamp
+from tools.data_normalization import normalize_real_record
 from tools.dataset_registry import get_dataset_index, get_dataset_profile
 
 
@@ -54,7 +55,7 @@ def validate_collection_manifest(manifest, records):
 
 
 def prepare_real_records(dataset_id, records, manifest):
-    """Validate the whole batch before returning any document for indexing."""
+    """Validate and normalize the whole batch before returning documents."""
     profile = get_dataset_profile(dataset_id)
     if not isinstance(manifest, Mapping):
         raise ValueError("Collection manifest must be a JSON object.")
@@ -62,7 +63,9 @@ def prepare_real_records(dataset_id, records, manifest):
         raise ValueError("At least one record is required for ingestion.")
 
     issues = validate_collection_manifest(manifest, records)
-    id_fields = profile.get("document_id_fields") or ([profile["primary_key"]] if profile.get("primary_key") else [])
+    id_fields = profile.get("document_id_fields") or (
+        [profile["primary_key"]] if profile.get("primary_key") else []
+    )
     seen_ids = set()
     prepared = []
 
@@ -77,23 +80,21 @@ def prepare_real_records(dataset_id, records, manifest):
 
         identity_values = [record.get(field) for field in id_fields]
         record_id = (
-            "::".join(str(value).strip() for value in identity_values if value is not None and str(value).strip())
-            or str(record.get("id") or position)
+            "::".join(
+                str(value).strip()
+                for value in identity_values
+                if value is not None and str(value).strip()
+            )
+            or str(position)
         )
-        for field in profile.get("validation", {}).get("required_fields", []):
-            value = record.get(field)
-            if value is None or (isinstance(value, str) and not value.strip()):
-                issues.append({
-                    "code": "MISSING_DATA_FIELD",
-                    "field": field,
-                    "record_id": record_id,
-                    "message": f"Required dataset field '{field}' is missing or empty.",
-                })
 
-        issues.extend(validate_record_provenance(record, record_id=record_id))
+        normalized, record_issues = normalize_real_record(
+            dataset_id, record, record_id=record_id
+        )
+        issues.extend(record_issues)
 
         if id_fields:
-            key_values = [record.get(field) for field in id_fields]
+            key_values = [normalized.get(field) for field in id_fields]
             if any(
                 not isinstance(value, (str, int))
                 or isinstance(value, bool)
@@ -107,7 +108,9 @@ def prepare_real_records(dataset_id, records, manifest):
                     "message": f"Document identity fields {id_fields} are required.",
                 })
             else:
-                normalized_id = "::".join(str(value).strip() for value in key_values)
+                normalized_id = "::".join(
+                    str(value).strip() for value in key_values
+                )
                 if normalized_id in seen_ids:
                     issues.append({
                         "code": "DUPLICATE_PRIMARY_KEY",
@@ -117,29 +120,30 @@ def prepare_real_records(dataset_id, records, manifest):
                     })
                 seen_ids.add(normalized_id)
 
-        if record.get("data_classification") not in (None, "real"):
-            issues.append({
-                "code": "CLASSIFICATION_CONFLICT",
-                "field": "data_classification",
-                "record_id": record_id,
-                "message": "Real ingestion rejects records classified as non-real.",
-            })
-
-        prepared.append({**dict(record), "data_classification": "real"})
+        prepared.append(normalized)
 
     if issues:
-        error = ValueError(f"Real-data batch rejected with {len(issues)} validation issue(s).")
+        error = ValueError(
+            f"Real-data batch rejected with {len(issues)} validation issue(s)."
+        )
         error.issues = issues
         raise error
     return prepared
 
 
 def ingest_real_records(client, dataset_id, records, manifest):
-    """Index a validated batch only into the isolated real-data index."""
+    """Index a validated batch only into the isolated real-data index.
+
+    This compatibility entry point retains the existing direct-index behavior.
+    New production imports should use the atomic publication entry point once
+    that publisher is enabled for the target dataset.
+    """
     prepared = prepare_real_records(dataset_id, records, manifest)
     profile = get_dataset_profile(dataset_id)
     target_index = get_dataset_index(dataset_id, "real")
-    id_fields = profile.get("document_id_fields") or ([profile["primary_key"]] if profile.get("primary_key") else [])
+    id_fields = profile.get("document_id_fields") or (
+        [profile["primary_key"]] if profile.get("primary_key") else []
+    )
 
     actions = []
     for record in prepared:
@@ -149,7 +153,9 @@ def ingest_real_records(client, dataset_id, records, manifest):
             "_source": record,
         }
         if id_fields:
-            action["_id"] = "::".join(str(record[field]).strip() for field in id_fields)
+            action["_id"] = "::".join(
+                str(record[field]).strip() for field in id_fields
+            )
         actions.append(action)
 
     indexed_count, errors = bulk(
