@@ -187,3 +187,34 @@ def test_rejects_invalid_configuration():
         assert "http" in str(error)
     else:
         raise AssertionError("non-http endpoint must be rejected")
+
+
+def test_rejects_malformed_unhashable_model_fields_without_crashing():
+    captured = {}
+    model_output = {
+        "suggestions": [{
+            "source_field": ["not", "a", "string"],
+            "candidate_dataset_id": "labor_market",
+            "candidate_field": "job_title",
+            "relation": "synonym",
+            "confidence": 0.9,
+            "rationale": "Malformed source field.",
+        }],
+        "bilingual_pair_suggestions": [{
+            "source_fields": [["not", "a", "string"], "Company_CompanyOwnershipTypesEn"],
+            "relation": "translation",
+            "confidence": 0.9,
+            "rationale": "Malformed pair member.",
+        }],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(_source_profile(), _profiles())
+
+    assert result["status"] == "completed"
+    assert result["suggestions"] == []
+    assert result["bilingual_pair_suggestions"] == []
+    assert result["rejected_model_items"] == 2
+
