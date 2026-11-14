@@ -111,3 +111,30 @@ def test_real_ingestion_rejects_duplicate_primary_keys_in_one_batch():
         issue["code"] == "DUPLICATE_PRIMARY_KEY"
         for issue in exc.value.issues
     )
+
+
+def test_composite_document_identity_is_used_for_relationship_records(monkeypatch):
+    captured = {}
+
+    def fake_bulk(client, actions, **kwargs):
+        captured["actions"] = list(actions)
+        return len(captured["actions"]), []
+
+    monkeypatch.setattr("tools.data_ingestion.bulk", fake_bulk)
+    manifest_value = manifest()
+    relationship = {
+        "course_id": "C001",
+        "course_name": "Algorithms",
+        "graduate_id": "G0001",
+        "job_field": "Software",
+        "related_skills": ["Python"],
+        "source": "https://example.org/records/1",
+        "observed_at": "2026-11-14T00:00:00Z",
+        "collection_batch": manifest_value["collection_batch"],
+        "time_granularity": "annual",
+    }
+    result = ingest_real_records(
+        object(), "course_graduate_records", [relationship], manifest_value
+    )
+    assert result["index"] == "course_graduate_records_real"
+    assert captured["actions"][0]["_id"] == "C001::G0001"
