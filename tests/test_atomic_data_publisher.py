@@ -124,6 +124,12 @@ def test_first_atomic_publication_creates_stable_alias(monkeypatch):
     assert client.aliases["labor_market_real"] == result["physical_index"]
     assert "labor_market_real" not in client.documents
     assert len(client.documents[result["physical_index"]]) == 1
+    mapping = client.mappings[result["physical_index"]]["properties"]
+    assert mapping["source"] == {"type": "keyword"}
+    assert mapping["observed_at"] == {"type": "date"}
+    assert mapping["collection_batch"] == {"type": "keyword"}
+    assert mapping["time_granularity"] == {"type": "keyword"}
+    assert mapping["published_at"] == {"type": "date"}
 
 
 def test_atomic_publication_copies_previous_version_and_retains_it(monkeypatch):
@@ -151,6 +157,11 @@ def test_atomic_publication_copies_previous_version_and_retains_it(monkeypatch):
     assert old_index in client.documents
     assert client.aliases["labor_market_real"] == result["physical_index"]
     assert set(client.documents[result["physical_index"]]) == {"LM-OLD", "LM-NEW"}
+    merged_properties = client.mappings[result["physical_index"]]["properties"]
+    assert merged_properties["market_record_id"] == {"type": "keyword"}
+    assert merged_properties["source"] == {"type": "keyword"}
+    assert merged_properties["observed_at"] == {"type": "date"}
+    assert merged_properties["valid_from"] == {"type": "date"}
 
 
 def test_invalid_record_never_changes_published_alias(monkeypatch):
