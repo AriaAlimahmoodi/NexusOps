@@ -224,6 +224,98 @@ def test_rejects_invalid_model_json_without_raising():
     assert result["error_code"] == "invalid_model_json"
 
 
+
+
+def test_reports_rejection_reasons_for_incomplete_qwen_output():
+    captured = {}
+    model_output = {
+        "suggestions": [{
+            "source_field": "عنوان موقعیت شغلی",
+            "candidate_dataset": "labor_market",
+            "candidate_field": "job_title",
+            "relation": "synonym",
+            "confidence": 0.9,
+        }],
+        "bilingual_pair_suggestions": [{
+            "source_fields": [
+                "Comany_CompanyOwnershipTypesFa",
+                "Company_CompanyOwnershipTypesEn",
+            ],
+            "relation": "possible_translation",
+        }],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(_source_profile(), _profiles())
+
+    assert result["rejected_model_items"] == 2
+    assert result["rejection_details"][0]["reasons"] == [
+        "missing_or_invalid_candidate_dataset_id",
+        "missing_or_invalid_rationale",
+    ]
+    assert result["rejection_details"][1]["reasons"] == [
+        "invalid_confidence",
+        "missing_or_invalid_rationale",
+    ]
+
+
+def test_deduplicates_deterministic_mappings_and_bilingual_pairs():
+    captured = {}
+    model_output = {
+        "suggestions": [{
+            "source_field": "عنوان موقعیت شغلی",
+            "candidate_dataset_id": "labor_market",
+            "candidate_field": "job_title",
+            "relation": "synonym",
+            "confidence": 0.91,
+            "rationale": "A valid but already identified mapping.",
+        }],
+        "bilingual_pair_suggestions": [{
+            "source_fields": [
+                "Company_CompanyOwnershipTypesEn",
+                "Comany_CompanyOwnershipTypesFa",
+            ],
+            "relation": "possible_translation",
+            "confidence": 0.88,
+            "rationale": "A valid but already identified pair.",
+        }],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(
+        _source_profile(),
+        _profiles(),
+        existing_matches=[{
+            "source_field": "عنوان موقعیت شغلی",
+            "best_candidate": {
+                "dataset_id": "labor_market",
+                "target_field": "job_title",
+            },
+        }],
+        existing_bilingual_pairs=[{
+            "fields": [
+                {"name": "Comany_CompanyOwnershipTypesFa"},
+                {"name": "Company_CompanyOwnershipTypesEn"},
+            ],
+        }],
+    )
+
+    assert result["suggestions"] == []
+    assert result["bilingual_pair_suggestions"] == []
+    assert result["rejected_model_items"] == 0
+    assert result["duplicate_model_items"] == 2
+    assert {item["kind"] for item in result["duplicate_details"]} == {
+        "suggestion", "bilingual_pair",
+    }
+    prompt = captured["body"]["messages"][0]["content"]
+    assert "candidate_dataset_id" in prompt
+    assert "Every bilingual pair MUST include both confidence and rationale" in prompt
+
+
 def test_rejects_invalid_configuration():
     try:
         OllamaSemanticAssistant(timeout=0)
