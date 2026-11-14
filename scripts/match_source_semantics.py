@@ -46,7 +46,7 @@ def main() -> int:
 
     output_path = Path(args.output)
     output_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(json.dumps({
