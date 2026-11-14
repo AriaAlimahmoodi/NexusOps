@@ -163,14 +163,17 @@ class OllamaSemanticAssistant:
             if not isinstance(pair, dict):
                 continue
             fields = pair.get("fields", pair.get("source_fields"))
-            if (
-                isinstance(fields, list)
-                and len(fields) == 2
-                and all(isinstance(field, str) for field in fields)
-            ):
-                key = tuple(sorted(fields))
-                existing_pair_keys.add(key)
-                existing_pair_context.append({"source_fields": list(fields)})
+            if isinstance(fields, list) and len(fields) == 2:
+                field_names = [
+                    field.get("name") if isinstance(field, dict) else field
+                    for field in fields
+                ]
+                if all(isinstance(field, str) for field in field_names):
+                    key = tuple(sorted(field_names))
+                    existing_pair_keys.add(key)
+                    existing_pair_context.append({
+                        "source_fields": list(field_names),
+                    })
 
         prompt_payload = {
             "source_fields": source_fields,
@@ -400,6 +403,9 @@ class OllamaSemanticAssistant:
             "suggestions": [],
             "bilingual_pair_suggestions": [],
             "rejected_model_items": 0,
+            "rejection_details": [],
+            "duplicate_model_items": 0,
+            "duplicate_details": [],
             "policy": {
                 "automatic_schema_mutation": False,
                 "automatic_ingestion": False,
