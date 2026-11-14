@@ -182,7 +182,10 @@ def match_source_profile(
         elif best:
             status = "manual_review"
             if is_ambiguous:
-                best = {**best, "warning": "ambiguous_top_candidates"}
+                warnings = ["ambiguous_top_candidates"]
+                if best.get("warning"):
+                    warnings.append(best["warning"])
+                best = {**best, "warnings": warnings}
         else:
             status = "unmatched"
 
