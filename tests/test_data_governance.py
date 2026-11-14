@@ -13,6 +13,7 @@ def test_provenance_accepts_traceable_timezone_aware_record():
         "observed_at": "2026-10-01T12:30:00Z",
         "published_at": "2026-09-30T08:00:00+00:00",
         "collection_batch": "batch-2026-10-01",
+        "time_granularity": "daily",
     }
     assert validate_record_provenance(record) == []
 
@@ -20,7 +21,7 @@ def test_provenance_accepts_traceable_timezone_aware_record():
 def test_provenance_requires_source_observation_time_and_batch():
     issues = validate_record_provenance({"graduate_id": "G0001"})
     assert {item["field"] for item in issues} == {
-        "source", "observed_at", "collection_batch",
+        "source", "observed_at", "collection_batch", "time_granularity",
     }
     assert all(item["code"] == "MISSING_PROVENANCE_FIELD" for item in issues)
 
@@ -34,6 +35,7 @@ def test_provenance_rejects_invalid_or_timezone_naive_observation_time(timestamp
         "source": "source:one",
         "observed_at": timestamp,
         "collection_batch": "batch-1",
+        "time_granularity": "daily",
     })
     assert any(item["code"] == "INVALID_TIMESTAMP" for item in issues)
 
@@ -62,6 +64,7 @@ def test_dataset_audit_distinguishes_verified_unverified_and_invalid_records():
             "source": "source:two",
             "observed_at": "bad-date",
             "collection_batch": "batch-2",
+            "time_granularity": "daily",
         },
     ], dataset_id="labor_market")
     assert result["total_records"] == 3
@@ -146,3 +149,49 @@ def test_all_dataset_profiles_register_queryable_provenance_fields():
         assert "filter" in fields["observed_at"]["roles"]
         assert "filter" in fields["published_at"]["roles"]
         assert "filter" in fields["collection_batch"]["roles"]
+
+
+def test_synthetic_audit_marks_records_as_synthetic_not_unverified():
+    result = audit_dataset_provenance(
+        [{"_id": "legacy-1"}, {"_id": "legacy-2"}],
+        dataset_id="university_graduates",
+        classification="synthetic",
+    )
+    assert result["classification"] == "synthetic"
+    assert result["synthetic_records"] == 2
+    assert result["unverified_records"] == 0
+    assert result["provenance_coverage"] is None
+
+
+def test_real_provenance_requires_time_granularity():
+    issues = validate_record_provenance({
+        "source": "source:one",
+        "observed_at": "2026-10-01T00:00:00Z",
+        "collection_batch": "batch-1",
+    })
+    assert any(
+        item["code"] == "MISSING_PROVENANCE_FIELD"
+        and item["field"] == "time_granularity"
+        for item in issues
+    )
+
+
+def test_provenance_rejects_incomplete_or_reversed_validity_window():
+    incomplete = validate_record_provenance({
+        "source": "source:one",
+        "observed_at": "2026-10-01T00:00:00Z",
+        "collection_batch": "batch-1",
+        "time_granularity": "daily",
+        "valid_from": "2026-09-01T00:00:00Z",
+    })
+    assert any(item["code"] == "INCOMPLETE_VALIDITY_WINDOW" for item in incomplete)
+
+    reversed = validate_record_provenance({
+        "source": "source:one",
+        "observed_at": "2026-10-01T00:00:00Z",
+        "collection_batch": "batch-1",
+        "time_granularity": "daily",
+        "valid_from": "2026-10-02T00:00:00Z",
+        "valid_until": "2026-10-01T00:00:00Z",
+    })
+    assert any(item["code"] == "INVALID_VALIDITY_WINDOW" for item in reversed)
