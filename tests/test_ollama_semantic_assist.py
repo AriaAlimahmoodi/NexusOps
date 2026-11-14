@@ -317,6 +317,102 @@ def test_deduplicates_deterministic_mappings_and_bilingual_pairs():
     assert "Every bilingual pair MUST include both confidence and rationale" in prompt
 
 
+def test_rejects_known_non_equivalent_job_requirement_mappings():
+    source = {
+        "columns": {
+            "Jobpost_RequiredExperienceYears": {"inferred_type": "integer"},
+            "Jobpost_RequiredRelatedExperienceInThisIndustry": {"inferred_type": "boolean"},
+            "Jobpost_RequiredMinAge": {"inferred_type": "integer"},
+            "Jobpost_RequiredMaxAge": {"inferred_type": "integer"},
+            "Jobpost_RequiredMilitaryServiceCard": {"inferred_type": "boolean"},
+        }
+    }
+    profiles = [
+        {
+            "dataset_id": "labor_market",
+            "fields": {"experience_level": {"type": "keyword", "roles": ["dimension"]}},
+        },
+        {
+            "dataset_id": "university_graduates",
+            "fields": {
+                "graduation_year": {"type": "integer", "roles": ["dimension"]},
+                "employment_months": {"type": "integer", "roles": ["metric"]},
+                "additional_training": {"type": "boolean", "roles": ["dimension"]},
+            },
+        },
+    ]
+    suggestions = []
+    for source_field, dataset_id, candidate_field in [
+        ("Jobpost_RequiredExperienceYears", "labor_market", "experience_level"),
+        ("Jobpost_RequiredExperienceYears", "university_graduates", "employment_months"),
+        ("Jobpost_RequiredRelatedExperienceInThisIndustry", "labor_market", "experience_level"),
+        ("Jobpost_RequiredMinAge", "university_graduates", "graduation_year"),
+        ("Jobpost_RequiredMaxAge", "university_graduates", "graduation_year"),
+        ("Jobpost_RequiredMilitaryServiceCard", "university_graduates", "additional_training"),
+    ]:
+        suggestions.append({
+            "source_field": source_field,
+            "candidate_dataset_id": dataset_id,
+            "candidate_field": candidate_field,
+            "relation": "synonym",
+            "confidence": 0.99,
+            "rationale": "Adversarially high confidence must not override domain mismatch.",
+        })
+    captured = {}
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(
+            {"suggestions": suggestions, "bilingual_pair_suggestions": []},
+            captured,
+        )
+    )
+
+    result = assistant.analyze(source, profiles)
+
+    assert result["suggestions"] == []
+    assert result["rejected_model_items"] == 6
+    assert all(
+        "known_non_equivalent_source_target_pair" in item["reasons"]
+        for item in result["rejection_details"]
+    )
+
+
+def test_rejects_related_or_uncertain_relations_as_mapping_candidates():
+    captured = {}
+    model_output = {
+        "suggestions": [
+            {
+                "source_field": "عنوان موقعیت شغلی",
+                "candidate_dataset_id": "labor_market",
+                "candidate_field": "job_title",
+                "relation": "related_not_equivalent",
+                "confidence": 0.99,
+                "rationale": "Related but not equivalent.",
+            },
+            {
+                "source_field": "عنوان موقعیت شغلی",
+                "candidate_dataset_id": "labor_market",
+                "candidate_field": "job_title",
+                "relation": "uncertain",
+                "confidence": 0.99,
+                "rationale": "Uncertain relation.",
+            },
+        ],
+        "bilingual_pair_suggestions": [],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(_source_profile(), _profiles())
+
+    assert result["suggestions"] == []
+    assert result["rejected_model_items"] == 2
+    assert all(
+        "relation_not_eligible_for_mapping" in item["reasons"]
+        for item in result["rejection_details"]
+    )
+
+
 def test_rejects_invalid_configuration():
     try:
         OllamaSemanticAssistant(timeout=0)
