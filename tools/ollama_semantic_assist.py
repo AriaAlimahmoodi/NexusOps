@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from http.client import HTTPException
 from typing import Any, Callable, Iterable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -107,7 +108,7 @@ class OllamaSemanticAssistant:
         source_profile: dict[str, Any],
         dataset_profiles: Iterable[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Return bounded, registry-validated LLM suggestions for profiled headers.
+        """Return registry-validated LLM suggestions for profiled headers.
 
         Only source header names and inferred physical types are sent to Ollama.
         Raw records, sample values, and full column distributions are not sent.
@@ -175,7 +176,7 @@ class OllamaSemanticAssistant:
         try:
             with self._opener(request, timeout=self.timeout) as response:
                 response_payload = json.loads(response.read().decode("utf-8"))
-        except (URLError, TimeoutError, OSError):
+        except (URLError, TimeoutError, OSError, HTTPException):
             return self._unavailable("ollama_unavailable")
         except (UnicodeDecodeError, json.JSONDecodeError, AttributeError, TypeError):
             return self._unavailable("invalid_http_response")
