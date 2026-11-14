@@ -7,6 +7,7 @@ from pathlib import Path
 
 from tools.dataset_registry import DATASET_PROFILES
 from tools.ollama_semantic_assist import OllamaSemanticAssistant
+from tools.semantic_matching import match_source_profile
 
 
 def main() -> int:
@@ -46,9 +47,15 @@ def main() -> int:
         model=args.model,
         timeout=args.timeout,
     )
+    deterministic_report = match_source_profile(
+        source_profile,
+        DATASET_PROFILES.values(),
+    )
     report = assistant.analyze(
         source_profile,
         list(DATASET_PROFILES.values()),
+        existing_matches=deterministic_report["matches"],
+        existing_bilingual_pairs=deterministic_report["bilingual_field_pairs"],
     )
     output_path = Path(args.output)
     output_path.write_text(
@@ -62,6 +69,7 @@ def main() -> int:
         "suggestions": len(report["suggestions"]),
         "bilingual_pair_suggestions": len(report["bilingual_pair_suggestions"]),
         "rejected_model_items": report["rejected_model_items"],
+        "duplicate_model_items": report.get("duplicate_model_items", 0),
         "report_path": str(output_path),
         "error_code": report.get("error_code"),
     }, ensure_ascii=False, indent=2))
