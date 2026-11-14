@@ -92,6 +92,57 @@ def test_returns_registry_validated_suggestions_without_auto_acceptance():
     assert "مدیر نرم افزار" not in sent_content
 
 
+def test_accepts_qwen_bilingual_pairs_compatibility_key():
+    captured = {}
+    model_output = {
+        "suggestions": [],
+        "bilingual_pairs": [{
+            "source_fields": [
+                "Comany_CompanyOwnershipTypesFa",
+                "Company_CompanyOwnershipTypesEn",
+            ],
+            "relation": "possible_translation",
+            "confidence": 0.88,
+            "rationale": "The headers may be translated equivalents.",
+        }],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(_source_profile(), _profiles())
+
+    assert result["status"] == "completed"
+    assert len(result["bilingual_pair_suggestions"]) == 1
+    assert result["bilingual_pair_suggestions"][0]["value_equivalence_verified"] is False
+    assert result["bilingual_pair_suggestions"][0]["safe_to_drop"] is False
+
+
+def test_rejects_ambiguous_bilingual_pair_keys():
+    captured = {}
+    model_output = {
+        "suggestions": [],
+        "bilingual_pair_suggestions": [],
+        "bilingual_pairs": [{
+            "source_fields": [
+                "Comany_CompanyOwnershipTypesFa",
+                "Company_CompanyOwnershipTypesEn",
+            ],
+            "relation": "possible_translation",
+            "confidence": 0.88,
+            "rationale": "Potential translation.",
+        }],
+    }
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(_source_profile(), _profiles())
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "invalid_model_output"
+
+
 def test_rejects_hallucinated_registry_fields_and_unknown_source_headers():
     captured = {}
     model_output = {
@@ -217,4 +268,3 @@ def test_rejects_malformed_unhashable_model_fields_without_crashing():
     assert result["suggestions"] == []
     assert result["bilingual_pair_suggestions"] == []
     assert result["rejected_model_items"] == 2
-
