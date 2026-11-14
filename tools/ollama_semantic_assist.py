@@ -143,7 +143,8 @@ class OllamaSemanticAssistant:
             "Identify likely Persian/English header pairs, including obvious "
             "header spelling variants, but label uncertain cases as uncertain. "
             "Return only valid JSON with exactly these top-level keys: "
-            "suggestions and bilingual_pair_suggestions. "
+            "suggestions and bilingual_pair_suggestions. Use the exact key "
+            "bilingual_pair_suggestions, not an abbreviation or synonym. "
             "Each suggestion has source_field, candidate_dataset_id, "
             "candidate_field, relation, confidence, rationale. relation must be "
             "one of exact_equivalent, synonym, related_not_equivalent, "
@@ -193,7 +194,20 @@ class OllamaSemanticAssistant:
         if not isinstance(model_output, dict):
             return self._unavailable("invalid_model_output")
         raw_suggestions = model_output.get("suggestions")
-        raw_pairs = model_output.get("bilingual_pair_suggestions")
+
+        # Qwen3 may emit the shorter "bilingual_pairs" key despite the prompt.
+        # Accept it only as a compatibility alias when the canonical key is absent.
+        # If both keys are present, reject the response rather than guess which wins.
+        if (
+            "bilingual_pair_suggestions" in model_output
+            and "bilingual_pairs" in model_output
+        ):
+            return self._unavailable("invalid_model_output")
+        if "bilingual_pair_suggestions" in model_output:
+            raw_pairs = model_output["bilingual_pair_suggestions"]
+        else:
+            raw_pairs = model_output.get("bilingual_pairs")
+
         if not isinstance(raw_suggestions, list) or not isinstance(raw_pairs, list):
             return self._unavailable("invalid_model_output")
 
