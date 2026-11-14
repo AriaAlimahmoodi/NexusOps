@@ -26,6 +26,7 @@ UNIVERSITY_COURSES_PROFILE = {
 
     "source_type": "elasticsearch",
     "data_classification": "synthetic",
+    "document_id_fields": ["course_id"],
     "real_index": "university_courses_real",
     "provenance_contract": {
         "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
