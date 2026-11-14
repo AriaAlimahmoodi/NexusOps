@@ -41,6 +41,8 @@ def validate_collection_manifest(manifest, records):
     batch_id = manifest.get("collection_batch")
     if isinstance(batch_id, str) and batch_id.strip():
         for position, record in enumerate(records):
+            if not isinstance(record, Mapping):
+                continue
             if record.get("collection_batch") != batch_id:
                 issues.append({
                     "code": "COLLECTION_BATCH_MISMATCH",
