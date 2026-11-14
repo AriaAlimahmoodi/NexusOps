@@ -14,6 +14,7 @@ COURSE_GRADUATE_RECORDS_PROFILE = {
     ),
     "source_type": "elasticsearch",
     "data_classification": "synthetic",
+    "document_id_fields": ["course_id","graduate_id"],
     "real_index": "course_graduate_records_real",
     "provenance_contract": {
         "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
