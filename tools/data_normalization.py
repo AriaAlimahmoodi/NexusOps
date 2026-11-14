@@ -1,7 +1,7 @@
 """Source-independent normalization into NexusOps canonical dataset contracts.
 
-Source adapters must map their source-specific columns before calling this
-module. This module never changes the Registry schema to accommodate a source.
+Source adapters map source-specific columns before this module is called.
+This module never expands the Registry schema to accommodate an input source.
 """
 from __future__ import annotations
 
@@ -103,30 +103,30 @@ def normalize_real_record(
     *,
     record_id: str | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
-    """Normalize one source-adapted record against its registered schema.
+    """Normalize one source-adapted record against its registered contract.
 
-    The returned document contains only canonical Registry fields plus the
-    real-data classification marker. Unknown source fields are rejected rather
-    than silently indexed or discarded.
+    Input-only fields that NexusOps does not support are discarded. Canonical
+    fields absent from the source remain absent; they are not synthesized as
+    null. The Dataset Registry's required_fields and provenance contract decide
+    whether an incomplete record is valid. The returned document contains only
+    canonical Registry fields, supported provenance metadata, and the real-data
+    classification marker.
     """
     if not isinstance(record, Mapping):
         return {}, [_issue("INVALID_RECORD", "Each record must be a mapping.", record_id=record_id)]
 
     profile = get_dataset_profile(dataset_id)
     fields = profile.get("fields", {})
-    allowed_fields = set(fields) | {"data_classification"}
+    provenance_contract = profile.get("provenance_contract", {})
+    provenance_fields = set(provenance_contract.get("required_fields", [])) | set(
+        provenance_contract.get("optional_fields", [])
+    )
+    allowed_fields = set(fields) | provenance_fields | {"data_classification"}
     issues: list[dict[str, str]] = []
     normalized: dict[str, Any] = {}
 
-    for field in record:
-        if field not in allowed_fields:
-            issues.append(_issue(
-                "UNKNOWN_DATASET_FIELD",
-                f"Field '{field}' is not registered for dataset '{dataset_id}'.",
-                field=str(field),
-                record_id=record_id,
-            ))
-
+    # Deliberately do not copy or reject input-only fields. The canonical
+    # contract is a projection: unsupported source attributes are dropped.
     for field, field_config in fields.items():
         if field not in record:
             continue
@@ -139,6 +139,24 @@ def normalize_real_record(
             ))
         else:
             normalized[field] = value
+
+    # Provenance is governed separately from analytical fields, but is part of
+    # the persisted canonical document and therefore must be explicitly mapped.
+    for field in provenance_fields:
+        if field not in record:
+            continue
+        value = record[field]
+        if value is None:
+            normalized[field] = None
+        elif isinstance(value, str) and value.strip():
+            normalized[field] = value.strip()
+        else:
+            issues.append(_issue(
+                "INVALID_PROVENANCE_TYPE",
+                f"Provenance field '{field}' must be a non-empty string when supplied.",
+                field=field,
+                record_id=record_id,
+            ))
 
     for field in profile.get("validation", {}).get("required_fields", []):
         value = normalized.get(field)
