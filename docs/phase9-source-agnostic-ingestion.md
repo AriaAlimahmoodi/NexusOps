@@ -41,10 +41,10 @@ Stable Registry real_index alias
 - رشته‌ها را trim می‌کند.
 - مقادیر عددی متنی را به integer/float تبدیل می‌کند.
 - Booleanهای متنی متعارف را نرمال می‌کند.
-- فیلدهای خارج از قرارداد Dataset را با `UNKNOWN_DATASET_FIELD` رد می‌کند.
+- فیلدهای ورودی که در قرارداد canonical این Dataset وجود ندارند را حذف می‌کند؛ آن‌ها نه وارد سند می‌شوند و نه باعث گسترش Schema می‌شوند.
 - محدوده‌های عددی ثبت‌شده در Registry را بررسی می‌کند.
 - قرارداد provenance و timezone را کنترل می‌کند.
-- فقط فیلدهای canonical و نشانگر `data_classification=real` را برمی‌گرداند.
+- فیلدهای provenance مجاز را طبق `provenance_contract` جدا از فیلدهای تحلیلی نگه می‌دارد.\n- فیلدهای اختیاری غایب را به‌صورت مصنوعی با `null` ایجاد نمی‌کند.\n- فیلدهای canonical الزامیِ غایب همچنان طبق `validation.required_fields` نامعتبرند؛ نرمال‌ساز آن‌ها را با `null` پر نمی‌کند.\n- فقط فیلدهای canonical، provenance مجازِ ارائه‌شده و نشانگر `data_classification=real` را برمی‌گرداند.
 - رکورد ورودی را تغییر نمی‌دهد.
 
 این ماژول منبع‌محور نیست. Adapter هر منبع باید قبل از فراخوانی آن، نام و معنای فیلدهای منبع را به فیلدهای canonical نگاشت کند.
@@ -95,7 +95,7 @@ JobVision یک منبع آگهی شغلی در سطح هر آگهی است؛ د�
 
 ## تست‌های افزوده‌شده
 
-- `tests/test_data_normalization.py`: تبدیل نوع، trim، فیلد ناشناخته، محدوده عددی، رد Boolean به‌عنوان عدد و عدم تغییر ورودی.
+- `tests/test_data_normalization.py`: تبدیل نوع، trim، حذف فیلدهای خارج از قرارداد، حفظ provenance، عدم ساختن null برای فیلدهای اختیاری غایب، رد فیلد canonical الزامیِ غایب، محدوده عددی، رد Boolean به‌عنوان عدد و عدم تغییر ورودی.
 - `tests/test_atomic_data_publisher.py`: اولین انتشار، حفظ نسخه قبلی، رد رکورد نامعتبر، عدم انتشار پس از شکست Bulk و کلید مرکب.
 - `tests/test_data_ingestion.py`: بررسی اینکه ورودی عمومی به Publisher اتمیک هدایت می‌شود.
 
