@@ -20,7 +20,13 @@ REAL_INDEXES = {
 
 
 def _index_exists(client: Any, index: str) -> bool:
-    return bool(client.indices.exists(index=index))
+    response = client.indices.exists(index=index)
+    meta = getattr(response, "meta", None)
+    status = getattr(meta, "status", None)
+    if status is not None:
+        return status == 200
+    body = getattr(response, "body", response)
+    return bool(body)
 
 
 def _read_index(client: Any, index: str) -> list[dict[str, Any]]:
