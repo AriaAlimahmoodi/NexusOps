@@ -42,6 +42,7 @@ _KNOWN_NON_EQUIVALENT_TARGETS = {
     },
     "Jobpost_RequiredRelatedExperienceInThisIndustry": {
         ("labor_market", "experience_level"),
+        ("university_graduates", "additional_training"),
     },
     "Jobpost_RequiredMinAge": {
         ("university_graduates", "graduation_year"),
