@@ -14,6 +14,7 @@ UNIVERSITY_GRADUATES_PROFILE = {
     ),
     "source_type": "elasticsearch",
     "data_classification": "synthetic",
+    "document_id_fields": ["graduate_id"],
     "real_index": "university_graduates_real",
     "provenance_contract": {
         "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
