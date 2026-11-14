@@ -376,6 +376,45 @@ def test_rejects_known_non_equivalent_job_requirement_mappings():
     )
 
 
+def test_rejects_industry_experience_requirement_as_additional_training():
+    source = {
+        "columns": {
+            "Jobpost_RequiredRelatedExperienceInThisIndustry": {
+                "inferred_type": "boolean",
+            },
+        }
+    }
+    profiles = [{
+        "dataset_id": "university_graduates",
+        "fields": {
+            "additional_training": {"type": "boolean", "roles": ["dimension"]},
+        },
+    }]
+    model_output = {
+        "suggestions": [{
+            "source_field": "Jobpost_RequiredRelatedExperienceInThisIndustry",
+            "candidate_dataset_id": "university_graduates",
+            "candidate_field": "additional_training",
+            "relation": "synonym",
+            "confidence": 0.99,
+            "rationale": "Both are boolean flags.",
+        }],
+        "bilingual_pair_suggestions": [],
+    }
+    captured = {}
+    assistant = OllamaSemanticAssistant(
+        opener=_fake_opener_with_content(model_output, captured)
+    )
+
+    result = assistant.analyze(source, profiles)
+
+    assert result["suggestions"] == []
+    assert result["rejected_model_items"] == 1
+    assert result["rejection_details"][0]["reasons"] == [
+        "known_non_equivalent_source_target_pair"
+    ]
+
+
 def test_rejects_related_or_uncertain_relations_as_mapping_candidates():
     captured = {}
     model_output = {
