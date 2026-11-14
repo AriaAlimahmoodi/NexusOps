@@ -34,12 +34,13 @@ _PAIR_RELATIONS = {
 
 
 def _valid_confidence(value: Any) -> bool:
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
-        and 0.0 <= float(value) <= 1.0
-    )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        return False
+    return math.isfinite(number) and 0.0 <= number <= 1.0
 
 
 def _build_catalog(
@@ -59,11 +60,12 @@ def _build_catalog(
                 continue
             target = (dataset_id, field_name)
             allowed_targets.add(target)
+            roles = config.get("roles", [])
             catalog.append({
                 "dataset_id": dataset_id,
                 "field": field_name,
                 "type": config.get("type", "unknown"),
-                "roles": list(config.get("roles", [])),
+                "roles": list(roles) if isinstance(roles, (list, tuple)) else [],
             })
     return catalog, allowed_targets
 
@@ -207,8 +209,12 @@ class OllamaSemanticAssistant:
             confidence = item.get("confidence")
             rationale = item.get("rationale")
             if (
-                source_field not in source_names
+                not isinstance(source_field, str)
+                or source_field not in source_names
+                or not isinstance(dataset_id, str)
+                or not isinstance(target_field, str)
                 or (dataset_id, target_field) not in allowed_targets
+                or not isinstance(relation, str)
                 or relation not in _MATCH_RELATIONS
                 or not _valid_confidence(confidence)
                 or not isinstance(rationale, str)
@@ -238,8 +244,10 @@ class OllamaSemanticAssistant:
             if (
                 not isinstance(pair_fields, list)
                 or len(pair_fields) != 2
+                or any(not isinstance(field, str) for field in pair_fields)
                 or pair_fields[0] == pair_fields[1]
                 or any(field not in source_names for field in pair_fields)
+                or not isinstance(relation, str)
                 or relation not in _PAIR_RELATIONS
                 or not _valid_confidence(confidence)
                 or not isinstance(rationale, str)
