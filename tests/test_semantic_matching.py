@@ -130,4 +130,4 @@ def test_equal_matches_across_datasets_are_flagged_as_ambiguous():
     match = result["matches"][0]
     assert match["status"] == "manual_review"
     assert match["ambiguous"] is True
-    assert match["best_candidate"]["warning"] == "ambiguous_top_candidates"
+    assert "ambiguous_top_candidates" in match["best_candidate"]["warnings"]
