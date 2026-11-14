@@ -13,7 +13,7 @@ from typing import Any
 
 from elasticsearch.helpers import bulk
 
-from tools.data_ingestion import MANIFEST_REQUIRED_FIELDS, validate_collection_manifest
+from tools.data_ingestion import validate_collection_manifest
 from tools.data_normalization import normalize_real_record
 from tools.dataset_registry import get_dataset_index, get_dataset_profile
 
