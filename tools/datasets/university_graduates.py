@@ -13,6 +13,12 @@ UNIVERSITY_GRADUATES_PROFILE = {
         "outcomes, career relevance, and additional skills."
     ),
     "source_type": "elasticsearch",
+    "data_classification": "synthetic",
+    "real_index": "university_graduates_real",
+    "provenance_contract": {
+        "required_fields": ["source", "observed_at", "collection_batch", "time_granularity"],
+        "optional_fields": ["published_at", "valid_from", "valid_until"],
+    },
     "fields": {
         "graduate_id": {
             "type": "keyword",
