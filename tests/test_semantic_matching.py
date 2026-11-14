@@ -69,7 +69,7 @@ def test_semantically_related_but_not_equivalent_field_is_not_forced():
 def test_incompatible_type_is_not_matched():
     result = match_source_profile(
         {"columns": {
-            "Jobpost_RawTitle": {"inferred_type": "json_array", "null_ratio": 0.0},
+            "Jobpost_RawTitle": {"inferred_type": "boolean", "null_ratio": 0.0},
         }},
         _profiles(),
     )
