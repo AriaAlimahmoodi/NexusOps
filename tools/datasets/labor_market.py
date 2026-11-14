@@ -128,22 +128,6 @@ LABOR_MARKET_PROFILE = {
             ],
         },
 
-        "source": {
-            "type": "keyword",
-            "roles": ["dimension", "filter", "group_by"],
-        },
-        "observed_at": {
-            "type": "date",
-            "roles": ["dimension", "filter", "group_by", "sort"],
-        },
-        "published_at": {
-            "type": "date",
-            "roles": ["dimension", "filter", "group_by", "sort"],
-        },
-        "collection_batch": {
-            "type": "keyword",
-            "roles": ["dimension", "filter", "group_by"],
-        },
     },
 
     # ---------------------------------------------------------
