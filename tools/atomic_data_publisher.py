@@ -42,8 +42,45 @@ def _canonical_mapping(dataset_id: str) -> dict[str, Any]:
         for field, config in profile.get("fields", {}).items()
         if config.get("type")
     }
+
+    provenance_contract = profile.get("provenance_contract", {})
+    timestamp_fields = {"observed_at", "published_at", "valid_from", "valid_until"}
+    for field in (
+        list(provenance_contract.get("required_fields", []))
+        + list(provenance_contract.get("optional_fields", []))
+    ):
+        properties[field] = {
+            "type": "date" if field in timestamp_fields else "keyword"
+        }
+
     properties["data_classification"] = {"type": "keyword"}
     return {"dynamic": "strict", "properties": properties}
+
+
+def _merge_canonical_mapping(
+    existing_mapping: dict[str, Any],
+    dataset_id: str,
+) -> dict[str, Any]:
+    """Add newly required canonical fields without changing existing mappings."""
+    mapping = {
+        **existing_mapping,
+        "properties": dict(existing_mapping.get("properties", {})),
+    }
+    expected_properties = _canonical_mapping(dataset_id)["properties"]
+
+    for field, expected in expected_properties.items():
+        existing = mapping["properties"].get(field)
+        if existing is None:
+            mapping["properties"][field] = expected
+            continue
+        if existing.get("type") != expected["type"]:
+            raise RuntimeError(
+                f"Existing real-index mapping for '{field}' is "
+                f"'{existing.get('type')}', but the canonical contract requires "
+                f"'{expected['type']}'. A reviewed migration is required."
+            )
+
+    return mapping
 
 
 def _current_alias_target(client: Any, alias: str) -> str | None:
@@ -144,7 +181,12 @@ def ingest_real_records_atomically(
                     client.indices.get_mapping(index=previous_index)
                 )
                 old_mapping = old_mapping_response[previous_index]["mappings"]
-                client.indices.create(index=staging_index, mappings=old_mapping)
+                compatible_mapping = _merge_canonical_mapping(
+                    old_mapping, dataset_id
+                )
+                client.indices.create(
+                    index=staging_index, mappings=compatible_mapping
+                )
 
                 copied = _body(client.reindex(
                     source={"index": previous_index},
