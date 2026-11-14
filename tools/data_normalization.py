@@ -121,7 +121,6 @@ def normalize_real_record(
     provenance_fields = set(provenance_contract.get("required_fields", [])) | set(
         provenance_contract.get("optional_fields", [])
     )
-    allowed_fields = set(fields) | provenance_fields | {"data_classification"}
     issues: list[dict[str, str]] = []
     normalized: dict[str, Any] = {}
 
