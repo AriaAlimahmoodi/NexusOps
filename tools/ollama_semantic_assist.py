@@ -217,6 +217,7 @@ class OllamaSemanticAssistant:
         request_body = {
             "model": self.model,
             "stream": False,
+            "think": False,
             "format": "json",
             "options": {"temperature": 0},
             "messages": [
