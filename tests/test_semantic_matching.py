@@ -110,3 +110,24 @@ def test_rejects_invalid_thresholds_and_top_k():
         assert "top_k" in str(error)
     else:
         raise AssertionError("top_k=0 should fail")
+
+def test_equal_matches_across_datasets_are_flagged_as_ambiguous():
+    profiles = [
+        {"dataset_id": "labor_market", "fields": {
+            "job_title": {"type": "keyword", "roles": ["dimension"]},
+        }},
+        {"dataset_id": "university_graduates", "fields": {
+            "job_title": {"type": "keyword", "roles": ["dimension"]},
+        }},
+    ]
+    result = match_source_profile(
+        {"columns": {
+            "Jobpost_RawTitle": {"inferred_type": "string", "null_ratio": 0.0},
+        }},
+        profiles,
+    )
+
+    match = result["matches"][0]
+    assert match["status"] == "manual_review"
+    assert match["ambiguous"] is True
+    assert match["best_candidate"]["warning"] == "ambiguous_top_candidates"
