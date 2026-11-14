@@ -87,6 +87,7 @@ def test_returns_registry_validated_suggestions_without_auto_acceptance():
     assert result["policy"]["automatic_schema_mutation"] is False
     assert captured["url"].endswith("/api/chat")
     assert captured["body"]["model"] == "qwen3:4b"
+    assert captured["body"]["think"] is False
     sent_content = captured["body"]["messages"][1]["content"]
     assert "sample_values" not in sent_content
     assert "مدیر نرم افزار" not in sent_content
