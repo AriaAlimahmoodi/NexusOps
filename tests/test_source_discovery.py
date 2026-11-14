@@ -1,3 +1,5 @@
+import csv
+import json
 from io import StringIO
 
 import pytest
@@ -25,11 +27,12 @@ def test_profiles_csv_columns_types_nulls_and_top_values():
 
 
 def test_profiles_nested_json_without_source_specific_field_rules():
-    source = StringIO(
-        'post_id,attributes\n'
-        '1,"[{\"name\": \"Python\", \"level\": \"advanced\"}]"\n'
-        '2,"[{\"name\": \"SQL\", \"level\": \"basic\"}]"\n'
-    )
+    source = StringIO()
+    writer = csv.writer(source)
+    writer.writerow(["post_id", "attributes"])
+    writer.writerow(["1", json.dumps([{"name": "Python", "level": "advanced"}])])
+    writer.writerow(["2", json.dumps([{"name": "SQL", "level": "basic"}])])
+    source.seek(0)
 
     report = profile_csv_stream(source)
 
@@ -84,19 +87,24 @@ def test_rejects_invalid_memory_limits():
 
 
 def test_auto_detects_tab_delimited_files():
-    source = StringIO("id\\tregion\\n1\\tMadrid\\n2\\tTehran\\n")
+    source = StringIO(
+        "id" + "\t" + "region" + "\n"
+        + "1" + "\t" + "Madrid" + "\n"
+        + "2" + "\t" + "Tehran" + "\n"
+    )
 
     report = profile_csv_stream(source)
 
-    assert report["delimiter"] == "\\t"
+    assert report["delimiter"] == "\t"
     assert report["row_count"] == 2
 
 
 def test_bounds_nested_json_key_cardinality():
-    source = StringIO(
-        'payload\\n'
-        '"[{\"alpha\": 1, \"beta\": 2}]"\\n'
-    )
+    source = StringIO()
+    writer = csv.writer(source)
+    writer.writerow(["payload"])
+    writer.writerow([json.dumps([{"alpha": 1, "beta": 2}])])
+    source.seek(0)
 
     report = profile_csv_stream(
         source,
