@@ -8,8 +8,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from elasticsearch.helpers import bulk
-
 from tools.data_governance import _timestamp
 from tools.data_normalization import normalize_real_record
 from tools.dataset_registry import get_dataset_index, get_dataset_profile
@@ -132,47 +130,11 @@ def prepare_real_records(dataset_id, records, manifest):
 
 
 def ingest_real_records(client, dataset_id, records, manifest):
-    """Index a validated batch only into the isolated real-data index.
+    """Publish a validated real-data batch through the atomic Registry alias."""
+    # Lazy import avoids a module cycle: the publisher reuses this module's
+    # manifest validation contract.
+    from tools.atomic_data_publisher import ingest_real_records_atomically
 
-    This compatibility entry point retains the existing direct-index behavior.
-    New production imports should use the atomic publication entry point once
-    that publisher is enabled for the target dataset.
-    """
-    prepared = prepare_real_records(dataset_id, records, manifest)
-    profile = get_dataset_profile(dataset_id)
-    target_index = get_dataset_index(dataset_id, "real")
-    id_fields = profile.get("document_id_fields") or (
-        [profile["primary_key"]] if profile.get("primary_key") else []
+    return ingest_real_records_atomically(
+        client, dataset_id, records, manifest
     )
-
-    actions = []
-    for record in prepared:
-        action = {
-            "_op_type": "index",
-            "_index": target_index,
-            "_source": record,
-        }
-        if id_fields:
-            action["_id"] = "::".join(
-                str(record[field]).strip() for field in id_fields
-            )
-        actions.append(action)
-
-    indexed_count, errors = bulk(
-        client, actions, raise_on_error=False, stats_only=False
-    )
-    if errors:
-        error = RuntimeError(
-            f"Elasticsearch reported {len(errors)} bulk error(s); "
-            f"{indexed_count} record(s) were indexed before the errors."
-        )
-        error.indexed_count = indexed_count
-        error.errors = errors
-        raise error
-    return {
-        "dataset_id": dataset_id,
-        "classification": "real",
-        "index": target_index,
-        "collection_batch": manifest["collection_batch"],
-        "indexed_records": indexed_count,
-    }
