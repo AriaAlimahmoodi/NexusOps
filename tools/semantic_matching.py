@@ -15,15 +15,18 @@ from typing import Any, Iterable
 _FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "job_title": (
         "jobpost_rawtitle", "raw job title", "عنوان شغلی", "عنوان شغل",
-        "job title", "position title",
+        "عنوان سمت", "عنوان موقعیت شغلی", "job title", "position title",
+        "job position", "position name",
     ),
     "job_field": (
         "jobpost_mainjobcategory", "main job category", "job category",
-        "حوزه شغلی", "دسته بندی شغلی",
+        "occupational category", "occupational field", "حوزه شغلی",
+        "حوزه حرفه ای", "دسته بندی شغلی", "طبقه بندی شغلی",
     ),
     "skill": (
         "jobpost_softwareskills", "software skills", "مهارت نرم افزاری",
-        "مهارت های نرم افزاری", "technical skills",
+        "مهارت های نرم افزاری", "مهارت تخصصی", "توانمندی فنی",
+        "technical skills", "technical competencies",
     ),
     "additional_skills": (
         "jobpost_softwareskills", "software skills", "مهارت نرم افزاری",
@@ -35,13 +38,20 @@ _FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     ),
     "major": (
         "major", "رشته تحصیلی", "رشته دانشگاهی", "field of study",
+        "academic major",
     ),
     "course_name": ("course name", "نام درس", "عنوان درس"),
     "course_id": ("course id", "شناسه درس", "کد درس"),
     "graduation_year": ("graduation year", "سال فارغ التحصیلی"),
-    "study_level": ("study level", "degree level", "مقطع تحصیلی"),
+    "study_level": (
+        "study level", "degree level", "academic degree",
+        "educational level", "مقطع تحصیلی", "مقطع دانشگاهی",
+    ),
     "employment_months": ("employment months", "مدت اشتغال به ماه"),
-    "career_relevance": ("career relevance", "ارتباط شغل با رشته"),
+    "career_relevance": (
+        "career relevance", "job major relevance", "field job alignment",
+        "ارتباط شغل با رشته", "ارتباط شغل و رشته",
+    ),
     "demand_score": ("demand score", "امتیاز تقاضای بازار"),
     "frequency": ("frequency", "فراوانی"),
 }
@@ -63,6 +73,57 @@ def normalize_semantic_text(value: str) -> str:
     text = re.sub(r"[_\-./\\]+", " ", text)
     text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
     return " ".join(text.split())
+
+
+def detect_bilingual_field_pairs(source_columns: dict[str, Any]) -> list[dict[str, Any]]:
+    """Identify likely Fa/En header pairs without claiming their values are equal.
+
+    A matching base name and language suffix indicate a conceptual pair only.
+    Value-level equivalence must be checked against source records separately.
+    """
+    language_suffix = re.compile(
+        r"(?:[_\\-\\s])(fa|en|persian|english)$", flags=re.IGNORECASE
+    )
+    grouped: dict[str, dict[str, list[tuple[str, dict[str, Any]]]]] = {}
+
+    for raw_name, stats in source_columns.items():
+        match = language_suffix.search(str(raw_name))
+        if not match:
+            continue
+        language = match.group(1).casefold()
+        language = "fa" if language in {"fa", "persian"} else "en"
+        base = normalize_semantic_text(str(raw_name)[:match.start()])
+        if not base:
+            continue
+        grouped.setdefault(base, {}).setdefault(language, []).append(
+            (str(raw_name), stats if isinstance(stats, dict) else {})
+        )
+
+    pairs = []
+    for base, languages in sorted(grouped.items()):
+        if not languages.get("fa") or not languages.get("en"):
+            continue
+        for fa_name, fa_stats in languages["fa"]:
+            for en_name, en_stats in languages["en"]:
+                fa_type = fa_stats.get("inferred_type", "unknown")
+                en_type = en_stats.get("inferred_type", "unknown")
+                pairs.append({
+                    "normalized_base": base,
+                    "fields": [
+                        {"name": fa_name, "language": "fa", "inferred_type": fa_type},
+                        {"name": en_name, "language": "en", "inferred_type": en_type},
+                    ],
+                    "status": "bilingual_semantic_pair_candidate",
+                    "physical_types_compatible": (
+                        fa_type == en_type
+                        or fa_type in {"unknown", "mixed"}
+                        or en_type in {"unknown", "mixed"}
+                    ),
+                    "value_equivalence_verified": False,
+                    "safe_to_drop": False,
+                    "requires_value_level_validation": True,
+                })
+    return pairs
 
 
 def _tokens(value: str) -> set[str]:
@@ -135,6 +196,8 @@ def match_source_profile(
             continue
         for field_name, config in fields.items():
             targets.append((dataset_id, field_name, config))
+
+    bilingual_pairs = detect_bilingual_field_pairs(source_columns)
 
     results = []
     for source_name, source_stats in source_columns.items():
@@ -209,9 +272,10 @@ def match_source_profile(
         "auto_match_candidates": sum(item["status"] == "auto_match_candidate" for item in results),
         "manual_review": sum(item["status"] == "manual_review" for item in results),
         "unmatched": sum(item["status"] == "unmatched" for item in results),
+        "bilingual_field_pair_candidates": len(bilingual_pairs),
     }
     return {
-        "matching_version": 1,
+        "matching_version": 2,
         "policy": {
             "auto_match_threshold": auto_match_threshold,
             "review_threshold": review_threshold,
@@ -219,5 +283,6 @@ def match_source_profile(
             "automatic_ingestion": False,
         },
         "summary": summary,
+        "bilingual_field_pairs": bilingual_pairs,
         "matches": results,
     }
