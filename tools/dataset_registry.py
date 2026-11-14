@@ -34,6 +34,8 @@ def list_registered_datasets() -> list[dict]:
             "dataset_id": profile["dataset_id"],
             "index": profile["index"],
             "description": profile["description"],
+            "data_classification": profile.get("data_classification", "unspecified"),
+            "real_index": profile.get("real_index"),
         }
         for profile in DATASET_PROFILES.values()
     ]
@@ -59,3 +61,13 @@ def validate_dataset_field(
         )
 
     return True
+
+
+def get_dataset_index(dataset_id: str, classification: str = "synthetic") -> str:
+    """Resolve the isolated Elasticsearch index for a registered data class."""
+    profile = get_dataset_profile(dataset_id)
+    if classification == "synthetic":
+        return profile["index"]
+    if classification == "real":
+        return profile["real_index"]
+    raise ValueError("classification must be 'synthetic' or 'real'.")
