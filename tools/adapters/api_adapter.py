@@ -99,7 +99,8 @@ class APISourceAdapter:
             response = urlopen(request, timeout=float(timeout))
         except HTTPError as exc:
             status = exc.code
-            exc.close()
+            if exc.fp is not None:
+                exc.close()
             raise APISourceError(
                 f"API source returned HTTP status {status}."
             ) from None
