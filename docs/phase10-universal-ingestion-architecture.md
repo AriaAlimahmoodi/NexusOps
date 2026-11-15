@@ -67,6 +67,30 @@ canonical field mapping, normalization, governance, and publication. Those
 concerns must be added only where a concrete source type requires them and must
 not leak into the shared record interface.
 
+## Phase 10.3 — Streaming JSON source adapter
+
+Implemented in `tools/adapters/json_adapter.py`.
+
+The adapter implements the shared `SourceAdapter` contract and supports two
+explicit source layouts:
+
+- `jsonl` (default): one JSON object per non-empty line;
+- `array`: a top-level JSON array containing JSON objects.
+
+JSON Lines are decoded one line at a time. JSON arrays are decoded incrementally
+using a bounded input buffer; the complete source document is not loaded into
+memory. Array items and JSON Lines values must be objects. Malformed JSON,
+non-object values, trailing content, and unsupported options are rejected.
+
+Adapter-specific options are `encoding`, `mode`, and `chunk_size`. The default
+encoding is `utf-8-sig`, the default mode is `jsonl`, and array mode uses a
+64 KiB input chunk by default. The adapter preserves JSON value types and
+original property names. It does not infer schema or canonical meaning.
+
+The adapter does not support pretty-printed multi-line JSON objects in JSON
+Lines mode. Such sources must use array mode or be converted to one-object-per-
+line JSON Lines before being read.
+
 ## Required processing boundary
 
 ```text
@@ -103,9 +127,9 @@ Atomic publisher (explicitly approved real-data ingestion)
 
 ## Current scope and limitations
 
-This increment implements the generic CSV reading boundary, the shared source
-adapter contract, and contract conformance tests. It does not implement JSON or
-API adapters, source-to-canonical mappings, approve JobVision ingestion, change
+This increment implements streaming CSV and JSON source readers, the shared
+source adapter contract, and adapter conformance tests. It does not implement an
+API adapter, source-to-canonical mappings, approve JobVision ingestion, change
 Registry profiles, change Elasticsearch mappings, or alter n8n workflows.
 JobVision remains blocked by the Phase 9 policy and the unresolved definition of
 canonical `demand_score`.
