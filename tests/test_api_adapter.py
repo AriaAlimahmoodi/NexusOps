@@ -26,7 +26,7 @@ def install_response(monkeypatch, payload):
 def test_api_adapter_reads_jsonl_incrementally_and_preserves_values(monkeypatch):
     calls = install_response(
         monkeypatch,
-        b'{"external_id":"001","active":true}\\n{"score":4.5}\\n',
+        b'{"external_id":"001","active":true}\n{"score":4.5}\n',
     )
     adapter = APISourceAdapter()
 
@@ -58,7 +58,7 @@ def test_api_adapter_reads_json_array_with_bounded_chunks(monkeypatch):
 
 
 def test_api_adapter_passes_custom_headers_and_timeout(monkeypatch):
-    calls = install_response(monkeypatch, b'{"id":1}\\n')
+    calls = install_response(monkeypatch, b'{"id":1}\n')
 
     list(
         APISourceAdapter().iter_records(
@@ -79,7 +79,7 @@ def test_api_adapter_passes_custom_headers_and_timeout(monkeypatch):
 
 
 def test_api_adapter_satisfies_universal_contract(monkeypatch):
-    install_response(monkeypatch, b'{"raw_title":"Backend Developer"}\\n')
+    install_response(monkeypatch, b'{"raw_title":"Backend Developer"}\n')
     adapter = APISourceAdapter()
 
     assert isinstance(adapter, SourceAdapter)
@@ -178,14 +178,14 @@ def test_api_adapter_sanitizes_transport_errors(monkeypatch):
 
 
 def test_api_adapter_rejects_non_object_json_records(monkeypatch):
-    install_response(monkeypatch, b'{"id":1}\\n42\\n')
+    install_response(monkeypatch, b'{"id":1}\n42\n')
 
     with pytest.raises(APISourceError, match="must be an object"):
         list(APISourceAdapter().iter_records(SourceSpec("https://example.test/jobs")))
 
 
 def test_api_adapter_reports_malformed_json_response(monkeypatch):
-    install_response(monkeypatch, b'{"id":1}\\nnot-json\\n')
+    install_response(monkeypatch, b'{"id":1}\nnot-json\n')
 
     with pytest.raises(APISourceError, match="line 2"):
         list(APISourceAdapter().iter_records(SourceSpec("https://example.test/jobs")))
@@ -205,7 +205,7 @@ def test_api_adapter_rejects_array_trailing_content(monkeypatch):
 
 
 def test_api_adapter_closes_response_when_iteration_finishes(monkeypatch):
-    response = FakeResponse(b'{"id":1}\\n')
+    response = FakeResponse(b'{"id":1}\n')
     monkeypatch.setattr(api_module, "urlopen", lambda request, timeout: response)
 
     assert list(
