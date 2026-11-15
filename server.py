@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from tools.market_skills import get_market_skill_details
+from tools.source_connectors import BLSClient, CollegeScorecardClient
 from runtime_logging import configure_logging, resolve_request_id
 from typing import Any, Literal
 from pydantic import BaseModel, Field
@@ -585,6 +586,92 @@ async def analytics_query_tool(
             execution_time_ms=(time.perf_counter() - started_at) * 1000,
         )
         return json.dumps(error, ensure_ascii=False, indent=2)
+
+
+@server.tool(
+    name="fetch_college_scorecard_schools",
+    description=(
+        "READ-ONLY EXTERNAL SOURCE RETRIEVAL. Fetch one raw page from the "
+        "U.S. Department of Education College Scorecard institution-level "
+        "schools API. Requires COLLEGE_SCORECARD_API_KEY in the local "
+        "environment. Provide explicit API field names and optional provider "
+        "filters. Returns the provider JSON unchanged. Does not write to "
+        "Elasticsearch, normalize records, or change registered datasets."
+    ),
+)
+async def fetch_college_scorecard_schools_tool(
+    fields: list[str],
+    page: int = 0,
+    per_page: int = 100,
+    filters: dict[str, str | int | float] | None = None,
+    all_programs_nested: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        api_key = os.getenv("COLLEGE_SCORECARD_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "COLLEGE_SCORECARD_API_KEY is not configured in the local environment."
+            )
+        client = CollegeScorecardClient(api_key)
+        return client.get_schools(
+            fields=fields,
+            page=page,
+            per_page=per_page,
+            filters=filters,
+            all_programs_nested=all_programs_nested,
+        )
+
+    return await run_sync_tool(
+        "fetch_college_scorecard_schools",
+        fetch,
+        context=ctx,
+    )
+
+
+@server.tool(
+    name="fetch_bls_series",
+    description=(
+        "READ-ONLY EXTERNAL SOURCE RETRIEVAL. Fetch raw time-series data from "
+        "the U.S. Bureau of Labor Statistics Public Data API. Requires explicit "
+        "BLS series IDs and a year range. BLS_API_VERSION defaults to 1; v2 "
+        "requires BLS_REGISTRATION_KEY. Returns provider JSON unchanged. "
+        "Does not write to Elasticsearch, normalize records, or change "
+        "registered datasets. Never infer or invent series IDs."
+    ),
+)
+async def fetch_bls_series_tool(
+    series_ids: list[str],
+    start_year: int,
+    end_year: int,
+    catalog: bool = False,
+    calculations: bool = False,
+    annualaverage: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        try:
+            version = int(os.getenv("BLS_API_VERSION", "1"))
+        except ValueError as exc:
+            raise RuntimeError("BLS_API_VERSION must be 1 or 2.") from exc
+        client = BLSClient(
+            version=version,
+            registration_key=os.getenv("BLS_REGISTRATION_KEY"),
+        )
+        return client.get_series(
+            series_ids=series_ids,
+            start_year=start_year,
+            end_year=end_year,
+            catalog=catalog,
+            calculations=calculations,
+            annualaverage=annualaverage,
+        )
+
+    return await run_sync_tool(
+        "fetch_bls_series",
+        fetch,
+        context=ctx,
+    )
 
 
 if __name__ == "__main__":
