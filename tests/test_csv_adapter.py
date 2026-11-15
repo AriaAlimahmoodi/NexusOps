@@ -1,5 +1,3 @@
-import csv
-
 import pytest
 
 from tools.adapters.csv_adapter import (
@@ -86,7 +84,7 @@ def test_strict_mode_rejects_missing_trailing_cells(tmp_path):
         list(iter_csv_records(source))
 
 
-def test_non_strict_mode_retains_missing_and_extra_row_shape(tmp_path):
+def test_non_strict_mode_retains_missing_trailing_cells(tmp_path):
     missing = tmp_path / "missing.csv"
     missing.write_text("id,name\n1\n", encoding="utf-8")
     assert list(iter_csv_records(missing, strict=False)) == [
