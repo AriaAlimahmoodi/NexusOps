@@ -182,6 +182,13 @@ def ingest_source(
             raise ValueError(
                 "mapping_spec dataset_id does not match the ingestion dataset."
             )
+        if (
+            not isinstance(manifest, Mapping)
+            or manifest.get("source_name") != mapping_spec.source_name
+        ):
+            raise ValueError(
+                "manifest source_name must match mapping_spec source_name."
+            )
 
     if adapter_registry is None:
         from tools.adapters.registry import create_default_adapter_registry
