@@ -168,9 +168,13 @@ def main() -> int:
             "skill_names": sorted(skill_names),
             "mention_count_for_alias": sum(
                 count
-                for skill_name, variants in skill_title_fa_values.items()
-                if alias in variants
-                for count in [variants[alias]]
+                for skill_name in skill_names
+                for raw_value, count in skill_title_fa_values[skill_name].items()
+                if alias in {
+                    part.strip()
+                    for part in raw_value.split(",")
+                    if part.strip()
+                }
             ),
         }
         for alias, skill_names in sorted(alias_to_skill_names.items())
