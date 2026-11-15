@@ -64,7 +64,7 @@ def test_registry_dispatches_api_adapter_without_making_a_request(monkeypatch):
 
     def fake_urlopen(request, timeout):
         calls.append((request.full_url, timeout))
-        return BytesIO(b'{"id":7}\\n')
+        return BytesIO(b'{"id":7}\n')
 
     monkeypatch.setattr(api_module, "urlopen", fake_urlopen)
     records = list(
@@ -136,5 +136,5 @@ def test_registry_rejects_empty_adapter_format_name():
         def iter_records(self, source):
             return iter(())
 
-    with pytest.raises(ValueError, match="format_name"):
+    with pytest.raises(TypeError, match="format_name"):
         registry.register(EmptyNameAdapter())
