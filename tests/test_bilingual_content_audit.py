@@ -1,5 +1,3 @@
-from collections import Counter
-
 from scripts.audit_bilingual_content import (
     _consume_row,
     _finish_pair,
