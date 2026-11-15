@@ -282,3 +282,32 @@ inserted into `ingest_source`: doing so would read a source twice, which can be
 expensive or unsafe for POST endpoints and other non-repeatable sources. A
 successful structural profile is not semantic approval or ingestion
 authorization. JobVision remains blocked under the existing policy.
+
+
+## Phase 10.8 — Read-only source compatibility assessment
+
+Implemented in `tools/source_compatibility.py` and
+`tests/test_source_compatibility.py`.
+
+`assess_source_compatibility(dataset_id, format_name, source, ...)` performs
+one adapter-backed source read and compares the resulting structural profile
+with the selected Dataset Registry contract.
+
+The report includes:
+
+- exact source field-name matches against registered dataset and provenance
+  fields (candidate matches only; not semantic approval);
+- registered required fields not observed in the source;
+- source-only fields outside the canonical and provenance contracts, which
+  canonical projection will discard;
+- conservative physical-type checks for exact-name matches, including an
+  explicit not-assessable status for unknown or mixed observations;
+- the bounded source profile and aggregate assessment counts.
+
+The assessment is read-only. It does not map differently named source fields,
+change Registry schemas, normalize records, mutate source files, or write to
+Elasticsearch. Its decision is always `manual_review_required`; the report
+explicitly sets `semantic_mapping_performed=false` and
+`ingestion_authorized=false`. A successful name/type comparison is not
+evidence that two fields have the same meaning. In particular, this phase
+does not unblock JobVision ingestion or resolve canonical `demand_score`.
