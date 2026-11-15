@@ -6,7 +6,7 @@ equivalence, converts values, fills missing fields, or changes Registry schemas.
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 from typing import Any
