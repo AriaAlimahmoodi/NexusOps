@@ -31,7 +31,8 @@ The adapter:
 - preserves source headers and raw string values;
 - distinguishes missing trailing cells (`None`) from explicit empty cells (`""`);
 - skips completely blank rows;
-- rejects duplicate/empty headers and malformed row widths in strict mode;
+- rejects duplicate/empty headers and extra cells; strict mode also rejects
+  missing trailing cells;
 - does not rename fields, infer canonical meaning, normalize values, mutate source
   files, or write to Elasticsearch.
 
