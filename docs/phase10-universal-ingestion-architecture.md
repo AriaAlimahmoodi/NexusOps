@@ -91,30 +91,59 @@ The adapter does not support pretty-printed multi-line JSON objects in JSON
 Lines mode. Such sources must use array mode or be converted to one-object-per-
 line JSON Lines before being read.
 
-## Phase 10.4 — Streaming HTTP API source adapter
+## Phase 10.4 — Configurable HTTP API source adapter
 
 Implemented in `tools/adapters/api_adapter.py`.
 
-The adapter implements the shared `SourceAdapter` contract and performs
-read-only HTTP(S) GET requests. It streams response content through the JSON
-record readers and supports the same explicit `jsonl` (default) and top-level
-`array` layouts as the file-backed JSON adapter. Records must be JSON objects;
-source property names and JSON value types are preserved.
+The adapter implements the shared `SourceAdapter` contract and supports
+read-only data retrieval through HTTP(S) GET and explicitly configured POST
+requests. Direct JSONL and top-level JSON-array responses are streamed through
+the shared JSON readers. JSON envelope extraction and pagination operate one
+response page at a time and preserve each source record's property names and
+JSON value types.
 
-Supported options are:
-- `headers`: optional string-to-string request headers (useful for API
-  authentication); credentials are not included in adapter error messages;
-- `timeout`: positive request timeout in seconds (default: 30);
-- `mode`: `jsonl` or `array` (default: `jsonl`);
-- `encoding`: response text encoding (default: `utf-8-sig`);
-- `chunk_size`: positive array-decoding chunk size (default: 64 KiB).
+Supported request options:
 
-Only HTTP(S) URLs without embedded user credentials are accepted. The adapter
-does not implement pagination, retries, POST requests, token refresh, response
-schema inference, semantic mapping, canonical validation, or publication.
-Pagination and API-specific envelope extraction require an explicit later
-design rather than implicit assumptions about a provider's response shape.
-All adapter tests use mocked HTTP responses; they do not contact external APIs.
+- `headers`: optional string-to-string request headers, including API
+  authentication headers;
+- `timeout`: positive timeout in seconds (default: 30);
+- `method`: `GET` (default) or `POST`;
+- `body`: JSON-serializable request body, required for POST and prohibited
+  for GET;
+- `content_type`: POST content type (default: `application/json`);
+- `mode`: `jsonl` (default) or `array`;
+- `encoding`: response encoding (default: `utf-8-sig`);
+- `chunk_size`: positive JSON-array reader chunk size (default: 64 KiB);
+- `records_path`: optional dotted path to the array of records inside a JSON
+  response envelope; numeric path segments can address array elements.
+
+Pagination is opt-in through the `pagination` mapping and requires
+`mode="array"` plus `records_path`:
+
+- `strategy="page"`: query-parameter pagination. Configure `page_param`
+  (default `page`), `start_page` (default 1), required `page_size`, and
+  optional paired `page_size_param`. A short page ends iteration.
+- `strategy="next_url"`: link-based pagination. Configure
+  `next_url_path` to the dotted path containing the next URL; a null or empty
+  value ends iteration.
+- Both strategies support `max_pages` (default 100). Next URLs are restricted
+  to the original origin so authorization headers are not forwarded to another
+  host.
+
+Retry options are `retries` (default 0), `retry_backoff_seconds` (default
+0.5; exponential backoff), and `retry_statuses` (default 429, 500, 502, 503,
+504). GET retries are enabled when configured. POST retries are disabled by
+default; `retry_post=True` explicitly opts in and can repeat a non-idempotent
+operation, so callers must only enable it when the endpoint supports safe
+retries or an idempotency key.
+
+Only HTTP(S) URLs without embedded user credentials are accepted. HTTP error
+messages do not expose request URLs or header values. No automatic token
+refresh, provider-specific field mapping, canonical normalization, governance,
+or publication is performed. Tests use mocked responses and do not contact
+external APIs. Direct JSONL and JSON-array modes stream records; envelope
+extraction buffers one response page in memory, so page size and
+`max_pages` should be chosen conservatively for large sources.
 
 ## Required processing boundary
 
@@ -152,8 +181,9 @@ Atomic publisher (explicitly approved real-data ingestion)
 
 ## Current scope and limitations
 
-This increment implements streaming CSV, JSON, and HTTP API source readers,
-the shared source adapter contract, and adapter conformance tests. It does not
+This increment implements streaming CSV and JSON readers, a configurable
+HTTP API reader with pagination, retries, POST, and envelope extraction, the
+shared source adapter contract, and adapter conformance tests. It does not
 implement source-to-canonical mappings, approve JobVision ingestion, change
 Registry profiles, change Elasticsearch mappings, or alter n8n workflows.
 JobVision remains blocked by the Phase 9 policy and the unresolved definition of
