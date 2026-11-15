@@ -8,7 +8,10 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterator
 from pathlib import Path
+from collections.abc import Iterator
 from typing import Any
+
+from tools.adapters.base import SourceSpec
 
 
 _EXTRA_COLUMNS_KEY = "__nexusops_extra_columns__"
@@ -115,9 +118,7 @@ class CSVSourceAdapter:
     format_name = "csv"
     _SUPPORTED_OPTIONS = frozenset({"encoding", "delimiter", "strict"})
 
-    def iter_records(self, source):
-        from tools.adapters.base import SourceSpec
-
+    def iter_records(self, source: SourceSpec) -> Iterator[dict[str, Any]]:
         if not isinstance(source, SourceSpec):
             raise TypeError("source must be a SourceSpec instance.")
 
