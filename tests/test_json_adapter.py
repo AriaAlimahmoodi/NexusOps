@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from tools.adapters.base import SourceAdapter, SourceSpec, validate_source_adapter
@@ -131,6 +129,21 @@ def test_json_adapter_validates_mode_and_chunk_size(tmp_path):
                 SourceSpec(str(path), options={"chunk_size": 0})
             )
         )
+
+
+def test_json_lines_rejects_non_object_values(tmp_path):
+    path = tmp_path / "records.jsonl"
+    path.write_text('{"id":1}\n42\n', encoding="utf-8")
+
+    with pytest.raises(JSONSourceError, match="must be an object"):
+        list(iter_json_records(path))
+
+
+def test_empty_json_array_yields_no_records(tmp_path):
+    path = tmp_path / "empty.json"
+    path.write_text("[]", encoding="utf-8")
+
+    assert list(iter_json_records(path, mode="array", chunk_size=1)) == []
 
 
 def test_json_array_requires_top_level_array(tmp_path):
