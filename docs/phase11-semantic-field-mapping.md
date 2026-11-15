@@ -87,3 +87,51 @@ deferred, and ambiguous candidates), add regression fixtures for known
 JobVision semantic mismatches, and validate the complete profile → analysis →
 review → MappingSpec → read-only preflight flow. These increments must preserve
 the explicit human approval boundary.
+
+
+## Phase 11.2 — Durable semantic review artifacts
+
+Implemented in:
+
+- `tools/semantic_review.py`
+- `tests/test_semantic_review.py`
+
+### Artifact lifecycle
+
+`create_semantic_review_artifact(analysis_report, ...)` creates a JSON-serializable
+review artifact tied to the exact analysis report by a SHA-256 fingerprint.
+It records dataset/source identity and one pending decision for each proposed
+source/target candidate. It stores candidate metadata only; it does not copy
+source records, sample values, or raw field values.
+
+`apply_semantic_review_decisions(artifact, decisions, ...)` returns an updated
+artifact and supports partial review. Each submitted decision must identify an
+existing candidate, use one of `approved`, `rejected`, `deferred`, or
+`ambiguous`, include a non-empty reason, and record reviewer identity and a
+timezone-aware timestamp. Unreviewed candidates remain pending.
+
+`build_mapping_from_review_artifact(report, artifact, ...)` verifies the
+artifact's source/dataset identity and exact analysis fingerprint. Only
+explicitly approved, direct-projection-eligible candidates are passed to the
+existing MappingSpec builder. Pending, rejected, deferred, and ambiguous
+candidates are never projected. Conflicting approved targets are rejected by
+the builder/MappingSpec validation.
+
+### Audit and trust boundaries
+
+- The artifact schema is versioned independently from the analysis report.
+- The fingerprint detects accidental or deliberate changes to the analysis
+  report after review; it does not cryptographically authenticate reviewers
+  or prevent an operator from editing the review artifact itself.
+- Reviewer identity, reason, and timestamp are recorded as declarations
+  supplied by the caller, not independently verified identities.
+- The artifact is evidence of recorded decisions, not proof of organizational
+  authorization.
+- `ingestion_authorized` remains false. Mapping construction does not publish
+  data or authorize ingestion.
+- No source values are copied into the artifact; no Registry, source data, or
+  Elasticsearch state is changed.
+
+Phase 11.2 adds the durable review data model and API. Operator-facing CLI
+workflow and JobVision-specific semantic regression fixtures remain subsequent
+increments.
