@@ -275,6 +275,119 @@ def profile_csv_stream(
     }
 
 
+def _profile_value(value: Any) -> str:
+    """Convert a raw JSON-compatible value to a stable profiling representation."""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def profile_record_stream(
+    records,
+    *,
+    source_name: str = "<records>",
+    sample_limit: int = 5,
+    top_values_limit: int = 10,
+    max_distinct_values: int = 1000,
+) -> dict[str, Any]:
+    """Profile raw mapping records incrementally with bounded value statistics.
+
+    The profiler observes source keys and physical value shapes only. It does
+    not infer canonical meaning, rename fields, or retain complete records.
+    """
+    for name, value in (
+        ("sample_limit", sample_limit),
+        ("top_values_limit", top_values_limit),
+        ("max_distinct_values", max_distinct_values),
+    ):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"{name} must be a non-negative integer.")
+    if max_distinct_values < top_values_limit:
+        raise ValueError("max_distinct_values must be at least top_values_limit.")
+
+    column_stats: dict[str, dict[str, Any]] = {}
+    row_count = 0
+
+    for position, record in enumerate(records):
+        if not isinstance(record, dict) and not hasattr(record, "items"):
+            raise ValueError(f"Record at position {position} is not a mapping.")
+
+        values = dict(record.items())
+        invalid_keys = [
+            key for key in values
+            if not isinstance(key, str) or not key.strip()
+        ]
+        if invalid_keys:
+            raise ValueError(
+                f"Record at position {position} contains an empty or non-string field name."
+            )
+
+        for field_name in values:
+            if field_name not in column_stats:
+                stats = _new_column_stats()
+                # This field did not exist in earlier records.
+                stats["total_values"] = row_count
+                stats["null_count"] = row_count
+                column_stats[field_name] = stats
+
+        for field_name, stats in column_stats.items():
+            _observe_column(
+                stats,
+                _profile_value(values.get(field_name)),
+                sample_limit=sample_limit,
+                max_distinct_values=max_distinct_values,
+            )
+        row_count += 1
+
+    columns = {
+        field_name: _finalize_column(stats, top_values_limit)
+        for field_name, stats in column_stats.items()
+    }
+    return {
+        "profile_version": 1,
+        "source_name": source_name,
+        "format": "records",
+        "row_count": row_count,
+        "column_count": len(columns),
+        "columns": columns,
+    }
+
+
+def profile_source(
+    format_name: str,
+    source,
+    *,
+    adapter_registry=None,
+    source_name: str | None = None,
+    sample_limit: int = 5,
+    top_values_limit: int = 10,
+    max_distinct_values: int = 1000,
+) -> dict[str, Any]:
+    """Profile a declared source through its adapter without ingesting it."""
+    from tools.adapters.base import SourceSpec
+
+    if not isinstance(source, SourceSpec):
+        raise TypeError("source must be a SourceSpec instance.")
+
+    if adapter_registry is None:
+        from tools.adapters.registry import create_default_adapter_registry
+
+        adapter_registry = create_default_adapter_registry()
+
+    records = adapter_registry.iter_records(format_name, source)
+    return profile_record_stream(
+        records,
+        source_name=source_name or f"<{format_name}-source>",
+        sample_limit=sample_limit,
+        top_values_limit=top_values_limit,
+        max_distinct_values=max_distinct_values,
+    )
+
+
 def profile_csv_file(
     path: str | Path,
     *,
