@@ -91,7 +91,7 @@ def iter_csv_records(
                     continue
                 extras = row.pop(_EXTRA_COLUMNS_KEY, None)
                 missing = [name for name in headers if row.get(name) is None]
-                if strict and extras:
+                if extras:
                     raise CSVSourceError(
                         f"CSV row ending at physical line {reader.line_num} "
                         f"contains {len(extras)} extra cell(s)."
