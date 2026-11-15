@@ -145,6 +145,35 @@ external APIs. Direct JSONL and JSON-array modes stream records; envelope
 extraction buffers one response page in memory, so page size and
 `max_pages` should be chosen conservatively for large sources.
 
+## Phase 10.5 — Explicit source adapter registry and dispatch
+
+Implemented in `tools/adapters/registry.py` and
+`tests/test_adapter_registry.py`.
+
+The registry provides one explicit dispatch point for the built-in CSV, JSON,
+and HTTP API adapters:
+
+- `SourceAdapterRegistry` stores adapters by their declared `format_name`;
+- registration validates the shared adapter contract before accepting an
+  adapter;
+- duplicate format registrations are rejected unless the caller explicitly
+  requests replacement;
+- `get_adapter(format_name)` resolves a registered adapter and reports the
+  available formats for unknown names;
+- `iter_records(format_name, source)` validates the shared `SourceSpec` and
+  returns the selected adapter's iterator without collecting or transforming
+  records;
+- `create_default_adapter_registry()` returns a fresh registry containing
+  `csv`, `json`, and `api`. Each call is independent; there is no mutable
+  process-global registry.
+
+The caller must select the format explicitly. The registry does not infer a
+format from a filename or URL, inspect file contents, load arbitrary Python
+plugins, resolve credentials, or perform network access during registration.
+It does not invoke source discovery, canonical mapping, normalization,
+governance, or publication. In particular, registering an API adapter does not
+make a request, and this phase does not authorize JobVision ingestion.
+
 ## Required processing boundary
 
 ```text
