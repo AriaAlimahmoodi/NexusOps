@@ -216,13 +216,82 @@ def build_audit(
             extra_headers = sorted(set(headers) - set(columns))
             if missing_headers:
                 raise ValueError(f"CSV is missing profiled columns: {missing_headers}")
-            pair_rows = []
-            row_count = 0
-            for row in reader:
-                row_count += 1
-                pair_rows.append({name: row.get(name) for name in pair_names})
+            pair_states = {
+            pair: {
+                "rows": 0, "both": 0, "both_null": 0,
+                "left_only_null": 0, "right_only_null": 0, "exact": 0,
+                "left_to_right": defaultdict(set),
+                "right_to_left": defaultdict(set),
+                "pair_counts": Counter(),
+            }
+            for pair in all_pairs
+        }
+        row_count = 0
+        for row in reader:
+            row_count += 1
+            for left_name, right_name in all_pairs:
+                state = pair_states[(left_name, right_name)]
+                state["rows"] += 1
+                left = _norm(row.get(left_name) or "")
+                right = _norm(row.get(right_name) or "")
+                if not left and not right:
+                    state["both_null"] += 1
+                    continue
+                if not left:
+                    state["left_only_null"] += 1
+                    continue
+                if not right:
+                    state["right_only_null"] += 1
+                    continue
+                state["both"] += 1
+                if left == right:
+                    state["exact"] += 1
+                state["left_to_right"][left].add(right)
+                state["right_to_left"][right].add(left)
+                state["pair_counts"][(left, right)] += 1
         for left_name, right_name in all_pairs:
-            pair_results.append(_pair_stats(left_name, right_name, pair_rows))
+            state = pair_states[(left_name, right_name)]
+            left_conflicts = {
+                key for key, values in state["left_to_right"].items()
+                if len(values) > 1
+            }
+            right_conflicts = {
+                key for key, values in state["right_to_left"].items()
+                if len(values) > 1
+            }
+            left_conflict_rows = sum(
+                count for (left, _), count in state["pair_counts"].items()
+                if left in left_conflicts
+            )
+            right_conflict_rows = sum(
+                count for (_, right), count in state["pair_counts"].items()
+                if right in right_conflicts
+            )
+            both = state["both"]
+            pair_results.append({
+                "fields": [left_name, right_name],
+                "rows": state["rows"],
+                "both_non_null_rows": both,
+                "both_null_rows": state["both_null"],
+                "left_null_right_present_rows": state["left_only_null"],
+                "right_null_left_present_rows": state["right_only_null"],
+                "exact_normalized_equal_rows": state["exact"],
+                "exact_normalized_equal_ratio": round(state["exact"] / both, 6) if both else None,
+                "distinct_left_values": len(state["left_to_right"]),
+                "distinct_right_values": len(state["right_to_left"]),
+                "distinct_observed_value_pairs": len(state["pair_counts"]),
+                "left_values_with_multiple_right_translations": len(left_conflicts),
+                "right_values_with_multiple_left_translations": len(right_conflicts),
+                "rows_in_left_to_multiple_right_conflicts": left_conflict_rows,
+                "rows_in_right_to_multiple_left_conflicts": right_conflict_rows,
+                "row_pair_consistency_ratio": round(
+                    1 - max(left_conflict_rows, right_conflict_rows) / both, 6
+                ) if both else None,
+                "interpretation": (
+                    "Consistent row-level pairing is evidence of aligned bilingual columns, "
+                    "not proof that every translation is semantically correct."
+                ),
+            })
         csv_summary = {
             "path": str(csv_path),
             "rows_read": row_count,
