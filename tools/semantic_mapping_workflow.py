@@ -143,13 +143,32 @@ def analyze_source_mapping(
                 "automatically_accepted": False,
             })
 
-    for suggestion in llm_result.get("suggestions", []):
-        source_field = suggestion["source_field"]
-        target_field = suggestion["candidate_field"]
+    raw_llm_suggestions = llm_result.get("suggestions", [])
+    if not isinstance(raw_llm_suggestions, list):
+        raw_llm_suggestions = []
+    for suggestion in raw_llm_suggestions:
+        if not isinstance(suggestion, Mapping):
+            continue
+        source_field = suggestion.get("source_field")
+        target_field = suggestion.get("candidate_field")
+        if source_field not in columns_by_name or not isinstance(target_field, str):
+            continue
         target_config = dataset_profile.get("fields", {}).get(target_field)
         if target_config is None:
             # The assistant already validates this, but keep the orchestration
             # boundary defensive if a custom assistant is injected.
+            continue
+        if suggestion.get("relation") not in {"exact_equivalent", "synonym"}:
+            continue
+        confidence = suggestion.get("confidence")
+        if (
+            not isinstance(confidence, (int, float))
+            or isinstance(confidence, bool)
+            or not 0 <= confidence <= 1
+        ):
+            continue
+        rationale = suggestion.get("rationale")
+        if not isinstance(rationale, str) or not rationale.strip():
             continue
         source_type = columns_by_name[source_field].get("inferred_type", "unknown")
         direct_ok, direct_reason = _direct_projection_check(
@@ -167,8 +186,8 @@ def analyze_source_mapping(
             "target_type": target_config.get("type"),
             "origin": "ollama",
             "relation": suggestion["relation"],
-            "confidence": suggestion["confidence"],
-            "rationale": suggestion["rationale"],
+            "confidence": float(confidence),
+            "rationale": rationale[:500],
             "warning": None if direct_ok else direct_reason,
             "ambiguous": bool(matches_by_name.get(source_field, {}).get("ambiguous")),
             "direct_projection_eligible": direct_ok,
