@@ -186,7 +186,7 @@ class JSONSourceAdapter:
 
         if not isinstance(encoding, str) or not encoding.strip():
             raise ValueError("JSON encoding must be a non-empty string.")
-        if mode not in {"jsonl", "array"}:
+        if not isinstance(mode, str) or mode not in {"jsonl", "array"}:
             raise ValueError("JSON mode must be 'jsonl' or 'array'.")
         if (
             isinstance(chunk_size, bool)
