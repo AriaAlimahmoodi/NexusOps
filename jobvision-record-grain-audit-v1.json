@@ -1,0 +1,3186 @@
+{
+  "report_schema_version": 1,
+  "audit_name": "jobvision_record_grain_audit_v1",
+  "source": {
+    "file": "data\\raw\\JobVision_Jobposts_Dataset.csv",
+    "encoding": "utf-8-sig",
+    "rows_read": 364838,
+    "columns_read": 43,
+    "read_only": true
+  },
+  "scope_and_safety": {
+    "source_data_modified": false,
+    "dataset_registry_modified": false,
+    "mapping_spec_created": false,
+    "elasticsearch_accessed": false,
+    "ingestion_authorized": false
+  },
+  "record_identity_analysis": {
+    "row_number_field": "RowNumber",
+    "row_number_nonempty_integer_rows": 364838,
+    "row_number_invalid_or_empty_rows": 0,
+    "unique_row_number_values": 364838,
+    "duplicate_row_number_value_count": 0,
+    "duplicate_row_number_values_sample": [],
+    "row_number_min": 1,
+    "row_number_max": 364838,
+    "row_number_matches_csv_position": true,
+    "row_number_order_mismatch_sample": [],
+    "missing_values_from_expected_1_to_n_sequence": 0,
+    "missing_sequence_values_sample": [],
+    "out_of_range_row_number_values": [],
+    "exact_duplicate_row_fingerprint_groups": 0,
+    "exact_duplicate_row_excess_count": 0,
+    "exact_duplicate_row_fingerprint_is_identity": false,
+    "interpretation": "RowNumber can at most identify a row within this observed snapshot if uniqueness and sequence checks pass. A positional row number is not evidence of a durable source identifier across refreshed or reordered source exports. Exact row fingerprints are diagnostics, not guaranteed stable IDs.",
+    "invalid_row_number_rows_sample": []
+  },
+  "software_skill_record_grain": {
+    "rows_with_at_least_one_valid_title_en_skill": 196574,
+    "rows_without_valid_title_en_skill": 168264,
+    "total_object_skill_items": 600679,
+    "skill_items_with_nonempty_title_en": 600679,
+    "skill_items_missing_title_en": 0,
+    "skill_items_missing_title_fa": 72884,
+    "invalid_or_non_array_skill_json_rows": 0,
+    "non_object_skill_items": 0,
+    "rows_with_duplicate_title_en_within_same_post": 0,
+    "duplicate_title_en_excess_items_within_posts": 0,
+    "max_valid_title_en_skills_in_one_post": 69,
+    "skills_per_post_distribution": [
+      {
+        "skill_count": 0,
+        "post_count": 168264
+      },
+      {
+        "skill_count": 1,
+        "post_count": 23454
+      },
+      {
+        "skill_count": 2,
+        "post_count": 56774
+      },
+      {
+        "skill_count": 3,
+        "post_count": 52823
+      },
+      {
+        "skill_count": 4,
+        "post_count": 35590
+      },
+      {
+        "skill_count": 5,
+        "post_count": 15351
+      },
+      {
+        "skill_count": 6,
+        "post_count": 7195
+      },
+      {
+        "skill_count": 7,
+        "post_count": 3220
+      },
+      {
+        "skill_count": 8,
+        "post_count": 1040
+      },
+      {
+        "skill_count": 9,
+        "post_count": 567
+      },
+      {
+        "skill_count": 10,
+        "post_count": 279
+      },
+      {
+        "skill_count": 11,
+        "post_count": 95
+      },
+      {
+        "skill_count": 12,
+        "post_count": 59
+      },
+      {
+        "skill_count": 13,
+        "post_count": 30
+      },
+      {
+        "skill_count": 14,
+        "post_count": 16
+      },
+      {
+        "skill_count": 15,
+        "post_count": 22
+      },
+      {
+        "skill_count": 16,
+        "post_count": 11
+      },
+      {
+        "skill_count": 17,
+        "post_count": 11
+      },
+      {
+        "skill_count": 18,
+        "post_count": 7
+      },
+      {
+        "skill_count": 19,
+        "post_count": 3
+      },
+      {
+        "skill_count": 20,
+        "post_count": 2
+      },
+      {
+        "skill_count": 21,
+        "post_count": 2
+      },
+      {
+        "skill_count": 22,
+        "post_count": 2
+      },
+      {
+        "skill_count": 24,
+        "post_count": 1
+      },
+      {
+        "skill_count": 25,
+        "post_count": 1
+      },
+      {
+        "skill_count": 26,
+        "post_count": 2
+      },
+      {
+        "skill_count": 27,
+        "post_count": 4
+      },
+      {
+        "skill_count": 28,
+        "post_count": 1
+      },
+      {
+        "skill_count": 30,
+        "post_count": 1
+      },
+      {
+        "skill_count": 35,
+        "post_count": 1
+      },
+      {
+        "skill_count": 37,
+        "post_count": 2
+      },
+      {
+        "skill_count": 41,
+        "post_count": 1
+      },
+      {
+        "skill_count": 44,
+        "post_count": 1
+      },
+      {
+        "skill_count": 46,
+        "post_count": 1
+      },
+      {
+        "skill_count": 55,
+        "post_count": 1
+      },
+      {
+        "skill_count": 56,
+        "post_count": 1
+      },
+      {
+        "skill_count": 57,
+        "post_count": 2
+      },
+      {
+        "skill_count": 69,
+        "post_count": 1
+      }
+    ],
+    "per_skill_post_and_mention_counts": [
+      {
+        "title_en": "Microsoft Excel",
+        "distinct_posts_with_skill": 140178,
+        "skill_mentions": 140178,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Word",
+        "distinct_posts_with_skill": 123620,
+        "skill_mentions": 123620,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Powerpoint",
+        "distinct_posts_with_skill": 46859,
+        "skill_mentions": 46859,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Outlook",
+        "distinct_posts_with_skill": 39687,
+        "skill_mentions": 39687,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Photoshop",
+        "distinct_posts_with_skill": 12819,
+        "skill_mentions": 12819,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "سپیدار",
+        "distinct_posts_with_skill": 10039,
+        "skill_mentions": 10039,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Access",
+        "distinct_posts_with_skill": 9824,
+        "skill_mentions": 9824,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "راهکاران",
+        "distinct_posts_with_skill": 9802,
+        "skill_mentions": 9802,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Project",
+        "distinct_posts_with_skill": 8602,
+        "skill_mentions": 8602,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AutoCad",
+        "distinct_posts_with_skill": 7628,
+        "skill_mentions": 7628,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "همکاران سیستم",
+        "distinct_posts_with_skill": 6800,
+        "skill_mentions": 6800,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Visio",
+        "distinct_posts_with_skill": 6601,
+        "skill_mentions": 6601,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Illustrator",
+        "distinct_posts_with_skill": 6422,
+        "skill_mentions": 6422,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Wordpress",
+        "distinct_posts_with_skill": 6167,
+        "skill_mentions": 6167,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sql Server",
+        "distinct_posts_with_skill": 5579,
+        "skill_mentions": 5579,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Html & CSS",
+        "distinct_posts_with_skill": 4970,
+        "skill_mentions": 4970,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GIT",
+        "distinct_posts_with_skill": 4557,
+        "skill_mentions": 4557,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "JavaScript",
+        "distinct_posts_with_skill": 4444,
+        "skill_mentions": 4444,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Premiere",
+        "distinct_posts_with_skill": 4074,
+        "skill_mentions": 4074,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Network+",
+        "distinct_posts_with_skill": 3690,
+        "skill_mentions": 3690,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Solidworks",
+        "distinct_posts_with_skill": 3632,
+        "skill_mentions": 3632,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "After Effects",
+        "distinct_posts_with_skill": 3439,
+        "skill_mentions": 3439,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Google Analytics",
+        "distinct_posts_with_skill": 3349,
+        "skill_mentions": 3349,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "C#",
+        "distinct_posts_with_skill": 3261,
+        "skill_mentions": 3261,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Google Search Console",
+        "distinct_posts_with_skill": 3145,
+        "skill_mentions": 3145,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rest API",
+        "distinct_posts_with_skill": 2949,
+        "skill_mentions": 2949,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Linux",
+        "distinct_posts_with_skill": 2713,
+        "skill_mentions": 2713,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Dynamics",
+        "distinct_posts_with_skill": 2679,
+        "skill_mentions": 2679,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Python",
+        "distinct_posts_with_skill": 2640,
+        "skill_mentions": 2640,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Catia",
+        "distinct_posts_with_skill": 2414,
+        "skill_mentions": 2414,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "هلو",
+        "distinct_posts_with_skill": 2332,
+        "skill_mentions": 2332,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Indesign",
+        "distinct_posts_with_skill": 2322,
+        "skill_mentions": 2322,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CCNA",
+        "distinct_posts_with_skill": 2287,
+        "skill_mentions": 2287,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Corel Draw",
+        "distinct_posts_with_skill": 2223,
+        "skill_mentions": 2223,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PowerBI",
+        "distinct_posts_with_skill": 2205,
+        "skill_mentions": 2205,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": ".Net Core / .Net",
+        "distinct_posts_with_skill": 2193,
+        "skill_mentions": 2193,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MySql",
+        "distinct_posts_with_skill": 2113,
+        "skill_mentions": 2113,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PHP",
+        "distinct_posts_with_skill": 2038,
+        "skill_mentions": 2038,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Google Tag Manager",
+        "distinct_posts_with_skill": 2017,
+        "skill_mentions": 2017,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ASP.Net",
+        "distinct_posts_with_skill": 2003,
+        "skill_mentions": 2003,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "React",
+        "distinct_posts_with_skill": 1956,
+        "skill_mentions": 1956,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Windows Server",
+        "distinct_posts_with_skill": 1745,
+        "skill_mentions": 1745,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Java",
+        "distinct_posts_with_skill": 1568,
+        "skill_mentions": 1568,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Altium Designer",
+        "distinct_posts_with_skill": 1500,
+        "skill_mentions": 1500,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Primavera",
+        "distinct_posts_with_skill": 1405,
+        "skill_mentions": 1405,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Server Virtualization (ESX,VMware and …)",
+        "distinct_posts_with_skill": 1375,
+        "skill_mentions": 1375,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "تدبیر",
+        "distinct_posts_with_skill": 1357,
+        "skill_mentions": 1357,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Autocad Civil 3D",
+        "distinct_posts_with_skill": 1317,
+        "skill_mentions": 1317,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "JQuery",
+        "distinct_posts_with_skill": 1295,
+        "skill_mentions": 1295,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "T-Sql",
+        "distinct_posts_with_skill": 1293,
+        "skill_mentions": 1293,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "C++",
+        "distinct_posts_with_skill": 1274,
+        "skill_mentions": 1274,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "3D Studio Max",
+        "distinct_posts_with_skill": 1210,
+        "skill_mentions": 1210,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Figma",
+        "distinct_posts_with_skill": 1201,
+        "skill_mentions": 1201,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Revit",
+        "distinct_posts_with_skill": 1198,
+        "skill_mentions": 1198,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Active Directory",
+        "distinct_posts_with_skill": 1168,
+        "skill_mentions": 1168,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Docker",
+        "distinct_posts_with_skill": 1080,
+        "skill_mentions": 1080,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft One Note",
+        "distinct_posts_with_skill": 1021,
+        "skill_mentions": 1021,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Jira",
+        "distinct_posts_with_skill": 1013,
+        "skill_mentions": 1013,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mikrotik",
+        "distinct_posts_with_skill": 997,
+        "skill_mentions": 997,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SAP",
+        "distinct_posts_with_skill": 981,
+        "skill_mentions": 981,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CCNP",
+        "distinct_posts_with_skill": 969,
+        "skill_mentions": 969,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "TypeScript",
+        "distinct_posts_with_skill": 960,
+        "skill_mentions": 960,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Switching",
+        "distinct_posts_with_skill": 953,
+        "skill_mentions": 953,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Angular",
+        "distinct_posts_with_skill": 932,
+        "skill_mentions": 932,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MathType",
+        "distinct_posts_with_skill": 923,
+        "skill_mentions": 923,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "DNS Settings",
+        "distinct_posts_with_skill": 917,
+        "skill_mentions": 917,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "پیام گستر",
+        "distinct_posts_with_skill": 901,
+        "skill_mentions": 901,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Node.js",
+        "distinct_posts_with_skill": 893,
+        "skill_mentions": 893,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Laravel",
+        "distinct_posts_with_skill": 877,
+        "skill_mentions": 877,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Routing",
+        "distinct_posts_with_skill": 869,
+        "skill_mentions": 869,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "C",
+        "distinct_posts_with_skill": 851,
+        "skill_mentions": 851,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "دیدار",
+        "distinct_posts_with_skill": 850,
+        "skill_mentions": 850,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MATLAB",
+        "distinct_posts_with_skill": 847,
+        "skill_mentions": 847,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "DHCP",
+        "distinct_posts_with_skill": 808,
+        "skill_mentions": 808,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "پیوست",
+        "distinct_posts_with_skill": 800,
+        "skill_mentions": 800,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MCSA",
+        "distinct_posts_with_skill": 798,
+        "skill_mentions": 798,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe XD",
+        "distinct_posts_with_skill": 706,
+        "skill_mentions": 706,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Zabbix",
+        "distinct_posts_with_skill": 685,
+        "skill_mentions": 685,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MongoDB",
+        "distinct_posts_with_skill": 681,
+        "skill_mentions": 681,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "رایورز",
+        "distinct_posts_with_skill": 681,
+        "skill_mentions": 681,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Firewall",
+        "distinct_posts_with_skill": 679,
+        "skill_mentions": 679,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SPSS",
+        "distinct_posts_with_skill": 669,
+        "skill_mentions": 669,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VoIP",
+        "distinct_posts_with_skill": 659,
+        "skill_mentions": 659,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle Database",
+        "distinct_posts_with_skill": 642,
+        "skill_mentions": 642,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ورا نگر",
+        "distinct_posts_with_skill": 605,
+        "skill_mentions": 605,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PostgreSql",
+        "distinct_posts_with_skill": 601,
+        "skill_mentions": 601,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gitlab",
+        "distinct_posts_with_skill": 588,
+        "skill_mentions": 588,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Eplan",
+        "distinct_posts_with_skill": 579,
+        "skill_mentions": 579,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Django",
+        "distinct_posts_with_skill": 574,
+        "skill_mentions": 574,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Autocad electrical",
+        "distinct_posts_with_skill": 565,
+        "skill_mentions": 565,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Visual Studio",
+        "distinct_posts_with_skill": 549,
+        "skill_mentions": 549,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Entity Framework",
+        "distinct_posts_with_skill": 542,
+        "skill_mentions": 542,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Next.js",
+        "distinct_posts_with_skill": 518,
+        "skill_mentions": 518,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VueJS",
+        "distinct_posts_with_skill": 514,
+        "skill_mentions": 514,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Vray",
+        "distinct_posts_with_skill": 510,
+        "skill_mentions": 510,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Keyword Planner",
+        "distinct_posts_with_skill": 507,
+        "skill_mentions": 507,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Security+",
+        "distinct_posts_with_skill": 505,
+        "skill_mentions": 505,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "A+",
+        "distinct_posts_with_skill": 499,
+        "skill_mentions": 499,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ETABS",
+        "distinct_posts_with_skill": 494,
+        "skill_mentions": 494,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "شایگان",
+        "distinct_posts_with_skill": 492,
+        "skill_mentions": 492,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ansys",
+        "distinct_posts_with_skill": 466,
+        "skill_mentions": 466,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PL-SQL",
+        "distinct_posts_with_skill": 462,
+        "skill_mentions": 462,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sales Force",
+        "distinct_posts_with_skill": 460,
+        "skill_mentions": 460,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MTCNA",
+        "distinct_posts_with_skill": 452,
+        "skill_mentions": 452,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Google Data Studio",
+        "distinct_posts_with_skill": 436,
+        "skill_mentions": 436,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sketchup",
+        "distinct_posts_with_skill": 435,
+        "skill_mentions": 435,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Veeam",
+        "distinct_posts_with_skill": 434,
+        "skill_mentions": 434,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Kubernetes",
+        "distinct_posts_with_skill": 409,
+        "skill_mentions": 409,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Safe",
+        "distinct_posts_with_skill": 405,
+        "skill_mentions": 405,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Abaqus",
+        "distinct_posts_with_skill": 403,
+        "skill_mentions": 403,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PDMS",
+        "distinct_posts_with_skill": 402,
+        "skill_mentions": 402,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Redis",
+        "distinct_posts_with_skill": 390,
+        "skill_mentions": 390,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Unit Testing",
+        "distinct_posts_with_skill": 382,
+        "skill_mentions": 382,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rhino",
+        "distinct_posts_with_skill": 375,
+        "skill_mentions": 375,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Moz",
+        "distinct_posts_with_skill": 360,
+        "skill_mentions": 360,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ahrefs",
+        "distinct_posts_with_skill": 353,
+        "skill_mentions": 353,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "IIS",
+        "distinct_posts_with_skill": 352,
+        "skill_mentions": 352,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Keywordtool",
+        "distinct_posts_with_skill": 352,
+        "skill_mentions": 352,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Trello",
+        "distinct_posts_with_skill": 349,
+        "skill_mentions": 349,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Minitab",
+        "distinct_posts_with_skill": 347,
+        "skill_mentions": 347,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Inventor",
+        "distinct_posts_with_skill": 337,
+        "skill_mentions": 337,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "React Native",
+        "distinct_posts_with_skill": 329,
+        "skill_mentions": 329,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SAP2000",
+        "distinct_posts_with_skill": 325,
+        "skill_mentions": 325,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Tekla Structures",
+        "distinct_posts_with_skill": 324,
+        "skill_mentions": 324,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "تدکار",
+        "distinct_posts_with_skill": 319,
+        "skill_mentions": 319,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Visual Paradigm",
+        "distinct_posts_with_skill": 318,
+        "skill_mentions": 318,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Exchange Server",
+        "distinct_posts_with_skill": 303,
+        "skill_mentions": 303,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Flutter",
+        "distinct_posts_with_skill": 303,
+        "skill_mentions": 303,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Lumion",
+        "distinct_posts_with_skill": 301,
+        "skill_mentions": 301,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle ERP",
+        "distinct_posts_with_skill": 297,
+        "skill_mentions": 297,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SSIS",
+        "distinct_posts_with_skill": 296,
+        "skill_mentions": 296,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PRTG",
+        "distinct_posts_with_skill": 294,
+        "skill_mentions": 294,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "سرو",
+        "distinct_posts_with_skill": 294,
+        "skill_mentions": 294,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft ERP",
+        "distinct_posts_with_skill": 292,
+        "skill_mentions": 292,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SSAS",
+        "distinct_posts_with_skill": 289,
+        "skill_mentions": 289,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Solarwinds",
+        "distinct_posts_with_skill": 281,
+        "skill_mentions": 281,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "KWFinder",
+        "distinct_posts_with_skill": 271,
+        "skill_mentions": 271,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "شماران سیستم",
+        "distinct_posts_with_skill": 269,
+        "skill_mentions": 269,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "فن‌آوران (صدور بیمه‌نامه)",
+        "distinct_posts_with_skill": 269,
+        "skill_mentions": 269,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle NoSQL",
+        "distinct_posts_with_skill": 264,
+        "skill_mentions": 264,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SharePoint",
+        "distinct_posts_with_skill": 260,
+        "skill_mentions": 260,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Kotlin",
+        "distinct_posts_with_skill": 247,
+        "skill_mentions": 247,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MRP",
+        "distinct_posts_with_skill": 247,
+        "skill_mentions": 247,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PowerMill",
+        "distinct_posts_with_skill": 247,
+        "skill_mentions": 247,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Semrush",
+        "distinct_posts_with_skill": 247,
+        "skill_mentions": 247,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Etap",
+        "distinct_posts_with_skill": 239,
+        "skill_mentions": 239,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Azure Devops / TFS",
+        "distinct_posts_with_skill": 238,
+        "skill_mentions": 238,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sketch",
+        "distinct_posts_with_skill": 238,
+        "skill_mentions": 238,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen HYSYS",
+        "distinct_posts_with_skill": 234,
+        "skill_mentions": 234,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CEH",
+        "distinct_posts_with_skill": 231,
+        "skill_mentions": 231,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Embedded C",
+        "distinct_posts_with_skill": 227,
+        "skill_mentions": 227,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "COMFAR",
+        "distinct_posts_with_skill": 225,
+        "skill_mentions": 225,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Android Development",
+        "distinct_posts_with_skill": 223,
+        "skill_mentions": 223,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Android Studio",
+        "distinct_posts_with_skill": 219,
+        "skill_mentions": 219,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Joomla",
+        "distinct_posts_with_skill": 218,
+        "skill_mentions": 218,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ایده آل",
+        "distinct_posts_with_skill": 217,
+        "skill_mentions": 217,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VHDL",
+        "distinct_posts_with_skill": 216,
+        "skill_mentions": 216,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Bizagi",
+        "distinct_posts_with_skill": 215,
+        "skill_mentions": 215,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Kafka",
+        "distinct_posts_with_skill": 213,
+        "skill_mentions": 213,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hibernate",
+        "distinct_posts_with_skill": 210,
+        "skill_mentions": 210,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Proteus",
+        "distinct_posts_with_skill": 205,
+        "skill_mentions": 205,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Post Production",
+        "distinct_posts_with_skill": 201,
+        "skill_mentions": 201,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ویژن",
+        "distinct_posts_with_skill": 200,
+        "skill_mentions": 200,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cinema 4D",
+        "distinct_posts_with_skill": 197,
+        "skill_mentions": 197,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SSRS",
+        "distinct_posts_with_skill": 197,
+        "skill_mentions": 197,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "R",
+        "distinct_posts_with_skill": 190,
+        "skill_mentions": 190,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Swift",
+        "distinct_posts_with_skill": 189,
+        "skill_mentions": 189,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SQL/DS",
+        "distinct_posts_with_skill": 187,
+        "skill_mentions": 187,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Flash",
+        "distinct_posts_with_skill": 186,
+        "skill_mentions": 186,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CodeVision",
+        "distinct_posts_with_skill": 186,
+        "skill_mentions": 186,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Blender",
+        "distinct_posts_with_skill": 182,
+        "skill_mentions": 182,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "RabbitMQ",
+        "distinct_posts_with_skill": 178,
+        "skill_mentions": 178,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dart",
+        "distinct_posts_with_skill": 176,
+        "skill_mentions": 176,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Archicad",
+        "distinct_posts_with_skill": 165,
+        "skill_mentions": 165,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Go",
+        "distinct_posts_with_skill": 160,
+        "skill_mentions": 160,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ADS (Advanced Design Systems)",
+        "distinct_posts_with_skill": 159,
+        "skill_mentions": 159,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Audition",
+        "distinct_posts_with_skill": 158,
+        "skill_mentions": 158,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "WinCC",
+        "distinct_posts_with_skill": 155,
+        "skill_mentions": 155,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "سپیدز",
+        "distinct_posts_with_skill": 147,
+        "skill_mentions": 147,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "COADE PVElite",
+        "distinct_posts_with_skill": 141,
+        "skill_mentions": 141,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "simatic manager",
+        "distinct_posts_with_skill": 137,
+        "skill_mentions": 137,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "IFS",
+        "distinct_posts_with_skill": 136,
+        "skill_mentions": 136,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Screaming Frog",
+        "distinct_posts_with_skill": 135,
+        "skill_mentions": 135,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Carrier HAP",
+        "distinct_posts_with_skill": 133,
+        "skill_mentions": 133,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Navisworks",
+        "distinct_posts_with_skill": 133,
+        "skill_mentions": 133,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Maya",
+        "distinct_posts_with_skill": 131,
+        "skill_mentions": 131,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PhotoStudio",
+        "distinct_posts_with_skill": 131,
+        "skill_mentions": 131,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Fluent",
+        "distinct_posts_with_skill": 129,
+        "skill_mentions": 129,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Tableau",
+        "distinct_posts_with_skill": 128,
+        "skill_mentions": 128,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mechanical Desktop",
+        "distinct_posts_with_skill": 127,
+        "skill_mentions": 127,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ARCGIS",
+        "distinct_posts_with_skill": 126,
+        "skill_mentions": 126,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Java SE",
+        "distinct_posts_with_skill": 126,
+        "skill_mentions": 126,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Project Scheduler",
+        "distinct_posts_with_skill": 126,
+        "skill_mentions": 126,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Pspice",
+        "distinct_posts_with_skill": 125,
+        "skill_mentions": 125,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ansible",
+        "distinct_posts_with_skill": 123,
+        "skill_mentions": 123,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Elastic Search",
+        "distinct_posts_with_skill": 123,
+        "skill_mentions": 123,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "iOS Development (Objective C)",
+        "distinct_posts_with_skill": 121,
+        "skill_mentions": 121,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Nuxt.js",
+        "distinct_posts_with_skill": 120,
+        "skill_mentions": 120,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sugar",
+        "distinct_posts_with_skill": 119,
+        "skill_mentions": 119,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Production Manager",
+        "distinct_posts_with_skill": 115,
+        "skill_mentions": 115,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Caesar",
+        "distinct_posts_with_skill": 113,
+        "skill_mentions": 113,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Dreamweaver",
+        "distinct_posts_with_skill": 109,
+        "skill_mentions": 109,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "IAR Embedded WorkBench",
+        "distinct_posts_with_skill": 108,
+        "skill_mentions": 108,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Selenium",
+        "distinct_posts_with_skill": 107,
+        "skill_mentions": 107,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Labview",
+        "distinct_posts_with_skill": 106,
+        "skill_mentions": 106,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Wireshark",
+        "distinct_posts_with_skill": 106,
+        "skill_mentions": 106,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cloud Security",
+        "distinct_posts_with_skill": 103,
+        "skill_mentions": 103,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CST",
+        "distinct_posts_with_skill": 103,
+        "skill_mentions": 103,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "سازه 90",
+        "distinct_posts_with_skill": 102,
+        "skill_mentions": 102,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SPC",
+        "distinct_posts_with_skill": 101,
+        "skill_mentions": 101,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "رایان هم افزا",
+        "distinct_posts_with_skill": 99,
+        "skill_mentions": 99,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Jenkins",
+        "distinct_posts_with_skill": 98,
+        "skill_mentions": 98,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Orcad",
+        "distinct_posts_with_skill": 98,
+        "skill_mentions": 98,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "رافع",
+        "distinct_posts_with_skill": 97,
+        "skill_mentions": 97,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Stimulsoft Report",
+        "distinct_posts_with_skill": 96,
+        "skill_mentions": 96,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Drupal",
+        "distinct_posts_with_skill": 95,
+        "skill_mentions": 95,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hysis",
+        "distinct_posts_with_skill": 93,
+        "skill_mentions": 93,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "سیاق",
+        "distinct_posts_with_skill": 93,
+        "skill_mentions": 93,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PhotoDirector",
+        "distinct_posts_with_skill": 92,
+        "skill_mentions": 92,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Qlikview",
+        "distinct_posts_with_skill": 92,
+        "skill_mentions": 92,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dependency Injection",
+        "distinct_posts_with_skill": 90,
+        "skill_mentions": 90,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "روش",
+        "distinct_posts_with_skill": 89,
+        "skill_mentions": 89,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Prometheus",
+        "distinct_posts_with_skill": 84,
+        "skill_mentions": 84,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Unity",
+        "distinct_posts_with_skill": 84,
+        "skill_mentions": 84,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Verilog",
+        "distinct_posts_with_skill": 84,
+        "skill_mentions": 84,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle WebLogic",
+        "distinct_posts_with_skill": 83,
+        "skill_mentions": 83,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ACD See",
+        "distinct_posts_with_skill": 82,
+        "skill_mentions": 82,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen plus",
+        "distinct_posts_with_skill": 82,
+        "skill_mentions": 82,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MTCRE",
+        "distinct_posts_with_skill": 80,
+        "skill_mentions": 80,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MTCWE",
+        "distinct_posts_with_skill": 79,
+        "skill_mentions": 79,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "WBS Pro",
+        "distinct_posts_with_skill": 79,
+        "skill_mentions": 79,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "System Analysis",
+        "distinct_posts_with_skill": 77,
+        "skill_mentions": 77,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CCIE",
+        "distinct_posts_with_skill": 76,
+        "skill_mentions": 76,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Docker Swarm",
+        "distinct_posts_with_skill": 70,
+        "skill_mentions": 70,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Datamine Studio",
+        "distinct_posts_with_skill": 67,
+        "skill_mentions": 67,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Visual Basic",
+        "distinct_posts_with_skill": 65,
+        "skill_mentions": 65,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Davinci Resolve",
+        "distinct_posts_with_skill": 64,
+        "skill_mentions": 64,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Xara Photo & Graphic Designer",
+        "distinct_posts_with_skill": 64,
+        "skill_mentions": 64,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AtmelStudio",
+        "distinct_posts_with_skill": 63,
+        "skill_mentions": 63,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle BI",
+        "distinct_posts_with_skill": 63,
+        "skill_mentions": 63,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Delphi",
+        "distinct_posts_with_skill": 62,
+        "skill_mentions": 62,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mac OS",
+        "distinct_posts_with_skill": 62,
+        "skill_mentions": 62,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "OpenCV",
+        "distinct_posts_with_skill": 62,
+        "skill_mentions": 62,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Toon Boom Studio",
+        "distinct_posts_with_skill": 62,
+        "skill_mentions": 62,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ShellScript",
+        "distinct_posts_with_skill": 61,
+        "skill_mentions": 61,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Edius",
+        "distinct_posts_with_skill": 60,
+        "skill_mentions": 60,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Notepad++",
+        "distinct_posts_with_skill": 58,
+        "skill_mentions": 58,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Digsilent",
+        "distinct_posts_with_skill": 57,
+        "skill_mentions": 57,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ace Planner",
+        "distinct_posts_with_skill": 56,
+        "skill_mentions": 56,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Grasshopper",
+        "distinct_posts_with_skill": 56,
+        "skill_mentions": 56,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Zeplin",
+        "distinct_posts_with_skill": 56,
+        "skill_mentions": 56,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ansys CFX",
+        "distinct_posts_with_skill": 55,
+        "skill_mentions": 55,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cadence",
+        "distinct_posts_with_skill": 54,
+        "skill_mentions": 54,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "TV Paint",
+        "distinct_posts_with_skill": 54,
+        "skill_mentions": 54,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Comsol",
+        "distinct_posts_with_skill": 53,
+        "skill_mentions": 53,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ISA Server / TMG",
+        "distinct_posts_with_skill": 52,
+        "skill_mentions": 52,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Canvas",
+        "distinct_posts_with_skill": 48,
+        "skill_mentions": 48,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Modelsim",
+        "distinct_posts_with_skill": 47,
+        "skill_mentions": 47,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gerafana",
+        "distinct_posts_with_skill": 45,
+        "skill_mentions": 45,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MPLS",
+        "distinct_posts_with_skill": 45,
+        "skill_mentions": 45,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Spark",
+        "distinct_posts_with_skill": 44,
+        "skill_mentions": 44,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Arena",
+        "distinct_posts_with_skill": 43,
+        "skill_mentions": 43,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SOL",
+        "distinct_posts_with_skill": 43,
+        "skill_mentions": 43,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ZBrush",
+        "distinct_posts_with_skill": 43,
+        "skill_mentions": 43,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Crystal Reports",
+        "distinct_posts_with_skill": 42,
+        "skill_mentions": 42,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Final Cut",
+        "distinct_posts_with_skill": 41,
+        "skill_mentions": 41,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hadoop",
+        "distinct_posts_with_skill": 41,
+        "skill_mentions": 41,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Scala",
+        "distinct_posts_with_skill": 41,
+        "skill_mentions": 41,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "قیاس",
+        "distinct_posts_with_skill": 41,
+        "skill_mentions": 41,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hspice",
+        "distinct_posts_with_skill": 40,
+        "skill_mentions": 40,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "KeyShot",
+        "distinct_posts_with_skill": 40,
+        "skill_mentions": 40,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "JUNIPER",
+        "distinct_posts_with_skill": 39,
+        "skill_mentions": 39,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Xcode",
+        "distinct_posts_with_skill": 38,
+        "skill_mentions": 38,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dapper",
+        "distinct_posts_with_skill": 37,
+        "skill_mentions": 37,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Odoo ERP",
+        "distinct_posts_with_skill": 35,
+        "skill_mentions": 35,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Stata",
+        "distinct_posts_with_skill": 35,
+        "skill_mentions": 35,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Assembly",
+        "distinct_posts_with_skill": 34,
+        "skill_mentions": 34,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Fast Report",
+        "distinct_posts_with_skill": 34,
+        "skill_mentions": 34,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LOGO! Soft",
+        "distinct_posts_with_skill": 34,
+        "skill_mentions": 34,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MCP",
+        "distinct_posts_with_skill": 33,
+        "skill_mentions": 33,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Oracle Form & Report",
+        "distinct_posts_with_skill": 33,
+        "skill_mentions": 33,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PhotoPlus",
+        "distinct_posts_with_skill": 33,
+        "skill_mentions": 33,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Plaxis Professional",
+        "distinct_posts_with_skill": 32,
+        "skill_mentions": 32,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SCOM (System Center Operations Manager)",
+        "distinct_posts_with_skill": 32,
+        "skill_mentions": 32,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PVSYST",
+        "distinct_posts_with_skill": 31,
+        "skill_mentions": 31,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adams",
+        "distinct_posts_with_skill": 30,
+        "skill_mentions": 30,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ceph",
+        "distinct_posts_with_skill": 29,
+        "skill_mentions": 29,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Pro Engineer",
+        "distinct_posts_with_skill": 29,
+        "skill_mentions": 29,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Eclipse",
+        "distinct_posts_with_skill": 28,
+        "skill_mentions": 28,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "EViews",
+        "distinct_posts_with_skill": 28,
+        "skill_mentions": 28,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MQL",
+        "distinct_posts_with_skill": 28,
+        "skill_mentions": 28,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "میزان",
+        "distinct_posts_with_skill": 28,
+        "skill_mentions": 28,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AnyLogic",
+        "distinct_posts_with_skill": 27,
+        "skill_mentions": 27,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SAS",
+        "distinct_posts_with_skill": 27,
+        "skill_mentions": 27,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "IBM DB2",
+        "distinct_posts_with_skill": 26,
+        "skill_mentions": 26,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VB Script",
+        "distinct_posts_with_skill": 26,
+        "skill_mentions": 26,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VIP-PLANOPT",
+        "distinct_posts_with_skill": 26,
+        "skill_mentions": 26,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CSI Bridge",
+        "distinct_posts_with_skill": 25,
+        "skill_mentions": 25,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Expert Choice",
+        "distinct_posts_with_skill": 25,
+        "skill_mentions": 25,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gams",
+        "distinct_posts_with_skill": 25,
+        "skill_mentions": 25,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Unreal Engine",
+        "distinct_posts_with_skill": 25,
+        "skill_mentions": 25,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Corona SDK",
+        "distinct_posts_with_skill": 24,
+        "skill_mentions": 24,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Art Rage",
+        "distinct_posts_with_skill": 23,
+        "skill_mentions": 23,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microvision",
+        "distinct_posts_with_skill": 23,
+        "skill_mentions": 23,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Section Builder",
+        "distinct_posts_with_skill": 23,
+        "skill_mentions": 23,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ansys Turbo Grid",
+        "distinct_posts_with_skill": 22,
+        "skill_mentions": 22,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GFI Web Monitor",
+        "distinct_posts_with_skill": 22,
+        "skill_mentions": 22,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Keras",
+        "distinct_posts_with_skill": 22,
+        "skill_mentions": 22,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AAA (Advanced Aircraft Analysis)",
+        "distinct_posts_with_skill": 21,
+        "skill_mentions": 21,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LINGO",
+        "distinct_posts_with_skill": 21,
+        "skill_mentions": 21,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AutoPipe",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gambit",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LISREL",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Logo",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MTCUME",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Slack",
+        "distinct_posts_with_skill": 20,
+        "skill_mentions": 20,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "BMDP",
+        "distinct_posts_with_skill": 19,
+        "skill_mentions": 19,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ESBPDF Analysis",
+        "distinct_posts_with_skill": 19,
+        "skill_mentions": 19,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "FLAC 3D",
+        "distinct_posts_with_skill": 19,
+        "skill_mentions": 19,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Solid vox",
+        "distinct_posts_with_skill": 19,
+        "skill_mentions": 19,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ARC View",
+        "distinct_posts_with_skill": 18,
+        "skill_mentions": 18,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ENVI",
+        "distinct_posts_with_skill": 18,
+        "skill_mentions": 18,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Opensees",
+        "distinct_posts_with_skill": 18,
+        "skill_mentions": 18,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Qliksense",
+        "distinct_posts_with_skill": 18,
+        "skill_mentions": 18,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Wplsoft",
+        "distinct_posts_with_skill": 18,
+        "skill_mentions": 18,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dopsoft",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microsoft Test Manager",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rust",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sitebulb",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Statistica",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Surpac",
+        "distinct_posts_with_skill": 17,
+        "skill_mentions": 17,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Groovy",
+        "distinct_posts_with_skill": 16,
+        "skill_mentions": 16,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Netbeans",
+        "distinct_posts_with_skill": 16,
+        "skill_mentions": 16,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Power Designer",
+        "distinct_posts_with_skill": 16,
+        "skill_mentions": 16,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Xamarin",
+        "distinct_posts_with_skill": 16,
+        "skill_mentions": 16,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AspenTech AspenONE",
+        "distinct_posts_with_skill": 15,
+        "skill_mentions": 15,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AutoPlant",
+        "distinct_posts_with_skill": 15,
+        "skill_mentions": 15,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CadPipe",
+        "distinct_posts_with_skill": 15,
+        "skill_mentions": 15,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Multisim",
+        "distinct_posts_with_skill": 15,
+        "skill_mentions": 15,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Flowmaster",
+        "distinct_posts_with_skill": 14,
+        "skill_mentions": 14,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LINDO",
+        "distinct_posts_with_skill": 14,
+        "skill_mentions": 14,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PLS",
+        "distinct_posts_with_skill": 14,
+        "skill_mentions": 14,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rational rose",
+        "distinct_posts_with_skill": 14,
+        "skill_mentions": 14,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Axure",
+        "distinct_posts_with_skill": 13,
+        "skill_mentions": 13,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Applied Flow Technology Fathom",
+        "distinct_posts_with_skill": 12,
+        "skill_mentions": 12,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Process Development",
+        "distinct_posts_with_skill": 12,
+        "skill_mentions": 12,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rapid Miner",
+        "distinct_posts_with_skill": 12,
+        "skill_mentions": 12,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SAM LEAP",
+        "distinct_posts_with_skill": 12,
+        "skill_mentions": 12,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen Process Manual",
+        "distinct_posts_with_skill": 11,
+        "skill_mentions": 11,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cassandra",
+        "distinct_posts_with_skill": 11,
+        "skill_mentions": 11,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Neo4j",
+        "distinct_posts_with_skill": 11,
+        "skill_mentions": 11,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "olga",
+        "distinct_posts_with_skill": 11,
+        "skill_mentions": 11,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Perform",
+        "distinct_posts_with_skill": 11,
+        "skill_mentions": 11,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Adobe Dimension",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Amos",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen MUSE",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "DrawPlus",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Economic Evaluation",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GPSS",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Helm",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MPCS",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MTCTCE",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Pipesim",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Pscad",
+        "distinct_posts_with_skill": 10,
+        "skill_mentions": 10,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AIMMS Solver",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Axume",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cfturbo",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Exceed",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Exchanger Design and Rating",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GEMS",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GFI  LAN GUARD",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hypermesh",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Latex",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Quick Report",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Ruby on Rails",
+        "distinct_posts_with_skill": 9,
+        "skill_mentions": 9,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Altair HyperWorks",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen PIMS",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gimp",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Inkspace",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Landmark Package",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Nastran",
+        "distinct_posts_with_skill": 8,
+        "skill_mentions": 8,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cosmos",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dana",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Drilling Office",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Eclips",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "EES - Engineering Equation Solver",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Fortran",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mimics",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "OPT",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Statgraphics",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Zookeeper",
+        "distinct_posts_with_skill": 7,
+        "skill_mentions": 7,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ChemCad",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Cloudera",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "DS",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "FACT",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GASP",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Maxstat",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rational Suite Enterprise",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Vensim",
+        "distinct_posts_with_skill": 6,
+        "skill_mentions": 6,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Aspen OnLine",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ChemOffice",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Couchbase",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ESBStats",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GameMaker",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Marc",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Subversion",
+        "distinct_posts_with_skill": 5,
+        "skill_mentions": 5,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Autodyn",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AVL Fire",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "COMLAND",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Dips",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Geosoft Oasis Montaj",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LEdit",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LS-DYNA",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Lusas",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mathcad",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Modo",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ODI",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Pascal",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Petrel",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "S-Plus",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SIMULA",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Taylor",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Working Model",
+        "distinct_posts_with_skill": 4,
+        "skill_mentions": 4,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Avocet",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Caepipe",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CouchDB",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Downhole Explorer",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Elixir",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "FLAC",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Geolog",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Knime",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LOG PLOT",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Mathematica",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rancher",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SpeedTree",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Surfer",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "TannerTools",
+        "distinct_posts_with_skill": 3,
+        "skill_mentions": 3,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Buildbox",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Construct 2",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Easy Case",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ErmapperUDEC",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Flexim",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Fuzzy Gen",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Genstat",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "GeoTechnical Graphics",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Hbase",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "IPM Package",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Itasca 3DEC",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "JMP",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MAPLE",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MapReduce",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MineSched",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MineSight",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Minex",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Money Maximizer",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "NCSS",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "NMOS",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PATRAN",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Petrol Engineering",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rockwork",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SigmaPlot",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Sigmastat",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SLIDE",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Systat",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "TeamCity",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "VLA",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Whittle",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ZeroMQ",
+        "distinct_posts_with_skill": 2,
+        "skill_mentions": 2,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "AppGameKit",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "CMG",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "DYNAMO",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Erlang",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Gideros",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Haxe",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Invensys SimSci-Esscor PIPEPHASE",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "LogMate",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Microstation",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "MPL",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Phase2",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "PHStat",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "QSom",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Rock Plane",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "ROCLAB",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SLAM",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "SpriteKit",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Statius",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Stereonet",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "STORM",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Swedge",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Torque 3D",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Weka",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "WINGAMS",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      },
+      {
+        "title_en": "Winston",
+        "distinct_posts_with_skill": 1,
+        "skill_mentions": 1,
+        "duplicate_mentions_within_same_post": 0
+      }
+    ],
+    "invalid_skill_json_rows_sample": [],
+    "non_object_skill_items_sample": []
+  },
+  "category_skill_expansion": {
+    "rows_with_secondary_categories": 81313,
+    "rows_with_multiple_secondary_categories": 6667,
+    "rows_with_duplicate_secondary_categories": 595,
+    "rows_where_main_category_repeats_in_secondary": 568,
+    "rows_with_skills_and_secondary_categories": 36291,
+    "max_unique_categories_per_post_including_main": 5,
+    "skill_rows_if_one_row_per_post_skill_using_main_category_only": 600679,
+    "skill_rows_if_each_post_skill_is_repeated_for_every_unique_main_and_secondary_category": 712555,
+    "additional_rows_from_category_skill_cross_product": 111876,
+    "interpretation": "The all-category figure is a cross-product scenario, not a recommendation. Repeating each post skill for every category can inflate counts and must not be treated as independent skill demand without an explicit attribution rule."
+  },
+  "data_quality": {
+    "row_number_invalid_or_empty_count": 0,
+    "duplicate_row_number_value_count": 0,
+    "exact_duplicate_row_excess_count": 0,
+    "skill_json_error_count": 0,
+    "non_object_skill_item_count": 0
+  }
+}
