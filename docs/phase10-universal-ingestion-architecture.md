@@ -375,8 +375,9 @@ only:
   extraction, default generation, or Registry mutation occurs.
 
 When `mapping_spec` is supplied to `ingest_source`, its dataset must match
-the requested ingestion dataset and the mapped iterator is passed to the
-existing canonical normalization, governance, and atomic publication path.
+the requested ingestion dataset and its `source_name` must match the collection
+manifest. The mapped iterator is passed to the existing canonical normalization,
+governance, and atomic publication path.
 When it is omitted, the source adapter must already emit records using
 reviewed canonical field names, preserving backward compatibility.
 
