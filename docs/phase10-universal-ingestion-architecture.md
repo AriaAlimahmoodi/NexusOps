@@ -421,3 +421,37 @@ not semantic approval beyond the supplied mapping declaration and not
 publication authorization. It does not resolve `demand_score` semantics or
 unblock JobVision ingestion.
 
+## Phase 10.12 — Operator CLI for read-only source preflight
+
+Implemented in `scripts/audit_source_ingestion_preflight.py` and
+`tests/test_source_ingestion_preflight_cli.py`.
+
+The CLI exposes the Phase 10.11 preflight path without introducing a second
+ingestion implementation. It accepts one explicit UTF-8 JSON configuration
+containing:
+
+- `dataset_id` and `format_name`;
+- `source.uri` and optional adapter-specific `source.options`;
+- the collection `manifest`;
+- the complete `mapping_spec`, including reviewer and review-reference
+  metadata.
+
+Unknown top-level and source configuration keys are rejected. The command
+constructs the existing `SourceSpec` and `SourceMappingSpec` contracts and
+delegates to `audit_source_ingestion_preflight`. It does not create an
+Elasticsearch client, invoke `ingest_source`, publish records, or change an
+alias. The complete report is printed to stdout by default or written to the
+optional `--output` path. `--max-issue-samples` controls the bounded issue
+detail sample.
+
+Exit status is zero only for `preflight_passed`; a rejected preflight returns
+one, while invalid configuration or source-read errors are reported through
+the command-line parser. The CLI does not log source headers or credentials.
+API configurations may contain authorization headers; keep such configuration
+files private. The API adapter supports POST only when explicitly configured,
+and POST endpoints can have side effects: users must verify the endpoint's
+read-only behavior before running a preflight against it.
+
+This CLI is an operator interface to a read-only canonical audit, not an
+ingestion approval or publication command. It does not unblock JobVision or
+resolve its outstanding semantic and `demand_score` questions.
