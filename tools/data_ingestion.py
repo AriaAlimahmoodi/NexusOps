@@ -137,6 +137,11 @@ def ingest_real_records(
     # manifest validation contract.
     from tools.atomic_data_publisher import ingest_real_records_atomically
 
+    if batch_size == 500:
+        # Preserve compatibility with existing publisher wrappers and mocks.
+        return ingest_real_records_atomically(
+            client, dataset_id, records, manifest
+        )
     return ingest_real_records_atomically(
         client, dataset_id, records, manifest, batch_size=batch_size
     )
