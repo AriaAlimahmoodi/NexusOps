@@ -281,9 +281,16 @@ class APISourceAdapter:
                 backoff=float(backoff), retry_statuses=statuses,
                 retry_allowed=retry_allowed,
             )
-            yield from self._read_stream(
-                response, mode=mode, encoding=encoding, chunk_size=chunk_size
-            )
+            if records_path is not None:
+                records, _ = self._read_page(
+                    response, encoding=encoding, records_path=records_path,
+                    next_url_path=None,
+                )
+                yield from records
+            else:
+                yield from self._read_stream(
+                    response, mode=mode, encoding=encoding, chunk_size=chunk_size
+                )
             return
 
         current_url = source.uri
