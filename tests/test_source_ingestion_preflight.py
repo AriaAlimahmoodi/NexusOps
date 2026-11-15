@@ -113,7 +113,20 @@ def test_preflight_composes_adapter_mapping_and_canonical_audit_once():
 
 def test_preflight_rejects_mapping_for_another_dataset_before_reading():
     registry, adapter = make_registry([make_record()])
-    wrong_mapping = make_mapping(dataset_id="university_courses")
+    wrong_mapping = make_mapping(
+        dataset_id="university_courses",
+        field_mappings={
+            "CourseID": "course_id",
+            "CourseName": "course_name",
+            "Category": "course_category",
+            "Credits": "credits",
+            "Skills": "skills",
+            "Batch": "collection_batch",
+            "SourceURL": "source",
+            "ObservedAt": "observed_at",
+            "Granularity": "time_granularity",
+        },
+    )
 
     with pytest.raises(ValueError, match="does not match the preflight dataset"):
         audit_source_ingestion_preflight(
