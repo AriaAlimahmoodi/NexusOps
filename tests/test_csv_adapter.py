@@ -92,7 +92,7 @@ def test_non_strict_mode_retains_missing_trailing_cells(tmp_path):
     ]
 
     extra = tmp_path / "extra.csv"
-    extra.write_text("id,name\\n1,Ada,ignored\\n", encoding="utf-8")
+    extra.write_text("id,name\n1,Ada,ignored\n", encoding="utf-8")
     with pytest.raises(CSVSourceError, match="extra cell"):
         list(iter_csv_records(extra, strict=False))
 
