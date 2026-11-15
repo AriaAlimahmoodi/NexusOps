@@ -227,10 +227,17 @@ def test_review_builder_rejects_candidates_that_need_phase12_conversion():
 
 
 def test_review_builder_rejects_duplicate_target_approval():
+    assistant = _SuggestionAssistant([{
+        "source_field": "UnrecognizedExternalFeature",
+        "candidate_field": "job_title",
+        "relation": "synonym",
+        "confidence": 0.8,
+        "rationale": "Explicit fixture candidate.",
+    }])
     report = analyze_source_mapping(
         _source_profile(),
         "labor_market",
-        use_ollama=False,
+        ollama_assistant=assistant,
     )
 
     with pytest.raises(ValueError, match="Multiple source fields"):
