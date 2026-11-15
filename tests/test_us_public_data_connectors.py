@@ -158,3 +158,18 @@ def test_connectors_do_not_write_or_transform_provider_records():
     transport = FakeTransport(scorecard_payload)
     client = CollegeScorecardClient("key", transport=transport)
     assert client.get_schools(fields=["id"]) is scorecard_payload
+
+def test_bls_v1_rejects_v2_only_options():
+    client = BLSClient(version=1, transport=FakeTransport({}))
+    with pytest.raises(ValueError, match="require BLS API v2"):
+        client.get_series(
+            series_ids=["LNS14000000"],
+            start_year=2020,
+            end_year=2020,
+            catalog=True,
+        )
+
+
+def test_bls_v1_rejects_registration_key():
+    with pytest.raises(ValueError, match="only used with API v2"):
+        BLSClient(version=1, registration_key="unexpected-key")
