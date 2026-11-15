@@ -656,7 +656,7 @@ async def fetch_bls_series_tool(
             raise RuntimeError("BLS_API_VERSION must be 1 or 2.") from exc
         client = BLSClient(
             version=version,
-            registration_key=os.getenv("BLS_REGISTRATION_KEY"),
+            registration_key=(os.getenv("BLS_REGISTRATION_KEY") if version == 2 else None),
         )
         return client.get_series(
             series_ids=series_ids,
