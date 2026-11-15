@@ -7,7 +7,6 @@ mutates Registry schemas, transforms records, or authorizes ingestion.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime
 from typing import Any
 
 from tools.dataset_registry import get_dataset_profile
