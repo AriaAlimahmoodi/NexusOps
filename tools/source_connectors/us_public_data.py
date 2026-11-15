@@ -197,6 +197,10 @@ class BLSClient:
             raise ValueError(
                 "BLS API v2 requires a registration key; use v1 without a key"
             )
+        if version == 1 and registration_key:
+            raise ValueError(
+                "BLS registration keys are only used with API v2"
+            )
         if timeout <= 0:
             raise ValueError("timeout must be positive")
         self.version = version
@@ -239,6 +243,11 @@ class BLSClient:
         if end_year - start_year + 1 > max_years:
             raise ValueError(
                 f"BLS v{self.version} allows at most {max_years} years per request"
+            )
+
+        if self.version == 1 and (catalog or calculations or annualaverage):
+            raise ValueError(
+                "catalog, calculations, and annualaverage require BLS API v2"
             )
 
         body: dict[str, Any] = {
