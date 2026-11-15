@@ -47,6 +47,90 @@ def _split_tokens(value: str | None) -> list[str]:
     return [token.strip() for token in normalized.split(",") if token.strip()]
 
 
+def _new_pair_state() -> dict[str, Any]:
+    return {
+        "rows": 0,
+        "both": 0,
+        "both_null": 0,
+        "left_only_null": 0,
+        "right_only_null": 0,
+        "value_pairs": Counter(),
+        "value_pair_display": {},
+        "token_pairs": Counter(),
+        "token_pair_display": {},
+        "left_to_right": defaultdict(set),
+        "right_to_left": defaultdict(set),
+        "left_token_display": {},
+        "right_token_display": {},
+        "token_count_pairs": Counter(),
+        "mismatch_value_pairs": Counter(),
+        "mismatch_display": {},
+        "rows_with_delimiter": 0,
+        "rows_tokenized": 0,
+    }
+
+
+def _consume_row(
+    state: dict[str, Any],
+    row: dict[str, str],
+    left_name: str,
+    right_name: str,
+) -> None:
+    state["rows"] += 1
+    left_raw = row.get(left_name)
+    right_raw = row.get(right_name)
+    left_display = _display(left_raw)
+    right_display = _display(right_raw)
+    left = _norm(left_raw)
+    right = _norm(right_raw)
+
+    if not left and not right:
+        state["both_null"] += 1
+        return
+    if not left:
+        state["left_only_null"] += 1
+        return
+    if not right:
+        state["right_only_null"] += 1
+        return
+
+    state["both"] += 1
+    value_key = (left, right)
+    state["value_pairs"][value_key] += 1
+    state["value_pair_display"].setdefault(value_key, (left_display, right_display))
+
+    if "," in left_display or "," in right_display:
+        state["rows_with_delimiter"] += 1
+
+    left_tokens_display = _split_tokens(left_raw)
+    right_tokens_display = _split_tokens(right_raw)
+    left_tokens = [_norm(token) for token in left_tokens_display]
+    right_tokens = [_norm(token) for token in right_tokens_display]
+    state["token_count_pairs"][(len(left_tokens), len(right_tokens))] += 1
+
+    for token, display in zip(left_tokens, left_tokens_display):
+        state["left_token_display"].setdefault(token, display)
+    for token, display in zip(right_tokens, right_tokens_display):
+        state["right_token_display"].setdefault(token, display)
+
+    if len(left_tokens) != len(right_tokens):
+        state["mismatch_value_pairs"][value_key] += 1
+        state["mismatch_display"].setdefault(value_key, (left_display, right_display))
+        return
+
+    state["rows_tokenized"] += 1
+    # Positional pairing is evidence only: it assumes both languages keep
+    # the same item order. It is not an automatic translation approval.
+    for left_token, right_token, left_label, right_label in zip(
+        left_tokens, right_tokens, left_tokens_display, right_tokens_display
+    ):
+        token_key = (left_token, right_token)
+        state["token_pairs"][token_key] += 1
+        state["token_pair_display"].setdefault(token_key, (left_label, right_label))
+        state["left_to_right"][left_token].add(right_token)
+        state["right_to_left"][right_token].add(left_token)
+
+
 def _top_pairs(
     counter: Counter[tuple[str, str]],
     display_values: dict[tuple[str, str], tuple[str, str]],
@@ -64,110 +148,41 @@ def _top_pairs(
     return result, len(counter) > limit
 
 
-def _audit_pair(
+def _finish_pair(
+    state: dict[str, Any],
     left_name: str,
     right_name: str,
-    rows: list[dict[str, str]],
 ) -> dict[str, Any]:
-    total = both = both_null = left_only_null = right_only_null = 0
-    value_pairs: Counter[tuple[str, str]] = Counter()
-    value_pair_display: dict[tuple[str, str], tuple[str, str]] = {}
-    token_pairs: Counter[tuple[str, str]] = Counter()
-    token_pair_display: dict[tuple[str, str], tuple[str, str]] = {}
-    left_to_right: dict[str, set[str]] = defaultdict(set)
-    right_to_left: dict[str, set[str]] = defaultdict(set)
-    left_token_display: dict[str, str] = {}
-    right_token_display: dict[str, str] = {}
-    token_count_pairs: Counter[tuple[int, int]] = Counter()
-    mismatch_value_pairs: Counter[tuple[str, str]] = Counter()
-    mismatch_display: dict[tuple[str, str], tuple[str, str]] = {}
-    rows_with_delimiter = 0
-    rows_tokenized = 0
-
-    for row in rows:
-        total += 1
-        left_raw = row.get(left_name)
-        right_raw = row.get(right_name)
-        left_display = _display(left_raw)
-        right_display = _display(right_raw)
-        left = _norm(left_raw)
-        right = _norm(right_raw)
-
-        if not left and not right:
-            both_null += 1
-            continue
-        if not left:
-            left_only_null += 1
-            continue
-        if not right:
-            right_only_null += 1
-            continue
-
-        both += 1
-        value_key = (left, right)
-        value_pairs[value_key] += 1
-        value_pair_display.setdefault(value_key, (left_display, right_display))
-
-        if "," in left_display or "," in right_display:
-            rows_with_delimiter += 1
-
-        left_tokens_display = _split_tokens(left_raw)
-        right_tokens_display = _split_tokens(right_raw)
-        left_tokens = [_norm(token) for token in left_tokens_display]
-        right_tokens = [_norm(token) for token in right_tokens_display]
-        token_count_pairs[(len(left_tokens), len(right_tokens))] += 1
-
-        for token, display in zip(left_tokens, left_tokens_display):
-            left_token_display.setdefault(token, display)
-        for token, display in zip(right_tokens, right_tokens_display):
-            right_token_display.setdefault(token, display)
-
-        if len(left_tokens) != len(right_tokens):
-            mismatch_value_pairs[value_key] += 1
-            mismatch_display.setdefault(value_key, (left_display, right_display))
-            continue
-
-        rows_tokenized += 1
-        # Positional pairing is evidence only: it assumes both languages keep
-        # the same item order. It is not an automatic translation approval.
-        for left_token, right_token, left_label, right_label in zip(
-            left_tokens, right_tokens, left_tokens_display, right_tokens_display
-        ):
-            token_key = (left_token, right_token)
-            token_pairs[token_key] += 1
-            token_pair_display.setdefault(token_key, (left_label, right_label))
-            left_to_right[left_token].add(right_token)
-            right_to_left[right_token].add(left_token)
-
     left_conflicts = {
-        key: values for key, values in left_to_right.items() if len(values) > 1
+        key: values for key, values in state["left_to_right"].items() if len(values) > 1
     }
     right_conflicts = {
-        key: values for key, values in right_to_left.items() if len(values) > 1
+        key: values for key, values in state["right_to_left"].items() if len(values) > 1
     }
     token_pair_rows, token_pairs_truncated = _top_pairs(
-        token_pairs, token_pair_display, _TOKEN_PAIR_LIMIT
+        state["token_pairs"], state["token_pair_display"], _TOKEN_PAIR_LIMIT
     )
     value_pair_rows, value_pairs_truncated = _top_pairs(
-        value_pairs, value_pair_display, _VALUE_PAIR_LIMIT
+        state["value_pairs"], state["value_pair_display"], _VALUE_PAIR_LIMIT
     )
     mismatch_rows, mismatch_truncated = _top_pairs(
-        mismatch_value_pairs, mismatch_display, _MISMATCH_PAIR_LIMIT
+        state["mismatch_value_pairs"], state["mismatch_display"], _MISMATCH_PAIR_LIMIT
     )
+    token_count_pairs = state["token_count_pairs"]
 
     return {
         "fields": [left_name, right_name],
-        "rows": total,
-        "both_non_null_rows": both,
-        "both_null_rows": both_null,
-        "left_null_right_present_rows": left_only_null,
-        "right_null_left_present_rows": right_only_null,
-        "distinct_left_values": len({key[0] for key in value_pairs}),
-        "distinct_right_values": len({key[1] for key in value_pairs}),
-        "distinct_observed_value_pairs": len(value_pairs),
+        "rows": state["rows"],
+        "both_non_null_rows": state["both"],
+        "both_null_rows": state["both_null"],
+        "left_null_right_present_rows": state["left_only_null"],
+        "right_null_left_present_rows": state["right_only_null"],
+        "distinct_left_values": len({key[0] for key in state["value_pairs"]}),
+        "distinct_right_values": len({key[1] for key in state["value_pairs"]}),
+        "distinct_observed_value_pairs": len(state["value_pairs"]),
         "observed_value_pairs": value_pair_rows,
         "observed_value_pairs_truncated": value_pairs_truncated,
-        "comma_delimited_rows": rows_with_delimiter,
+        "comma_delimited_rows": state["rows_with_delimiter"],
         "token_count_pair_distribution": [
             {"left_token_count": left_count, "right_token_count": right_count, "rows": count}
             for (left_count, right_count), count in sorted(token_count_pairs.items())
@@ -176,28 +191,28 @@ def _audit_pair(
             count for (left_count, right_count), count in token_count_pairs.items()
             if left_count != right_count
         ),
-        "rows_with_equal_token_count": rows_tokenized,
-        "distinct_left_tokens": len(left_token_display),
-        "distinct_right_tokens": len(right_token_display),
-        "distinct_positional_token_pairs": len(token_pairs),
+        "rows_with_equal_token_count": state["rows_tokenized"],
+        "distinct_left_tokens": len(state["left_token_display"]),
+        "distinct_right_tokens": len(state["right_token_display"]),
+        "distinct_positional_token_pairs": len(state["token_pairs"]),
         "positional_token_pair_candidates": token_pair_rows,
         "positional_token_pair_candidates_truncated": token_pairs_truncated,
         "left_tokens_with_multiple_right_candidates": len(left_conflicts),
         "right_tokens_with_multiple_left_candidates": len(right_conflicts),
         "left_token_conflicts": [
             {
-                "left_token": left_token_display.get(token, token),
+                "left_token": state["left_token_display"].get(token, token),
                 "right_candidates": sorted(
-                    right_token_display.get(value, value) for value in values
+                    state["right_token_display"].get(value, value) for value in values
                 ),
             }
             for token, values in list(sorted(left_conflicts.items()))[:_CONFLICT_VALUE_LIMIT]
         ],
         "right_token_conflicts": [
             {
-                "right_token": right_token_display.get(token, token),
+                "right_token": state["right_token_display"].get(token, token),
                 "left_candidates": sorted(
-                    left_token_display.get(value, value) for value in values
+                    state["left_token_display"].get(value, value) for value in values
                 ),
             }
             for token, values in list(sorted(right_conflicts.items()))[:_CONFLICT_VALUE_LIMIT]
@@ -225,26 +240,24 @@ def build_content_audit(
     # previous audit; do not create a second, divergent pair detector.
     base_audit = build_audit(source_profile)
     pairs = [item["fields"] for item in base_audit["bilingual_pair_candidates"]]
+    states = {tuple(pair): _new_pair_state() for pair in pairs}
 
-    pair_results: list[dict[str, Any]] = []
     with csv_path.open("r", encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         headers = reader.fieldnames or []
         missing = sorted(set(columns) - set(headers))
         if missing:
             raise ValueError(f"CSV is missing profiled columns: {missing}")
-        pair_rows = {tuple(pair): [] for pair in pairs}
         row_count = 0
         for row in reader:
             row_count += 1
             for left_name, right_name in pairs:
-                pair_rows[(left_name, right_name)].append(row)
+                _consume_row(states[(left_name, right_name)], row, left_name, right_name)
 
-    for left_name, right_name in pairs:
-        pair_results.append(
-            _audit_pair(left_name, right_name, pair_rows[(left_name, right_name)])
-        )
-
+    pair_results = [
+        _finish_pair(states[(left_name, right_name)], left_name, right_name)
+        for left_name, right_name in pairs
+    ]
     return {
         "audit_version": 1,
         "source": {
