@@ -74,3 +74,40 @@ def test_empty_values_and_whitespace_are_counted_consistently():
     assert result["right_null_left_present_rows"] == 1
     assert result["both_null_rows"] == 1
     assert result["distinct_observed_value_pairs"] == 1
+
+
+def test_build_content_audit_uses_existing_ten_pair_inventory(tmp_path):
+    import csv
+    import json
+    from pathlib import Path
+
+    from scripts.audit_bilingual_content import build_content_audit
+    from scripts.audit_source_semantic_coverage import build_audit
+
+    profile_path = Path("jobvision-source-profile.json")
+    if not profile_path.is_file():
+        return
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    headers = list(profile["columns"])
+    pair_inventory = build_audit(profile)["bilingual_pair_candidates"]
+    row = {header: "" for header in headers}
+    for pair in pair_inventory:
+        left_name, right_name = pair["fields"]
+        row[left_name] = "الف, ب"
+        row[right_name] = "Alpha, Beta"
+
+    csv_path = tmp_path / "bilingual.csv"
+    with csv_path.open("w", encoding="utf-8-sig", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=headers)
+        writer.writeheader()
+        writer.writerow(row)
+
+    report = build_content_audit(profile, csv_path)
+    assert report["pair_count"] == 10
+    assert report["source"]["rows_read"] == 1
+    assert report["policy"]["read_only"] is True
+    assert report["policy"]["automatic_translation_acceptance"] is False
+    assert all(
+        pair["rows_with_token_count_mismatch"] == 0
+        for pair in report["bilingual_content_audit"]
+    )
