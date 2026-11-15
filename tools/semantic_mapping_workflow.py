@@ -151,7 +151,11 @@ def analyze_source_mapping(
             continue
         source_field = suggestion.get("source_field")
         target_field = suggestion.get("candidate_field")
-        if source_field not in columns_by_name or not isinstance(target_field, str):
+        if (
+            not isinstance(source_field, str)
+            or source_field not in columns_by_name
+            or not isinstance(target_field, str)
+        ):
             continue
         target_config = dataset_profile.get("fields", {}).get(target_field)
         if target_config is None:
