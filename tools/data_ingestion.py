@@ -156,17 +156,32 @@ def ingest_source(
     *,
     batch_size=500,
     adapter_registry=None,
+    mapping_spec=None,
 ):
-    """Read a declared source format and stream its records into real ingestion.
+    """Read, optionally project, and stream a declared source into ingestion.
 
-    This is orchestration only: adapters emit raw records, while the existing
-    atomic publisher retains canonical projection, validation, and publication.
-    The source iterator is never materialized by this function.
+    When supplied, mapping_spec must be an explicitly reviewed
+    SourceMappingSpec for dataset_id. The mapper is a lazy field-name
+    projection; canonical normalization and atomic publication remain in the
+    existing ingestion path. Without a mapping spec, records must already use
+    reviewed canonical field names.
     """
     from tools.adapters.base import SourceSpec
 
     if not isinstance(source, SourceSpec):
         raise TypeError("source must be a SourceSpec instance.")
+
+    if mapping_spec is not None:
+        from tools.source_mapping import SourceMappingSpec, iter_mapped_records
+
+        if not isinstance(mapping_spec, SourceMappingSpec):
+            raise TypeError(
+                "mapping_spec must be a SourceMappingSpec instance when supplied."
+            )
+        if mapping_spec.dataset_id != dataset_id:
+            raise ValueError(
+                "mapping_spec dataset_id does not match the ingestion dataset."
+            )
 
     if adapter_registry is None:
         from tools.adapters.registry import create_default_adapter_registry
@@ -174,6 +189,9 @@ def ingest_source(
         adapter_registry = create_default_adapter_registry()
 
     records = adapter_registry.iter_records(format_name, source)
+    if mapping_spec is not None:
+        records = iter_mapped_records(records, mapping_spec)
+
     return ingest_real_records(
         client,
         dataset_id,
