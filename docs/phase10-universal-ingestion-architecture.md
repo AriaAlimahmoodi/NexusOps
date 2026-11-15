@@ -91,6 +91,31 @@ The adapter does not support pretty-printed multi-line JSON objects in JSON
 Lines mode. Such sources must use array mode or be converted to one-object-per-
 line JSON Lines before being read.
 
+## Phase 10.4 — Streaming HTTP API source adapter
+
+Implemented in `tools/adapters/api_adapter.py`.
+
+The adapter implements the shared `SourceAdapter` contract and performs
+read-only HTTP(S) GET requests. It streams response content through the JSON
+record readers and supports the same explicit `jsonl` (default) and top-level
+`array` layouts as the file-backed JSON adapter. Records must be JSON objects;
+source property names and JSON value types are preserved.
+
+Supported options are:
+- `headers`: optional string-to-string request headers (useful for API
+  authentication); credentials are not included in adapter error messages;
+- `timeout`: positive request timeout in seconds (default: 30);
+- `mode`: `jsonl` or `array` (default: `jsonl`);
+- `encoding`: response text encoding (default: `utf-8-sig`);
+- `chunk_size`: positive array-decoding chunk size (default: 64 KiB).
+
+Only HTTP(S) URLs without embedded user credentials are accepted. The adapter
+does not implement pagination, retries, POST requests, token refresh, response
+schema inference, semantic mapping, canonical validation, or publication.
+Pagination and API-specific envelope extraction require an explicit later
+design rather than implicit assumptions about a provider's response shape.
+All adapter tests use mocked HTTP responses; they do not contact external APIs.
+
 ## Required processing boundary
 
 ```text
