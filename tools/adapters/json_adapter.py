@@ -95,6 +95,8 @@ def _iter_json_array(stream: TextIO, *, chunk_size: int) -> Iterator[dict[str, A
         if position >= len(buffer):
             raise JSONSourceError("Unexpected end of JSON array.")
         if buffer[position] == "]":
+            if record_index:
+                raise JSONSourceError("Trailing comma in JSON array.")
             position += 1
             skip_whitespace()
             if position < len(buffer):
