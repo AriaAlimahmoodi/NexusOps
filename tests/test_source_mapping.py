@@ -13,7 +13,7 @@ from tools.source_mapping import (
 
 def mapping_spec(**overrides):
     values = {
-        "mapping_id": "jobvision-labor-market-v1",
+        "mapping_id": "fixture-labor-market-v1",
         "dataset_id": "labor_market",
         "source_name": "Reviewed fixture",
         "field_mappings": {
@@ -27,7 +27,7 @@ def mapping_spec(**overrides):
         },
         "reviewed_by": "data-governance-review",
         "reviewed_at": "2026-11-15T00:00:00Z",
-        "review_reference": "review://mapping/jobvision-labor-market-v1",
+        "review_reference": "review://mapping/fixture-labor-market-v1",
         "version": 1,
     }
     values.update(overrides)
@@ -154,7 +154,7 @@ def test_ingest_source_applies_explicit_mapping_before_canonical_ingestion(monke
         "labor_market",
         "fixture",
         SourceSpec("fixture://source"),
-        {"collection_batch": "batch-001"},
+        {"collection_batch": "batch-001", "source_name": "Reviewed fixture"},
         adapter_registry=registry,
         mapping_spec=mapping_spec(),
     )
@@ -188,6 +188,27 @@ def test_ingest_source_rejects_mapping_for_a_different_dataset_before_reading():
             "fixture",
             SourceSpec("fixture://source"),
             {},
+            adapter_registry=registry,
+            mapping_spec=mapping_spec(),
+        )
+
+def test_ingest_source_rejects_mapping_when_manifest_source_name_differs(monkeypatch):
+    class FixtureAdapter:
+        format_name = "fixture"
+
+        def iter_records(self, source):
+            raise AssertionError("Source must not be read.")
+
+    registry = SourceAdapterRegistry()
+    registry.register(FixtureAdapter())
+
+    with pytest.raises(ValueError, match="source_name"):
+        ingest_source(
+            object(),
+            "labor_market",
+            "fixture",
+            SourceSpec("fixture://source"),
+            {"source_name": "Different source"},
             adapter_registry=registry,
             mapping_spec=mapping_spec(),
         )
