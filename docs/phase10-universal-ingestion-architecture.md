@@ -40,6 +40,33 @@ The adapter is a raw-source reader, not an approval to ingest any particular
 source. A source-specific mapping must be reviewed before records can enter
 `normalize_real_record` or the real-data publisher.
 
+## Phase 10.2 — Universal source adapter contract
+
+Implemented in `tools/adapters/base.py` and consumed by
+`CSVSourceAdapter` in `tools/adapters/csv_adapter.py`.
+
+The shared contract consists of:
+
+- `SourceSpec`: an opaque source URI plus immutable adapter-specific options;
+- `SourceAdapter`: a runtime-checkable protocol exposing `format_name` and
+  `iter_records(source)`;
+- `RawRecord`: a mapping of original source field names to raw values;
+- `validate_source_adapter`: a small fail-fast check for adapter conformance.
+
+The CSV adapter implements this contract while preserving the existing
+`iter_csv_records(path, ...)` function for backward compatibility. CSV-specific
+options are limited to `encoding`, `delimiter`, and `strict`; unknown options
+are rejected rather than silently ignored.
+
+The URI is opaque at the contract level. CSV currently interprets it as a local
+file path. Future JSON and API adapters may interpret it as a file path, endpoint,
+or configured source identifier without changing downstream consumers.
+
+The contract deliberately excludes pagination policy, retries, authentication,
+canonical field mapping, normalization, governance, and publication. Those
+concerns must be added only where a concrete source type requires them and must
+not leak into the shared record interface.
+
 ## Required processing boundary
 
 ```text
