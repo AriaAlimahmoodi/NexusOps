@@ -455,3 +455,30 @@ read-only behavior before running a preflight against it.
 This CLI is an operator interface to a read-only canonical audit, not an
 ingestion approval or publication command. It does not unblock JobVision or
 resolve its outstanding semantic and `demand_score` questions.
+
+## Phase 10.13 — End-to-end source ingestion publication contract
+
+Implemented in `tests/test_source_ingestion_integration.py`.
+
+The integration suite exercises the actual production composition rather than
+mocking the ingestion coordinator or atomic publisher:
+
+1. A temporary CSV is read through the default source adapter registry.
+2. An explicit `SourceMappingSpec` projects only declared source columns into
+   the existing `labor_market` canonical fields.
+3. The existing normalizer converts supported raw CSV values and assigns the
+   real-data classification.
+4. The atomic publisher stages the candidate snapshot through the Elasticsearch
+   client test double and switches the Registry alias only after successful
+   validation.
+
+The successful-path test verifies the published canonical values, provenance,
+real classification, and exclusion of an unsupported source-only attribute.
+A separate failure-path test supplies a demand score outside the registered
+range and verifies that the stable alias is not created and the unpublished
+staging index is cleaned up.
+
+These tests use a temporary synthetic CSV and an in-memory Elasticsearch test
+double. They do not contact an external API, access production Elasticsearch,
+or ingest JobVision. They verify the software publication boundary only; they
+do not constitute semantic approval of any external source mapping.
