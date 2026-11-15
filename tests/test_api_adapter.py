@@ -105,7 +105,7 @@ def test_api_adapter_rejects_unsafe_or_invalid_uri_before_request(monkeypatch, u
 
     monkeypatch.setattr(api_module, "urlopen", unexpected_request)
 
-    with pytest.raises(ValueError, match=r"HTTP\\(S\\) URL"):
+    with pytest.raises(ValueError, match=r"HTTP\(S\) URL"):
         list(APISourceAdapter().iter_records(SourceSpec(uri)))
 
 
