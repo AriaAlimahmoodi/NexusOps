@@ -8,7 +8,6 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterator
 from pathlib import Path
-from collections.abc import Iterator
 from typing import Any
 
 from tools.adapters.base import SourceSpec
@@ -111,6 +110,7 @@ def iter_csv_records(
             raise CSVSourceError(
                 f"Malformed CSV near physical line {reader.line_num}: {exc}"
             ) from exc
+
 
 class CSVSourceAdapter:
     """CSV implementation of the universal source adapter contract."""
