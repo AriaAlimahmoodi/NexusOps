@@ -68,6 +68,7 @@ def test_review_command_applies_decisions_and_preserves_partial_pending_state(
         "--report", str(report_path), "--artifact", str(artifact_path),
         "--artifact-id", "artifact-1", "--created-by", "operator", "--no-ollama",
     ])
+    capsys.readouterr()
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
     candidate = next(
         item for item in artifact["decisions"]
@@ -125,6 +126,7 @@ def test_build_mapping_command_exports_only_approved_candidates(tmp_path, monkey
         "--decisions", str(decisions_path), "--output", str(reviewed_path),
         "--reviewed-by", "reviewer", "--reviewed-at", "2026-11-15T06:20:00Z",
     ])
+    capsys.readouterr()
 
     assert _run(monkeypatch, [
         "build-mapping", "--report", str(report_path),
