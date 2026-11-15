@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 
 from tools.adapters.base import SourceSpec
@@ -58,26 +60,11 @@ def test_registry_dispatches_json_records_with_adapter_options(tmp_path):
 def test_registry_dispatches_api_adapter_without_making_a_request(monkeypatch):
     import tools.adapters.api_adapter as api_module
 
-    class FakeResponse:
-        def __init__(self):
-            self.closed = False
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            self.closed = True
-
-        def read(self, size=-1):
-            if not hasattr(self, "sent"):
-                self.sent = True
-                return b'{"id":7}\n'
-            return b""
-
     calls = []
+
     def fake_urlopen(request, timeout):
         calls.append((request.full_url, timeout))
-        return FakeResponse()
+        return BytesIO(b'{"id":7}\\n')
 
     monkeypatch.setattr(api_module, "urlopen", fake_urlopen)
     records = list(
@@ -88,7 +75,6 @@ def test_registry_dispatches_api_adapter_without_making_a_request(monkeypatch):
 
     assert records == [{"id": 7}]
     assert calls == [("https://example.test/records", 30.0)]
-
 
 def test_registry_rejects_duplicate_formats_unless_replace_is_explicit():
     registry = create_default_adapter_registry()
