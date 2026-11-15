@@ -123,6 +123,13 @@ def test_json_adapter_validates_mode_and_chunk_size(tmp_path):
             )
         )
 
+    with pytest.raises(ValueError, match="mode"):
+        list(
+            JSONSourceAdapter().iter_records(
+                SourceSpec(str(path), options={"mode": []})
+            )
+        )
+
     with pytest.raises(ValueError, match="chunk_size"):
         list(
             JSONSourceAdapter().iter_records(
