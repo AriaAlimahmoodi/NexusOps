@@ -387,3 +387,37 @@ occurred. A mapping spec is not an ingestion approval. JobVision remains
 blocked until each proposed field equivalence is separately reviewed and the
 canonical `demand_score` definition is resolved. No JobVision data is
 published by this phase.
+
+## Phase 10.11 — Read-only mapped-source ingestion preflight
+
+Implemented in `tools/source_ingestion_preflight.py` and
+`tests/test_source_ingestion_preflight.py`.
+
+`audit_source_ingestion_preflight(...)` composes the existing source adapter,
+explicit `SourceMappingSpec`, and canonical preflight auditor into one
+read-only streaming path:
+
+1. It requires an explicit `SourceSpec`, manifest, and reviewed mapping spec.
+2. Before reading the source, it verifies the mapping dataset matches the
+   requested dataset and the mapping source name matches the manifest.
+3. It dispatches through the existing adapter registry (or a fresh default
+   registry), lazily projects only the declared source fields, and passes the
+   mapped iterator directly to `audit_canonical_record_stream`.
+4. It returns the canonical issue counts and bounded issue samples together
+   with the source format and mapping identity/version/review reference.
+
+The source is consumed once and record bodies are not accumulated. Unmapped
+source attributes are discarded by the existing projection; missing mapped
+fields remain missing and are rejected when required by the canonical
+contract. Adapter, mapping, manifest, provenance, canonical type, identity,
+duplicate, and collection-batch errors remain visible through the existing
+contracts.
+
+This function has no Elasticsearch client and cannot publish records. Its
+report explicitly states `records_published=0`,
+`ingestion_authorized=false`, `elasticsearch_write_performed=false`, and
+`alias_changed=false`. A passing preflight is necessary technical evidence,
+not semantic approval beyond the supplied mapping declaration and not
+publication authorization. It does not resolve `demand_score` semantics or
+unblock JobVision ingestion.
+
