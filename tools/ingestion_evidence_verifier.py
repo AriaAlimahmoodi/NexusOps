@@ -7,6 +7,7 @@ actually occurred beyond the assertions recorded by the ingestion runner.
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from collections.abc import Mapping
 from datetime import datetime
@@ -143,6 +144,7 @@ def verify_ingestion_run_evidence(
     if (
         not isinstance(duration, (int, float))
         or isinstance(duration, bool)
+        or not math.isfinite(float(duration))
         or duration < 0
     ):
         add("INVALID_DURATION", "duration_seconds must be a non-negative number.")
