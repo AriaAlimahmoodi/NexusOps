@@ -133,10 +133,6 @@ def test_evidence_write_failure_preserves_confirmed_publication_state():
         "error": {
             "type": "OSError",
             "stage": "write_evidence_report",
-            "evidence_write_error": {
-                "type": "OSError",
-                "stage": "write_evidence_report",
-            },
         },
     })
 
