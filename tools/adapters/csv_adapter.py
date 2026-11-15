@@ -46,8 +46,8 @@ def iter_csv_records(
 
     Original headers and string cell values are preserved. A missing trailing
     cell is represented as None; an explicitly empty cell remains an empty
-    string. Rows with extra cells or missing trailing cells are rejected when
-    strict=True. Completely blank rows are skipped.
+    string. Rows with extra cells are always rejected; missing trailing cells
+    are rejected only when strict=True. Completely blank rows are skipped.
 
     This function is deliberately a reader only: semantic mapping,
     normalization, validation, and publication belong to later pipeline steps.
