@@ -103,6 +103,7 @@ def test_successful_run_returns_and_persists_bounded_publication_evidence(
 
     persisted = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "published"
+    assert report["publication_state"] == "confirmed"
     assert report["records_seen"] == 2
     assert report["publication"]["processed_records"] == 2
     assert report["publication"]["physical_index"] == "labor_market_real__v_new"
@@ -160,6 +161,7 @@ def test_failed_run_raises_error_with_persisted_failure_evidence(
     report = caught.value.report
     persisted = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "failed"
+    assert report["publication_state"] == "not_confirmed"
     assert report["records_seen"] == 1
     assert report["error"]["type"] == "ValueError"
     assert report["error"]["issue_counts_by_code"] == {
@@ -207,6 +209,7 @@ def test_report_write_failure_does_not_hide_successful_publication(monkeypatch):
 
     report = caught.value.report
     assert report["status"] == "published_evidence_write_failed"
+    assert report["publication_state"] == "confirmed"
     assert report["publication"]["publication"] == "atomic_alias_switch"
     assert report["report_persisted"] is False
     assert report["error"]["stage"] == "write_evidence_report"
