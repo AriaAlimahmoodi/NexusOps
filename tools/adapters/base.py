@@ -54,7 +54,8 @@ class SourceAdapter(Protocol):
 
 def validate_source_adapter(adapter: Any) -> None:
     """Fail early when an adapter does not satisfy the shared contract."""
-    if not isinstance(getattr(adapter, "format_name", None), str) or not adapter.format_name.strip():
+    format_name = getattr(adapter, "format_name", None)
+    if not isinstance(format_name, str) or not format_name.strip():
         raise TypeError("Source adapter must define a non-empty format_name.")
     if not callable(getattr(adapter, "iter_records", None)):
         raise TypeError("Source adapter must implement iter_records(source).")
