@@ -152,7 +152,7 @@ def iter_json_records(
         raise FileNotFoundError(f"JSON source does not exist: {source_path}")
     if not isinstance(encoding, str) or not encoding.strip():
         raise ValueError("encoding must be a non-empty string.")
-    if mode not in {"jsonl", "array"}:
+    if not isinstance(mode, str) or mode not in {"jsonl", "array"}:
         raise ValueError("JSON mode must be 'jsonl' or 'array'.")
     if isinstance(chunk_size, bool) or not isinstance(chunk_size, int) or chunk_size < 1:
         raise ValueError("chunk_size must be a positive integer.")
