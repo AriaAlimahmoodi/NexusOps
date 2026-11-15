@@ -129,12 +129,50 @@ def prepare_real_records(dataset_id, records, manifest):
     return prepared
 
 
-def ingest_real_records(client, dataset_id, records, manifest):
+def ingest_real_records(
+    client, dataset_id, records, manifest, *, batch_size=500
+):
     """Publish a validated real-data batch through the atomic Registry alias."""
     # Lazy import avoids a module cycle: the publisher reuses this module's
     # manifest validation contract.
     from tools.atomic_data_publisher import ingest_real_records_atomically
 
     return ingest_real_records_atomically(
-        client, dataset_id, records, manifest
+        client, dataset_id, records, manifest, batch_size=batch_size
+    )
+
+
+def ingest_source(
+    client,
+    dataset_id,
+    format_name,
+    source,
+    manifest,
+    *,
+    batch_size=500,
+    adapter_registry=None,
+):
+    """Read a declared source format and stream its records into real ingestion.
+
+    This is orchestration only: adapters emit raw records, while the existing
+    atomic publisher retains canonical projection, validation, and publication.
+    The source iterator is never materialized by this function.
+    """
+    from tools.adapters.base import SourceSpec
+
+    if not isinstance(source, SourceSpec):
+        raise TypeError("source must be a SourceSpec instance.")
+
+    if adapter_registry is None:
+        from tools.adapters.registry import create_default_adapter_registry
+
+        adapter_registry = create_default_adapter_registry()
+
+    records = adapter_registry.iter_records(format_name, source)
+    return ingest_real_records(
+        client,
+        dataset_id,
+        records,
+        manifest,
+        batch_size=batch_size,
     )
