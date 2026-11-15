@@ -130,6 +130,10 @@ class APISourceAdapter:
                     document = json.load(stream)
                 except json.JSONDecodeError as exc:
                     raise APISourceError(f"Invalid JSON API envelope: {exc.msg}.") from exc
+                except UnicodeError as exc:
+                    raise APISourceError(
+                        "API response could not be decoded with the configured encoding."
+                    ) from exc
         records = self._resolve_path(document, records_path, "records_path")
         if not isinstance(records, list):
             raise APISourceError("The configured records_path must resolve to a JSON array.")
@@ -184,6 +188,11 @@ class APISourceAdapter:
             raise ValueError("API POST requests require an explicit body option.")
         if method == "GET" and "body" in options:
             raise ValueError("API body is supported only with POST.")
+        if method == "POST":
+            try:
+                json.dumps(options["body"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError("API POST body must be JSON serializable.") from exc
         content_type = options.get("content_type", "application/json")
         if not isinstance(content_type, str) or not content_type.strip():
             raise ValueError("API content_type must be a non-empty string.")
