@@ -145,6 +145,7 @@ def run_ingestion_with_evidence(
         "collection_batch": manifest.get("collection_batch"),
         "mapping": None,
         "records_seen": 0,
+        "publication_state": "not_confirmed",
         "publication": None,
         "error": None,
         "report_persisted": False,
@@ -174,6 +175,7 @@ def run_ingestion_with_evidence(
             mapping_spec=mapping_spec,
         )
         report["status"] = "published"
+        report["publication_state"] = "confirmed"
         report["publication"] = {
             key: publication.get(key)
             for key in (
