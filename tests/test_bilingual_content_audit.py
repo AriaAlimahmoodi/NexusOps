@@ -15,8 +15,8 @@ def test_multivalue_tokens_are_normalized_and_paired_positionally():
             "en": "Benefits, Insurance",
         },
         {
-            "fa": "مزایا,\\r\\nبیمه",
-            "en": "Benefits,\\r\\nInsurance",
+            "fa": "مزایا,\r\nبیمه",
+            "en": "Benefits,\r\nInsurance",
         },
         {
             "fa": "مزایا, ناهار",
