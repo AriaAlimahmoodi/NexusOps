@@ -108,3 +108,42 @@ def iter_csv_records(
             raise CSVSourceError(
                 f"Malformed CSV near physical line {reader.line_num}: {exc}"
             ) from exc
+
+class CSVSourceAdapter:
+    """CSV implementation of the universal source adapter contract."""
+
+    format_name = "csv"
+    _SUPPORTED_OPTIONS = frozenset({"encoding", "delimiter", "strict"})
+
+    def iter_records(self, source):
+        from tools.adapters.base import SourceSpec
+
+        if not isinstance(source, SourceSpec):
+            raise TypeError("source must be a SourceSpec instance.")
+
+        unknown = set(source.options) - self._SUPPORTED_OPTIONS
+        if unknown:
+            raise ValueError(
+                f"Unsupported CSV source option(s): {sorted(unknown)}."
+            )
+
+        encoding = source.options.get("encoding", "utf-8-sig")
+        delimiter = source.options.get("delimiter")
+        strict = source.options.get("strict", True)
+
+        if not isinstance(encoding, str) or not encoding.strip():
+            raise ValueError("CSV encoding must be a non-empty string.")
+        if delimiter is not None and (
+            not isinstance(delimiter, str) or len(delimiter) != 1
+        ):
+            raise ValueError("CSV delimiter must be exactly one character.")
+        if not isinstance(strict, bool):
+            raise ValueError("CSV strict option must be a boolean.")
+
+        return iter_csv_records(
+            source.uri,
+            encoding=encoding,
+            delimiter=delimiter,
+            strict=strict,
+        )
+
