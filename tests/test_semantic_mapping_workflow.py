@@ -1,4 +1,6 @@
 """Tests for the semantic field-mapping orchestration workflow."""
+import json
+
 import pytest
 
 from tools.ollama_semantic_assist import OllamaSemanticAssistant
@@ -89,34 +91,42 @@ def test_combines_deterministic_matcher_with_ollama_candidates_without_accepting
     assert result["policy"]["automatic_mapping_acceptance"] is False
 
 
-def test_ollama_receives_only_header_names_and_types_through_existing_assistant():
+def test_real_ollama_assistant_prompt_excludes_source_values():
     captured = {}
 
-    class CapturingAssistant:
-        def analyze(self, source_profile, dataset_profiles, **kwargs):
-            captured["source_profile"] = source_profile
-            captured["dataset_profiles"] = dataset_profiles
-            return {
-                "status": "completed",
-                "suggestions": [],
-                "bilingual_pair_suggestions": [],
-                "rejected_model_items": 0,
-                "duplicate_model_items": 0,
-            }
+    class _FakeResponse:
+        def __enter__(self):
+            return self
 
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps({
+                "message": {
+                    "content": json.dumps({
+                        "suggestions": [],
+                        "bilingual_pair_suggestions": [],
+                    })
+                }
+            }).encode("utf-8")
+
+    def opener(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return _FakeResponse()
+
+    assistant = OllamaSemanticAssistant(opener=opener)
     result = analyze_source_mapping(
         _source_profile(),
         "labor_market",
-        ollama_assistant=CapturingAssistant(),
+        ollama_assistant=assistant,
     )
 
-    assert captured["source_profile"] is _source_profile() or (
-        captured["source_profile"]["columns"]["Jobpost_RawTitle"]["sample_values"]
-        == ["must not enter LLM prompt"]
-    )
-    # The existing Ollama assistant itself constructs a reduced prompt; this
-    # workflow never copies sample values into its report.
-    assert "sample_values" not in repr(result)
+    prompt = captured["body"]["messages"][1]["content"]
+    assert "Jobpost_RawTitle" in prompt
+    assert "must not enter LLM prompt" not in prompt
+    assert "sample_values" not in prompt
+    assert "must not enter LLM prompt" not in repr(result)
     assert result["policy"]["raw_source_values_sent_to_ollama"] is False
 
 
@@ -280,3 +290,34 @@ def test_bilingual_diagnostics_remain_separate_from_field_mappings():
         and pair["safe_to_drop"] is False
         for pair in report["bilingual_pair_candidates"]
     )
+
+
+
+def test_rejects_malformed_custom_assistant_suggestions_safely():
+    assistant = _SuggestionAssistant([
+        {
+            "source_field": ["not", "a", "string"],
+            "candidate_field": "job_title",
+            "relation": "synonym",
+            "confidence": 0.9,
+            "rationale": "Malformed source field.",
+        },
+        {
+            "source_field": "UnrecognizedExternalFeature",
+            "candidate_field": "job_title",
+            "relation": "related_not_equivalent",
+            "confidence": 0.99,
+            "rationale": "Related but not equivalent.",
+        },
+    ])
+
+    result = analyze_source_mapping(
+        _source_profile(),
+        "labor_market",
+        ollama_assistant=assistant,
+    )
+
+    unknown = next(item for item in result["fields"] if item["source_field"] == "UnrecognizedExternalFeature")
+    # Only the deterministic matcher result may remain; malformed and
+    # non-equivalent custom suggestions are not promoted into candidates.
+    assert all(item["origin"] != "ollama" for item in unknown["candidates"])
