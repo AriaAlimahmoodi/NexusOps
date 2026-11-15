@@ -482,3 +482,47 @@ These tests use a temporary synthetic CSV and an in-memory Elasticsearch test
 double. They do not contact an external API, access production Elasticsearch,
 or ingest JobVision. They verify the software publication boundary only; they
 do not constitute semantic approval of any external source mapping.
+
+
+## Phase 10.14 — Ingestion run evidence reporting
+
+Implemented in `tools/ingestion_run.py` and
+`tests/test_ingestion_run.py`.
+
+`run_ingestion_with_evidence(...)` is an opt-in evidence wrapper around the
+existing `ingest_source(...)` path. It does not duplicate adapter dispatch,
+source projection, canonical normalization, governance validation, or atomic
+publication. A counting registry proxy observes the stream as it passes
+through the existing coordinator; it does not buffer record bodies or trigger
+a second source read.
+
+Each run report includes:
+
+- a unique run ID, evidence schema version, UTC start/end timestamps, and
+  elapsed duration;
+- target dataset, explicitly selected source format, source name, and
+  collection batch;
+- reviewed mapping ID/version and review metadata when a mapping is supplied;
+- number of source records observed;
+- publication result fields returned by the atomic publisher, including the
+  stable alias, new and previous physical index, processed/indexed counts,
+  total snapshot count, and previous-version retention;
+- success/failure status and, for validation failures, bounded issue counts
+  grouped by issue code.
+
+The report excludes source URIs, manifest source URLs, source record values,
+adapter options, and request headers so credentials and sensitive source
+details are not copied into the evidence artifact. It does not include raw
+exception messages. When `report_path` is supplied, JSON is written using a
+temporary file and atomic replacement. A failed ingestion raises
+`IngestionRunError` with the finalized report available as its `report`
+attribute; the failure report is persisted too when a report path is supplied.
+If publication succeeds but evidence-file writing fails, the raised error
+report explicitly records that publication succeeded while evidence
+persistence failed.
+
+This is an opt-in wrapper; the existing `ingest_source` API remains
+backward-compatible. The evidence report is not an approval token and does
+not authorize ingestion. The caller must independently authorize a real-data
+run before invoking the publisher. It does not alter Registry schemas,
+Elasticsearch mappings, source files, or JobVision's blocked status.
