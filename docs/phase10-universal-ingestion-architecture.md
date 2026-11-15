@@ -217,3 +217,35 @@ implement source-to-canonical mappings, approve JobVision ingestion, change
 Registry profiles, change Elasticsearch mappings, or alter n8n workflows.
 JobVision remains blocked by the Phase 9 policy and the unresolved definition of
 canonical `demand_score`.
+
+
+## Phase 10.6 — Streaming source ingestion coordinator
+
+Implemented in `tools/data_ingestion.py` and
+`tests/test_source_ingestion.py`.
+
+The new `ingest_source(...)` function is a thin orchestration boundary:
+
+1. It requires an explicit `SourceSpec` and format name.
+2. It uses the supplied `SourceAdapterRegistry`, or creates a fresh default
+   registry containing CSV, JSON, and API adapters.
+3. It obtains the adapter iterator through registry dispatch.
+4. It passes that iterator directly to the existing
+   `ingest_real_records(...)` path, including the configured publisher
+   `batch_size`.
+
+The coordinator does not collect records, infer source formats, map fields,
+normalize values, validate canonical semantics, or publish independently.
+The existing atomic publisher consumes the iterator incrementally, applies the
+canonical Registry projection and provenance checks, stages bounded bulk
+requests, and switches the alias only after the complete candidate snapshot
+passes validation. If source reading or record validation fails during
+iteration, the candidate is not published.
+
+The existing `ingest_real_records` signature remains backward compatible;
+`batch_size` is an optional keyword-only setting defaulting to 500.
+
+This coordinator does not make arbitrary raw sources safe for ingestion:
+records must already use reviewed canonical field names and include the
+required manifest and provenance metadata. It does not authorize JobVision
+ingestion or change any canonical Registry profile.
