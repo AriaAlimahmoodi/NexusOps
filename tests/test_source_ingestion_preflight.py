@@ -187,7 +187,7 @@ def test_preflight_rejects_source_with_missing_required_canonical_fields():
 
     assert report["decision"] == "rejected"
     assert report["invalid_records"] == 1
-    assert report["issue_counts_by_code"]["MISSING_REQUIRED_FIELD"] >= 1
+    assert report["issue_counts_by_code"]["MISSING_DATA_FIELD"] >= 1
     assert report["ingestion_authorized"] is False
 
 
