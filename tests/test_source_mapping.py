@@ -181,7 +181,7 @@ def test_ingest_source_rejects_mapping_for_a_different_dataset_before_reading():
     registry = SourceAdapterRegistry()
     registry.register(FixtureAdapter())
 
-    with pytest.raises(ValueError, match="does not match dataset"):
+    with pytest.raises(ValueError, match="mapping_spec dataset_id does not match the ingestion dataset"):
         ingest_source(
             object(),
             "university_courses",
