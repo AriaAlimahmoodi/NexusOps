@@ -122,7 +122,7 @@ Atomic publisher (explicitly approved real-data ingestion)
 3. Unsupported source attributes are discarded during canonical projection.
 4. Missing canonical capabilities are not invented or silently populated.
 5. Semantic similarity alone is not mapping approval.
-6. No source is ingested merely because its CSV can be read or profiled.
+6. No source is ingested merely because its records can be read or profiled.
 7. Elasticsearch publication remains a separate, explicit final operation.
 
 ## Current scope and limitations
