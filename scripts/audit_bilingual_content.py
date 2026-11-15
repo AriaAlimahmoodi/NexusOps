@@ -32,7 +32,7 @@ def _display(value: str | None) -> str:
     if value is None:
         return ""
     value = unicodedata.normalize("NFKC", value)
-    return " ".join(value.replace("\\r", " ").replace("\\n", " ").split())
+    return " ".join(value.replace("\r", " ").replace("\n", " ").split())
 
 
 def _norm(value: str | None) -> str:
@@ -297,7 +297,7 @@ def main() -> int:
 
     output_path = Path(args.output)
     output_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(json.dumps({
