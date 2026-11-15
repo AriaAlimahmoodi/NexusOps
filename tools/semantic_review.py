@@ -180,7 +180,7 @@ def apply_semantic_review_decisions(
             raise ValueError(f"Duplicate decision for candidate: {source_field} -> {target_field}.")
         submitted.add(key)
         decision = item.get("decision")
-        if decision not in _ALLOWED_DECISIONS:
+        if not isinstance(decision, str) or decision not in _ALLOWED_DECISIONS:
             raise ValueError(f"decision must be one of: {', '.join(sorted(_ALLOWED_DECISIONS))}.")
         reason = item.get("decision_reason")
         if not isinstance(reason, str) or not reason.strip():
