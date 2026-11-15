@@ -311,3 +311,37 @@ explicitly sets `semantic_mapping_performed=false` and
 `ingestion_authorized=false`. A successful name/type comparison is not
 evidence that two fields have the same meaning. In particular, this phase
 does not unblock JobVision ingestion or resolve canonical `demand_score`.
+
+
+## Phase 10.9 — Read-only streaming canonical ingestion preflight
+
+Implemented in `tools/ingestion_preflight.py` and
+`tests/test_ingestion_preflight.py`.
+
+`audit_canonical_record_stream(dataset_id, records, manifest, ...)` performs
+a one-pass audit of records that have already been mapped to reviewed canonical
+field names. It reuses the existing Dataset Registry, canonical normalizer,
+provenance validator, and collection-manifest validation.
+
+The audit checks:
+
+- collection manifest completeness and timestamp validity;
+- per-record canonical field types, required fields, numeric ranges, and
+  provenance;
+- each record's `collection_batch` against the manifest;
+- registered document identity presence and duplicate identities;
+- aggregate issue counts, while retaining only a configurable bounded sample
+  of issue details.
+
+The input iterator is consumed once. Record bodies are not accumulated; the
+duplicate-identity set grows with the number of distinct identities, as
+required for exact duplicate detection. The report distinguishes valid and
+invalid records and never returns normalized records.
+
+This is a preflight audit, not a publisher. It performs no Elasticsearch
+writes, creates no staging index, changes no alias, and reports zero published
+records. A passing result only confirms conformance to the current canonical
+technical contract for the supplied already-mapped stream; it does not approve
+source semantics or independently authorize publication. JobVision remains
+blocked until its source-to-canonical semantic mapping and canonical
+`demand_score` definition are separately reviewed.
