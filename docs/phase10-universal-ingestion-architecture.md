@@ -96,8 +96,8 @@ line JSON Lines before being read.
 Implemented in `tools/adapters/api_adapter.py`.
 
 The adapter implements the shared `SourceAdapter` contract and supports
-read-only data retrieval through HTTP(S) GET and explicitly configured POST
-requests. Direct JSONL and top-level JSON-array responses are streamed through
+HTTP(S) GET requests and explicitly configured POST requests. POST endpoints
+may have side effects; callers must review the endpoint contract before use. Direct JSONL and top-level JSON-array responses are streamed through
 the shared JSON readers. JSON envelope extraction and pagination operate one
 response page at a time and preserve each source record's property names and
 JSON value types.
