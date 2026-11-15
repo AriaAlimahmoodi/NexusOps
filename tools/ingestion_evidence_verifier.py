@@ -235,10 +235,18 @@ def verify_ingestion_run_evidence(
             add("MISSING_PUBLICATION_DETAILS", "Confirmed publication requires publication details.")
         if data.get("report_persisted") is not False:
             add("PERSISTENCE_STATE_MISMATCH", "Evidence-write failure requires report_persisted=false.")
-        if not isinstance(error, Mapping) or not isinstance(error.get("evidence_write_error"), Mapping):
-            add("MISSING_EVIDENCE_WRITE_ERROR", "Evidence-write failure requires error.evidence_write_error.")
-        elif error["evidence_write_error"].get("stage") != "write_evidence_report":
-            add("INVALID_EVIDENCE_WRITE_STAGE", "Evidence write error has an unexpected stage.")
+        if not isinstance(error, Mapping):
+            add("MISSING_EVIDENCE_WRITE_ERROR", "Evidence-write failure requires an error object.")
+        else:
+            # The runner stores the persistence error directly when ingestion
+            # succeeded, and nests it when an ingestion error already exists.
+            write_error = (
+                error.get("evidence_write_error")
+                if isinstance(error.get("evidence_write_error"), Mapping)
+                else error
+            )
+            if write_error.get("stage") != "write_evidence_report":
+                add("INVALID_EVIDENCE_WRITE_STAGE", "Evidence write error has an unexpected stage.")
     else:
         add("INVALID_FINAL_STATUS", "status must be published, failed, or published_evidence_write_failed.")
 
