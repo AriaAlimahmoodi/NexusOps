@@ -152,9 +152,9 @@ Atomic publisher (explicitly approved real-data ingestion)
 
 ## Current scope and limitations
 
-This increment implements streaming CSV and JSON source readers, the shared
-source adapter contract, and adapter conformance tests. It does not implement an
-API adapter, source-to-canonical mappings, approve JobVision ingestion, change
+This increment implements streaming CSV, JSON, and HTTP API source readers,
+the shared source adapter contract, and adapter conformance tests. It does not
+implement source-to-canonical mappings, approve JobVision ingestion, change
 Registry profiles, change Elasticsearch mappings, or alter n8n workflows.
 JobVision remains blocked by the Phase 9 policy and the unresolved definition of
 canonical `demand_score`.
