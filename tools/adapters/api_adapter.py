@@ -7,7 +7,6 @@ or publish records.
 from __future__ import annotations
 
 import io
-import json
 from collections.abc import Iterator, Mapping
 from numbers import Real
 from urllib.error import HTTPError, URLError
