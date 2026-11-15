@@ -526,3 +526,37 @@ backward-compatible. The evidence report is not an approval token and does
 not authorize ingestion. The caller must independently authorize a real-data
 run before invoking the publisher. It does not alter Registry schemas,
 Elasticsearch mappings, source files, or JobVision's blocked status.
+
+
+## Phase 10.15 — Read-only ingestion-run evidence verification
+
+Implemented in `tools/ingestion_evidence_verifier.py` and
+`tests/test_ingestion_evidence_verifier.py`.
+
+`verify_ingestion_run_evidence(report)` accepts either an in-memory report
+mapping or a path to a persisted UTF-8 JSON evidence file. It checks the
+evidence schema version, run UUID, required identity fields, timezone-aware
+timestamps and ordering, duration and record counters, mapping review metadata,
+and consistency between run status, publication state, persistence state, and
+the publication fields emitted by Phase 10.14.
+
+For a confirmed publication it checks the atomic publication method, required
+alias and physical-index identifiers, collection-batch consistency, processed
+versus indexed counts, total snapshot count, and previous-version retention
+metadata. It distinguishes a failed run with an unconfirmed publication from a
+successful publication whose evidence file could not be persisted. The latter
+must retain `publication_state=confirmed`; the verifier does not reinterpret
+an unconfirmed publication as proof that no alias switch occurred.
+
+The result contains a deterministic decision, aggregate issue count, and
+structured issue list. The input report is not modified. Malformed files,
+invalid JSON roots, incomplete reports, and internally inconsistent states
+are rejected.
+
+This verifier is strictly read-only: it does not contact Elasticsearch, read
+source records, execute ingestion, or change aliases. A verified result means
+only that the evidence artifact is structurally consistent. It cannot prove
+that Elasticsearch actually has the reported state, that source semantics or
+human review are correct, or that publication was independently authorized.
+It always reports `elasticsearch_inspected=false`,
+`semantic_review_verified=false`, and `ingestion_authorized=false`.
