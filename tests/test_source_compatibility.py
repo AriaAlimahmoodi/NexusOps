@@ -25,7 +25,6 @@ def test_assessment_reports_exact_matches_missing_required_and_unsupported_field
             "market_record_id": "LM-001",
             "skill": "Python",
             "demand_score": 4.2,
-            "frequency": 100,
             "source": "https://example.org/1",
             "observed_at": "2026-11-15T00:00:00Z",
             "collection_batch": "batch-1",
@@ -42,7 +41,7 @@ def test_assessment_reports_exact_matches_missing_required_and_unsupported_field
     )
 
     assert "market_record_id" in report["exact_name_matches"]
-    assert "job_title" in report["missing_required_fields"]
+    assert "frequency" in report["missing_required_fields"]
     assert "JobVision_PrivateColumn" in report["unsupported_source_fields"]
     assert report["decision"] == "manual_review_required"
     assert report["ingestion_authorized"] is False
