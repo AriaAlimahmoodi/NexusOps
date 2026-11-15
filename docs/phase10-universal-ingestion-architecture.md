@@ -249,3 +249,36 @@ This coordinator does not make arbitrary raw sources safe for ingestion:
 records must already use reviewed canonical field names and include the
 required manifest and provenance metadata. It does not authorize JobVision
 ingestion or change any canonical Registry profile.
+
+
+## Phase 10.7 — Adapter-backed source profiling
+
+Implemented in `tools/source_discovery.py` and
+`tests/test_adapter_source_profiling.py`.
+
+The existing CSV profiler remains available. Two generic entry points extend
+source profiling to any registered adapter:
+
+- `profile_record_stream(records, ...)` profiles an iterator of raw mapping
+  records without retaining the records themselves;
+- `profile_source(format_name, source, ...)` resolves an explicitly selected
+  adapter through the supplied registry or a fresh default registry, then
+  profiles its iterator.
+
+The report observes the union of source field names, physical value types,
+null counts, bounded samples, bounded top/distinct values, and nested JSON
+object keys/array item types. Fields first seen later in the stream are counted
+as missing in earlier records. JSON-compatible nested values are serialized
+only for profiling and are not written back to the source.
+
+The profiler rejects non-mapping records and empty/non-string field names.
+Memory used for value statistics is bounded by the configured sample and
+distinct-value limits (plus the observed field-name set). It does not rename
+fields, infer canonical meaning, approve mappings, normalize records, validate
+a dataset contract, or write to Elasticsearch.
+
+Profiling is a separate, explicit read of the source. It is not automatically
+inserted into `ingest_source`: doing so would read a source twice, which can be
+expensive or unsafe for POST endpoints and other non-repeatable sources. A
+successful structural profile is not semantic approval or ingestion
+authorization. JobVision remains blocked under the existing policy.
