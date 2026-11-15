@@ -135,3 +135,67 @@ the builder/MappingSpec validation.
 Phase 11.2 adds the durable review data model and API. Operator-facing CLI
 workflow and JobVision-specific semantic regression fixtures remain subsequent
 increments.
+
+
+## Phase 11.3 — Semantic mapping review operator CLI
+
+Implemented in:
+
+- `scripts/semantic_mapping_review.py`
+- `tests/test_semantic_mapping_review_cli.py`
+
+The CLI exposes three explicit subcommands. Each command reads/writes JSON
+artifacts and performs no ingestion or Elasticsearch operation.
+
+### 1. Analyze and create a pending review artifact
+
+```powershell
+python -m scripts.semantic_mapping_review analyze --profile .\source-profile.json --dataset labor_market --report .\semantic-analysis.json --artifact .\semantic-review.json --artifact-id jobvision-labor-market-v1 --created-by operator --no-ollama
+```
+
+Remove `--no-ollama` to enable the existing local Ollama assistant. The
+analysis report and review artifact are written as UTF-8 JSON. The artifact
+starts with every candidate in `pending`; no candidate is accepted.
+
+### 2. Record reviewer decisions
+
+Prepare a JSON array containing only the candidates being reviewed. Each item
+must include `source_field`, `target_field`, `decision`, and
+`decision_reason`. Allowed decisions are `approved`, `rejected`,
+`deferred`, and `ambiguous`.
+
+```powershell
+python -m scripts.semantic_mapping_review review --artifact .\semantic-review.json --decisions .\review-decisions.json --output .\semantic-review-reviewed.json --reviewed-by reviewer-id --reviewed-at 2026-11-15T06:30:00Z
+```
+
+Partial decisions are supported. The input artifact is not overwritten; the
+updated artifact is written to the requested output path. Reviewer timestamps
+must include a timezone.
+
+### 3. Export a reviewed MappingSpec
+
+```powershell
+python -m scripts.semantic_mapping_review build-mapping --report .\semantic-analysis.json --artifact .\semantic-review-reviewed.json --output .\source-mapping-spec.json --mapping-id jobvision-labor-market-v1 --reviewed-by reviewer-id --reviewed-at 2026-11-15T06:35:00Z --review-reference review-001
+```
+
+The command verifies the analysis fingerprint and source/dataset identity.
+Only approved, direct-projection-eligible candidates are exported. If no
+candidate has been approved, the command fails without creating the output
+file. Duplicate target mappings and Registry violations remain rejected by
+the existing MappingSpec validation.
+
+### Operational safeguards
+
+- JSON output is written through a temporary file followed by an atomic
+  replacement in the destination directory.
+- Analysis output and review artifacts contain candidate metadata, not raw
+  source records or sample values.
+- The CLI never constructs an Elasticsearch client, invokes ingestion, or
+  publishes data.
+- MappingSpec export reports `ingestion_authorized=false`; a separate,
+  explicit preflight and publication authorization process remains necessary.
+- The CLI does not authenticate reviewer identities. The supplied reviewer
+  identifiers and timestamps are audit declarations.
+- JobVision remains blocked; the CLI does not resolve its semantic mismatches
+  or define `demand_score`.
+
