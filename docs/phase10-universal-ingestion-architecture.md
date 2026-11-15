@@ -210,13 +210,15 @@ Atomic publisher (explicitly approved real-data ingestion)
 
 ## Current scope and limitations
 
-This increment implements streaming CSV and JSON readers, a configurable
-HTTP API reader with pagination, retries, POST, and envelope extraction, the
-shared source adapter contract, and adapter conformance tests. It does not
-implement source-to-canonical mappings, approve JobVision ingestion, change
-Registry profiles, change Elasticsearch mappings, or alter n8n workflows.
-JobVision remains blocked by the Phase 9 policy and the unresolved definition of
-canonical `demand_score`.
+The Phase 10 baseline implements streaming CSV and JSON readers, a
+configurable HTTP API reader with pagination, retries, POST, and envelope
+extraction, the shared source adapter contract, and adapter conformance tests.
+Subsequent increments add streaming coordination, profiling, compatibility
+assessment, canonical preflight, and explicit reviewed field-name projection.
+These capabilities do not approve JobVision ingestion, change Registry
+profiles, change Elasticsearch mappings, or alter n8n workflows. JobVision
+remains blocked by unresolved source semantics and the canonical
+`demand_score` definition.
 
 
 ## Phase 10.6 — Streaming source ingestion coordinator
@@ -345,3 +347,42 @@ technical contract for the supplied already-mapped stream; it does not approve
 source semantics or independently authorize publication. JobVision remains
 blocked until its source-to-canonical semantic mapping and canonical
 `demand_score` definition are separately reviewed.
+
+
+## Phase 10.10 — Explicit reviewed source-to-canonical field projection
+
+Implemented in `tools/source_mapping.py`, integrated optionally into
+`ingest_source(..., mapping_spec=...)`, and covered by
+`tests/test_source_mapping.py`.
+
+`SourceMappingSpec` is an immutable, versioned mapping record. It identifies
+the source and target dataset, declares exact source-field to canonical-field
+name pairs, and records reviewer, timezone-aware review timestamp, and review
+reference. Construction validates every target against the selected Dataset
+Registry fields and provenance contract. It rejects unknown targets,
+duplicate canonical targets, and attempts to map the reserved
+`data_classification` field.
+
+`map_source_record` and `iter_mapped_records` perform direct value copying
+only:
+
+- only explicitly listed source fields are projected;
+- unlisted source attributes are discarded;
+- absent source fields remain absent (they are not filled with null);
+- explicit nulls and original raw values are preserved without conversion;
+- records are processed lazily and in source order;
+- no semantic matching, synonym resolution, value transformation, nested
+  extraction, default generation, or Registry mutation occurs.
+
+When `mapping_spec` is supplied to `ingest_source`, its dataset must match
+the requested ingestion dataset and the mapped iterator is passed to the
+existing canonical normalization, governance, and atomic publication path.
+When it is omitted, the source adapter must already emit records using
+reviewed canonical field names, preserving backward compatibility.
+
+The review metadata is an auditable declaration supplied by the caller; the
+software does not independently establish that a human review actually
+occurred. A mapping spec is not an ingestion approval. JobVision remains
+blocked until each proposed field equivalence is separately reviewed and the
+canonical `demand_score` definition is resolved. No JobVision data is
+published by this phase.
