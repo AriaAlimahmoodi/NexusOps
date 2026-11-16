@@ -24,7 +24,7 @@ from tools.source_connectors import ESCOClient, RemotiveClient
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_ROOT = ROOT / "data" / "raw"
-ESCO_VERSION = "1.2.1"
+ESCO_VERSION = "api-default"
 ESCO_SCHEMES = {
     "skills": "http://data.europa.eu/esco/concept-scheme/skills",
     "occupations": "http://data.europa.eu/esco/concept-scheme/occupations",
@@ -61,13 +61,23 @@ def embedded_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "missing object '_embedded'. Raw page has been retained."
         )
 
+    # ESCO collection responses embed resources as {concept_uri: resource};
+    # some HAL endpoints instead use named lists. Support both shapes, but
+    # prefer URI-keyed resource objects and exclude ancillary embedded lists.
+    uri_keyed_items = [
+        value for value in embedded.values()
+        if isinstance(value, dict) and isinstance(value.get("uri"), str)
+    ]
+    if uri_keyed_items:
+        return uri_keyed_items
+
     candidates: list[list[Any]] = []
     for value in embedded.values():
         if isinstance(value, list) and all(isinstance(item, dict) for item in value):
             candidates.append(value)
     if not candidates:
         raise ValueError(
-            "ESCO HAL response has no embedded list of resource objects. "
+            "ESCO HAL response has no embedded resource objects. "
             "Raw page has been retained for schema inspection."
         )
     return max(candidates, key=len)
@@ -92,7 +102,7 @@ def acquire_esco(
 
     for kind, scheme_uri in ESCO_SCHEMES.items():
         dataset_dir = (
-            RAW_ROOT / "esco" / f"v{ESCO_VERSION}" / language / kind
+            RAW_ROOT / "esco" / ESCO_VERSION / language / kind
         )
         dataset_dir.mkdir(parents=True, exist_ok=True)
         page_count = 0
@@ -114,8 +124,8 @@ def acquire_esco(
                         scheme_uri=scheme_uri,
                         language=language,
                         limit=page_size,
-                        offset=page_number,
-                        selected_version=ESCO_VERSION,
+                        offset=page_number * page_size,
+                        selected_version=None,
                     )
                 else:
                     payload = client.get_occupations_by_scheme(
@@ -135,8 +145,13 @@ def acquire_esco(
                 f"records={len(items)} cumulative={record_count}"
             )
 
-            if len(items) < page_size:
-                complete = True
+            response_offset = payload.get("offset", page_number * page_size)
+            response_total = payload.get("total")
+            if isinstance(response_total, int):
+                complete = response_offset + len(items) >= response_total
+            else:
+                complete = len(items) < page_size
+            if complete:
                 break
             page_number += 1
 
@@ -145,6 +160,10 @@ def acquire_esco(
             "provider": "ESCO",
             "dataset": kind,
             "version": ESCO_VERSION,
+            "version_note": (
+                "API default; selectedVersion omitted because explicit version "
+                "parameters returned HTTP 500 in the observed API response."
+            ),
             "language": language,
             "scheme_uri": scheme_uri,
             "endpoint": (
