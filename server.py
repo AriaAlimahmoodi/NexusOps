@@ -8,7 +8,12 @@ import sys
 import time
 from pathlib import Path
 from tools.market_skills import get_market_skill_details
-from tools.source_connectors import (\n    BLSClient,\n    CollegeScorecardClient,\n    ESCOClient,\n    RemotiveClient,\n)
+from tools.source_connectors import (
+    BLSClient,
+    CollegeScorecardClient,
+    ESCOClient,
+    RemotiveClient,
+)
 from runtime_logging import configure_logging, resolve_request_id
 from typing import Any, Literal
 from pydantic import BaseModel, Field
