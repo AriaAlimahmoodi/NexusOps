@@ -747,6 +747,66 @@ async def fetch_esco_concepts_tool(
 
 
 @server.tool(
+    name="fetch_esco_skills",
+    description=(
+        "READ-ONLY ESCO SKILLS TAXONOMY BULK RETRIEVAL. Uses the documented "
+        "GET /resource/skill endpoint with an ESCO skill concept-scheme URI. "
+        "The offset is a zero-based PAGE NUMBER (not a record offset). "
+        "Returns raw HAL JSON; no Elasticsearch writes."
+    ),
+)
+async def fetch_esco_skills_tool(
+    scheme_uri: str = "http://data.europa.eu/esco/concept-scheme/skills",
+    language: str = "en",
+    limit: int = 100,
+    offset: int = 0,
+    selected_version: str = "1.2.1",
+    view_obsolete: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        client = ESCOClient(
+            base_url=os.getenv("ESCO_API_BASE_URL", ESCOClient.DEFAULT_BASE_URL)
+        )
+        return client.get_skills_by_scheme(
+            scheme_uri=scheme_uri, language=language, limit=limit,
+            offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
+        )
+    return await run_sync_tool("fetch_esco_skills", fetch, context=ctx)
+
+
+@server.tool(
+    name="fetch_esco_occupations",
+    description=(
+        "READ-ONLY ESCO OCCUPATION TAXONOMY BULK RETRIEVAL. Uses the "
+        "documented GET /resource/occupation endpoint with an ESCO occupation "
+        "concept-scheme URI. The offset is a zero-based PAGE NUMBER (not a "
+        "record offset). Returns raw HAL JSON; no Elasticsearch writes."
+    ),
+)
+async def fetch_esco_occupations_tool(
+    scheme_uri: str = "http://data.europa.eu/esco/concept-scheme/occupations",
+    language: str = "en",
+    limit: int = 100,
+    offset: int = 0,
+    selected_version: str = "1.2.1",
+    view_obsolete: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        client = ESCOClient(
+            base_url=os.getenv("ESCO_API_BASE_URL", ESCOClient.DEFAULT_BASE_URL)
+        )
+        return client.get_occupations_by_scheme(
+            scheme_uri=scheme_uri, language=language, limit=limit,
+            offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
+        )
+    return await run_sync_tool("fetch_esco_occupations", fetch, context=ctx)
+
+
+@server.tool(
     name="fetch_remotive_jobs",
     description=(
         "READ-ONLY REMOTIVE REMOTE-JOB RETRIEVAL. Fetch active remote job "
