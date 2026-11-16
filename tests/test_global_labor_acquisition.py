@@ -46,7 +46,7 @@ def test_acquire_esco_pages_by_page_number_and_writes_raw_pages(tmp_path, monkey
     pages = {
         "skills": {
             0: {"_embedded": {"skills": [{"uri": "s1"}, {"uri": "s2"}]}},
-            1: {"_embedded": {"skills": [{"uri": "s3"}]}},
+            2: {"_embedded": {"skills": [{"uri": "s3"}]}},
         },
         "occupations": {
             0: {"_embedded": {"occupations": [{"uri": "o1"}]}},
