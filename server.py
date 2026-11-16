@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 from tools.market_skills import get_market_skill_details
-from tools.source_connectors import BLSClient, CollegeScorecardClient
+from tools.source_connectors import (\n    BLSClient,\n    CollegeScorecardClient,\n    ESCOClient,\n    RemotiveClient,\n)
 from runtime_logging import configure_logging, resolve_request_id
 from typing import Any, Literal
 from pydantic import BaseModel, Field
@@ -672,6 +672,102 @@ async def fetch_bls_series_tool(
         fetch,
         context=ctx,
     )
+
+
+
+
+@server.tool(
+    name="search_esco_concepts",
+    description=(
+        "READ-ONLY ESCO TAXONOMY SEARCH. Search the European Commission's "
+        "ESCO occupation and skills classification. Use concept_type='Skill' "
+        "for skills and concept_type='Occupation' for occupations. Returns "
+        "raw provider HAL JSON; it does not write to Elasticsearch. The "
+        "legacy web-service API is used and its base URL is configurable."
+    ),
+)
+async def search_esco_concepts_tool(
+    text: str,
+    language: str = "en",
+    concept_type: str = "Skill",
+    limit: int = 20,
+    offset: int = 0,
+    full: bool = False,
+    selected_version: str | None = None,
+    view_obsolete: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        client = ESCOClient(
+            base_url=os.getenv("ESCO_API_BASE_URL", ESCOClient.DEFAULT_BASE_URL)
+        )
+        return client.search_concepts(
+            text=text, language=language, concept_type=concept_type,
+            limit=limit, offset=offset, full=full,
+            selected_version=selected_version, view_obsolete=view_obsolete,
+        )
+    return await run_sync_tool("search_esco_concepts", fetch, context=ctx)
+
+
+@server.tool(
+    name="fetch_esco_concepts",
+    description=(
+        "READ-ONLY ESCO BULK TAXONOMY RETRIEVAL. Fetch one page of concepts "
+        "from an explicitly supplied ESCO concept-scheme URI. Skills scheme: "
+        "http://data.europa.eu/esco/concept-scheme/skills. Occupations scheme: "
+        "http://data.europa.eu/esco/concept-scheme/occupations. Returns raw "
+        "provider JSON and does not write to Elasticsearch. Use pagination "
+        "deliberately for full taxonomy acquisition."
+    ),
+)
+async def fetch_esco_concepts_tool(
+    scheme_uri: str,
+    language: str = "en",
+    limit: int = 100,
+    offset: int = 0,
+    selected_version: str | None = None,
+    view_obsolete: bool = False,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        client = ESCOClient(
+            base_url=os.getenv("ESCO_API_BASE_URL", ESCOClient.DEFAULT_BASE_URL)
+        )
+        return client.get_concepts_by_scheme(
+            scheme_uri=scheme_uri, language=language, limit=limit,
+            offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
+        )
+    return await run_sync_tool("fetch_esco_concepts", fetch, context=ctx)
+
+
+@server.tool(
+    name="fetch_remotive_jobs",
+    description=(
+        "READ-ONLY REMOTIVE REMOTE-JOB RETRIEVAL. Fetch active remote job "
+        "postings, optionally filtered by search text, category, or company. "
+        "Returns raw provider JSON including the jobs array; it does not write "
+        "to Elasticsearch or extract skills. Remotive advises no more than "
+        "four API requests per day. Any later display must credit Remotive "
+        "and link to the original job URL."
+    ),
+)
+async def fetch_remotive_jobs_tool(
+    search: str | None = None,
+    category: str | None = None,
+    company_name: str | None = None,
+    limit: int | None = 100,
+    ctx: Context = None,
+) -> str:
+    def fetch():
+        client = RemotiveClient(
+            base_url=os.getenv("REMOTIVE_API_BASE_URL", RemotiveClient.DEFAULT_BASE_URL)
+        )
+        return client.get_jobs(
+            search=search, category=category,
+            company_name=company_name, limit=limit,
+        )
+    return await run_sync_tool("fetch_remotive_jobs", fetch, context=ctx)
 
 
 if __name__ == "__main__":
