@@ -158,7 +158,7 @@ def acquire_esco(
             "complete": complete,
             "started_at": started_at,
             "finished_at": utc_now(),
-            "raw_directory": str(dataset_dir.relative_to(ROOT)),
+            "raw_directory": str(dataset_dir.relative_to(RAW_ROOT)),
             "page_checksums": {
                 path.name: sha256_file(path) for path in page_files
             },
@@ -201,7 +201,7 @@ def acquire_remotive(*, refresh: bool = False) -> dict[str, Any]:
         "job_count_reported": payload.get("job-count"),
         "records_saved": len(jobs),
         "fetched_or_reused_at": utc_now(),
-        "raw_file": str(raw_path.relative_to(ROOT)),
+        "raw_file": str(raw_path.relative_to(RAW_ROOT)),
         "sha256": sha256_file(raw_path),
         "complete_for_provider_response": True,
         "scope_note": (
