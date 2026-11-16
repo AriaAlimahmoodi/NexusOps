@@ -132,8 +132,8 @@ def acquire_esco(
                         scheme_uri=scheme_uri,
                         language=language,
                         limit=page_size,
-                        offset=page_number,
-                        selected_version=ESCO_VERSION,
+                        offset=page_number * page_size,
+                        selected_version=None,
                     )
                 write_json_atomic(page_path, payload)
 
