@@ -70,3 +70,22 @@ def test_remotive_validates_limit_and_response_shape():
     broken = RemotiveClient(transport=transport_for({"status": "ok"}, {}))
     with pytest.raises(Exception, match="missing the jobs array"):
         broken.get_jobs()
+
+
+
+def test_esco_skill_and_occupation_use_typed_bulk_endpoints():
+    for method_name, expected_path, scheme in [
+        ("get_skills_by_scheme", "/esco/api/resource/skill",
+         "http://data.europa.eu/esco/concept-scheme/skills"),
+        ("get_occupations_by_scheme", "/esco/api/resource/occupation",
+         "http://data.europa.eu/esco/concept-scheme/occupations"),
+    ]:
+        captured = {}
+        client = ESCOClient(transport=transport_for({"_embedded": {}}, captured))
+        getattr(client, method_name)(scheme_uri=scheme, selected_version="1.2.1")
+        parsed = urlparse(captured["url"])
+        query = parse_qs(parsed.query)
+        assert parsed.path == expected_path
+        assert query["isInScheme"] == [scheme]
+        assert query["selectedVersion"] == ["1.2.1"]
+        assert query["offset"] == ["0"]
