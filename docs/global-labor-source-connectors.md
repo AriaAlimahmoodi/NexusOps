@@ -1,84 +1,97 @@
-# Global labor-market source connectors
+# اتصال‌دهنده‌های منابع جهانی بازار کار
 
-NexusOps includes two read-only source connectors:
+در این مرحله دو اتصال‌دهنده فقط‌خواندنی به NexusOps اضافه شده‌اند:
 
-- **ESCO**: European Commission occupation and skills classification.
-- **Remotive**: active remote-job postings from the Remotive job board.
+- **ESCO**: طبقه‌بندی ساختاریافته مشاغل و مهارت‌های کمیسیون اروپا.
+- **Remotive**: آگهی‌های فعال مشاغل دورکار از پلتفرم Remotive.
 
-The connectors return provider JSON unchanged. They do not normalize data, write
-to Elasticsearch, create indices, or modify registered analytical schemas.
-Dataset ingestion is a separate phase.
+این اتصال‌دهنده‌ها پاسخ خام API را برمی‌گردانند. در این مرحله هیچ داده‌ای نرمال‌سازی نمی‌شود، هیچ ایندکسی در Elasticsearch ساخته نمی‌شود و هیچ داده‌ای به Elasticsearch نوشته نمی‌شود. دریافت و ورود دیتاست‌ها مرحله‌ای مستقل است.
 
-## ESCO
+## ۱. ESCO
 
-Default base URL: `https://ec.europa.eu/esco/api`
+آدرس پایه پیش‌فرض:
 
-MCP tools:
-- `search_esco_concepts`: documented `GET /search` operation.
-- `fetch_esco_concepts`: paginated `GET /resource/concept` operation using
-  an explicit concept-scheme URI.
+`https://ec.europa.eu/esco/api`
 
-Example search arguments:
+ابزارهای MCP:
+
+- `search_esco_concepts`: جست‌وجوی مفاهیم با عملیات مستندشده `GET /search`.
+- `fetch_esco_concepts`: دریافت صفحه‌ای از مفاهیم با عملیات `GET /resource/concept` و شناسه صریح Concept Scheme.
+
+نمونه آرگومان جست‌وجو:
+
 ```json
-{"text":"Python","language":"en","concept_type":"Skill","limit":20,"offset":0}
+{
+  "text": "Python",
+  "language": "en",
+  "concept_type": "Skill",
+  "limit": 20,
+  "offset": 0
+}
 ```
 
-Common scheme identifiers:
-- Skills: `http://data.europa.eu/esco/concept-scheme/skills`
-- Occupations: `http://data.europa.eu/esco/concept-scheme/occupations`
+برای دریافت صفحه‌ای مفاهیم، URI مربوط به Concept Scheme باید صریحاً ارسال شود:
 
-ESCO announced on 17 September 2026 that it is transitioning to a new
-OpenAPI-based API and that API-key authentication will be required for that
-new service. The final new endpoint and authentication contract must be taken
-from the Commission's migration documentation when published. This connector
-currently implements the documented legacy web-service operations and allows
-the base URL to be overridden using `ESCO_API_BASE_URL`; it does not invent
-an authentication header.
+- مهارت‌ها: `http://data.europa.eu/esco/concept-scheme/skills`
+- مشاغل: `http://data.europa.eu/esco/concept-scheme/occupations`
 
-Official documentation:
+**وضعیت تغییر API:** کمیسیون اروپا در ۱۷ سپتامبر ۲۰۲۶ اعلام کرده است که API به نسخه جدید مبتنی بر OpenAPI منتقل می‌شود و برای سرویس جدید API Key لازم خواهد بود. تا زمان انتشار قرارداد نهایی endpoint و روش احراز هویت، این پیاده‌سازی از عملیات مستندشده Web Service فعلی استفاده می‌کند. آدرس پایه از طریق `ESCO_API_BASE_URL` قابل تغییر است. هیچ هدر احراز هویت حدس زده یا جعل نشده است.
+
+مستندات رسمی:
+
 - https://esco.ec.europa.eu/en/use-esco/use-esco-services-api/esco-web-service-api
 - https://ec.europa.eu/esco/api/doc/esco_api_doc.html
 - https://esco.ec.europa.eu/en/news/upcoming-change-esco-api
 - https://esco.ec.europa.eu/en/use-esco/download
 
-## Remotive
+## ۲. Remotive
 
-Default base URL: `https://remotive.com/api`
+آدرس پایه پیش‌فرض:
 
-MCP tool: `fetch_remotive_jobs`, using `GET /remote-jobs`.
+`https://remotive.com/api`
 
-Supported optional arguments: `search`, `category`, `company_name`, and
-`limit`. The raw response must include a `jobs` array.
+ابزار MCP:
 
-The documented public endpoint requires no API key. Remotive states that:
-- listings are delayed by 24 hours;
-- API usage should generally be limited to four requests per day;
-- displayed listings must credit Remotive and link to the original Remotive URL;
-- its jobs must not be submitted to third-party job aggregators.
+- `fetch_remotive_jobs`: فراخوانی `GET /remote-jobs`.
 
-NexusOps should preserve provider IDs, source attribution, and original URLs
-when the ingestion layer is implemented. Remotive-only data must not be
-described as the entire global labor market.
+فیلترهای اختیاری:
 
-Official references:
+- `search`: جست‌وجوی متنی در عنوان و توضیحات آگهی.
+- `category`: دسته‌بندی یا slug دسته‌بندی، مانند `software-dev`.
+- `company_name`: فیلتر نام شرکت.
+- `limit`: حداکثر تعداد آگهی‌های بازگشتی.
+
+API عمومی مستندشده به API Key نیاز ندارد. پاسخ خام برگردانده می‌شود و باید آرایه `jobs` داشته باشد.
+
+**محدودیت‌ها و شرایط ارائه‌دهنده:**
+
+- آگهی‌ها با تأخیر ۲۴ ساعته ارائه می‌شوند.
+- Remotive حداکثر چهار درخواست API در روز را توصیه می‌کند.
+- در هر نمایش بعدی باید Remotive به‌عنوان منبع ذکر شود و لینک آگهی اصلی Remotive حفظ شود.
+- ارسال آگهی‌های Remotive به وب‌سایت‌های تجمیع‌کننده شغلی ثالث طبق شرایط ارائه‌دهنده مجاز نیست.
+
+هنگام طراحی لایه ورود داده باید شناسه آگهی، منبع، URL اصلی و زمان دریافت حفظ شوند. داده‌های Remotive به‌تنهایی نماینده کل بازار کار جهان نیستند و باید با عنوان «نمونه آگهی‌های دورکار Remotive» گزارش شوند.
+
+مستندات رسمی:
+
 - https://remotive.com/remote-jobs/api
 - https://github.com/remotive-com/remote-jobs-api
 
-## Environment
+## ۳. متغیرهای محیطی
 
-Optional endpoint overrides:
+مقادیر پیش‌فرض و قابل تغییر:
+
 ```dotenv
 ESCO_API_BASE_URL=https://ec.europa.eu/esco/api
 REMOTIVE_API_BASE_URL=https://remotive.com/api
 ```
 
-No credentials are required by the documented public endpoints currently
-implemented here. Never commit credentials to source control.
+برای endpointهای عمومی پیاده‌سازی‌شده در این مرحله، credential لازم نیست. هیچ کلید یا رمز عبوری نباید در Git ثبت شود.
 
-## Operational boundaries
+## ۴. مرزهای اجرایی این مرحله
 
-- Retrieval only: no automatic Elasticsearch writes.
-- Respect Remotive's advised four-requests-per-day limit.
-- Fetch ESCO pages deliberately; full taxonomy acquisition belongs to the
-  subsequent dataset-ingestion phase.
-- Preserve raw payloads and provider provenance for later normalization.
+- این ابزارها فقط داده را دریافت می‌کنند و در Elasticsearch چیزی نمی‌نویسند.
+- درخواست‌های Remotive باید با رعایت سقف توصیه‌شده چهار درخواست در روز انجام شوند.
+- دریافت کامل طبقه‌بندی ESCO باید صفحه‌بندی‌شده و کنترل‌شده باشد.
+- دانلود دیتاست، ذخیره‌سازی خام، نرمال‌سازی، استخراج مهارت از آگهی‌ها با Ollama و تطبیق با شناسه‌های ESCO در فاز بعدی انجام می‌شوند.
+- داده خام و شواهد منشأ داده باید پیش از هرگونه تحلیل حفظ شوند.
