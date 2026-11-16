@@ -42,7 +42,7 @@ def test_embedded_items_rejects_unknown_response_shape():
         acquisition.embedded_items({"unexpected": []})
 
 
-def test_acquire_esco_pages_by_page_number_and_writes_raw_pages(tmp_path, monkeypatch):
+def test_acquire_esco_pages_by_record_offset_and_writes_raw_pages(tmp_path, monkeypatch):
     pages = {
         "skills": {
             0: {"_embedded": {"skills": [{"uri": "s1"}, {"uri": "s2"}]}},
@@ -63,6 +63,7 @@ def test_acquire_esco_pages_by_page_number_and_writes_raw_pages(tmp_path, monkey
     assert (tmp_path / "esco/api-default/en/skills/page_00000.json").exists()
     assert (tmp_path / "esco/api-default/en/occupations/manifest.json").exists()
     assert [call[1]["offset"] for call in fake.calls if call[0] == "skills"] == [0, 2]
+    assert all(call[1]["selected_version"] is None for call in fake.calls)
 
 
 def test_acquire_remotive_reuses_existing_snapshot_without_request(
