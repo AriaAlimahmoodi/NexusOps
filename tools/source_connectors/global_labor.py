@@ -55,10 +55,12 @@ class ESCOClient:
             transport=self._transport,
         )
 
-    def get_concepts_by_scheme(self, *, scheme_uri: str, language: str = "en",
-                               limit: int = 100, offset: int = 0,
-                               selected_version: str | None = None,
-                               view_obsolete: bool = False) -> dict[str, Any]:
+    def _get_by_scheme(self, *, resource_type: str, scheme_uri: str,
+                       language: str, limit: int, offset: int,
+                       selected_version: str | None,
+                       view_obsolete: bool) -> dict[str, Any]:
+        if resource_type not in {"concept", "skill", "occupation"}:
+            raise ValueError("Unsupported ESCO resource_type")
         if not scheme_uri or not scheme_uri.strip():
             raise ValueError("scheme_uri must be non-empty")
         if not language or not language.strip():
@@ -76,9 +78,39 @@ class ESCOClient:
             params["selectedVersion"] = selected_version
         return _request_json(
             provider="ESCO",
-            url=f"{self._base_url}/resource/concept?{urlencode(params)}",
+            url=f"{self._base_url}/resource/{resource_type}?{urlencode(params)}",
             timeout=self._timeout,
             transport=self._transport,
+        )
+
+    def get_concepts_by_scheme(self, *, scheme_uri: str, language: str = "en",
+                               limit: int = 100, offset: int = 0,
+                               selected_version: str | None = None,
+                               view_obsolete: bool = False) -> dict[str, Any]:
+        return self._get_by_scheme(
+            resource_type="concept", scheme_uri=scheme_uri, language=language,
+            limit=limit, offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
+        )
+
+    def get_skills_by_scheme(self, *, scheme_uri: str, language: str = "en",
+                             limit: int = 100, offset: int = 0,
+                             selected_version: str | None = None,
+                             view_obsolete: bool = False) -> dict[str, Any]:
+        return self._get_by_scheme(
+            resource_type="skill", scheme_uri=scheme_uri, language=language,
+            limit=limit, offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
+        )
+
+    def get_occupations_by_scheme(self, *, scheme_uri: str, language: str = "en",
+                                  limit: int = 100, offset: int = 0,
+                                  selected_version: str | None = None,
+                                  view_obsolete: bool = False) -> dict[str, Any]:
+        return self._get_by_scheme(
+            resource_type="occupation", scheme_uri=scheme_uri, language=language,
+            limit=limit, offset=offset, selected_version=selected_version,
+            view_obsolete=view_obsolete,
         )
 
 
