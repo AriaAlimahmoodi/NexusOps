@@ -3,3 +3,6 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Downloaded raw datasets are local artifacts; do not commit provider data.
+data/raw/
