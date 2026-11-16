@@ -25,6 +25,18 @@ def test_embedded_items_extracts_hal_collection():
     assert len(acquisition.embedded_items(payload)) == 2
 
 
+def test_embedded_items_extracts_esco_uri_keyed_collection():
+    payload = {
+        "_embedded": {
+            "http://data.europa.eu/esco/skill/one": {"uri": "esco:one", "title": "one"},
+            "http://data.europa.eu/esco/skill/two": {"uri": "esco:two", "title": "two"},
+        }
+    }
+    assert [item["uri"] for item in acquisition.embedded_items(payload)] == [
+        "esco:one", "esco:two"
+    ]
+
+
 def test_embedded_items_rejects_unknown_response_shape():
     with pytest.raises(ValueError, match="missing object '_embedded'"):
         acquisition.embedded_items({"unexpected": []})
@@ -48,9 +60,9 @@ def test_acquire_esco_pages_by_page_number_and_writes_raw_pages(tmp_path, monkey
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 3
     assert result["occupations"]["complete"] is True
-    assert (tmp_path / "esco/v1.2.1/en/skills/page_00000.json").exists()
-    assert (tmp_path / "esco/v1.2.1/en/occupations/manifest.json").exists()
-    assert [call[1]["offset"] for call in fake.calls if call[0] == "skills"] == [0, 1]
+    assert (tmp_path / "esco/api-default/en/skills/page_00000.json").exists()
+    assert (tmp_path / "esco/api-default/en/occupations/manifest.json").exists()
+    assert [call[1]["offset"] for call in fake.calls if call[0] == "skills"] == [0, 2]
 
 
 def test_acquire_remotive_reuses_existing_snapshot_without_request(
