@@ -77,7 +77,14 @@ def test_acquire_esco_retries_smaller_limit_without_skipping_offset(tmp_path, mo
             self.calls = []
 
         def get_skills_by_scheme(self, **kwargs):
-            raise AssertionError("Only occupation paging is under test")
+            # acquire_esco always processes both schemes; return a valid empty
+            # skills collection so this test can focus on occupation pagination.
+            self.calls.append(("skills", kwargs["offset"], kwargs["limit"]))
+            return {
+                "offset": kwargs["offset"],
+                "total": 0,
+                "_embedded": {"skills": []},
+            }
 
         def get_occupations_by_scheme(self, **kwargs):
             self.calls.append((kwargs["offset"], kwargs["limit"]))
