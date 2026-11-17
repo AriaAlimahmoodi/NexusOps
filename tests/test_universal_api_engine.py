@@ -104,3 +104,32 @@ def test_config_rejects_unknown_fields():
     from tools.source_engine.config import validate_source_config
     with pytest.raises(SourceConfigurationError,match="Unknown 'pagination'"):
         validate_source_config(data)
+
+
+def test_object_valued_response_envelope_is_supported(tmp_path,monkeypatch):
+    monkeypatch.setattr(runner,"urlopen",lambda request,timeout:Response(b'{"_embedded":{"urn:a":{"uri":"urn:a"},"urn:b":{"uri":"urn:b"}}}'))
+    data=cfg("none"); data["response"]={"format":"json","records_path":"_embedded","record_key_mode":"object_values"}
+    result=acquire_api_source(data,output_root=tmp_path)
+    assert result["records_saved_total"]==2
+
+def test_graphql_json_post_is_supported(tmp_path,monkeypatch):
+    captured={}
+    def fake(request,timeout):
+        captured["method"]=request.method; captured["body"]=json.loads(request.data)
+        return Response(b'{"data":{"items":[{"id":"x"}]}}')
+    monkeypatch.setattr(runner,"urlopen",fake)
+    data=cfg("none"); data["request"].update(method="POST",body={"query":"query { items { id } }"})
+    result=acquire_api_source(data,output_root=tmp_path)
+    assert captured["method"]=="POST"
+    assert "query" in captured["body"]
+    assert result["records_saved_total"]==1
+
+def test_checkpoint_rejects_changed_source_configuration(tmp_path,monkeypatch):
+    def fake(request,timeout):
+        return Response(b'{"data":{"items":[{"id":1},{"id":2}],"total":4}}')
+    monkeypatch.setattr(runner,"urlopen",fake)
+    data=cfg()
+    acquire_api_source(data,output_root=tmp_path,max_pages=1)
+    changed=cfg(); changed["pagination"]["page_size"]=3
+    with pytest.raises(APIAcquisitionError,match="configuration differs"):
+        acquire_api_source(changed,output_root=tmp_path)
