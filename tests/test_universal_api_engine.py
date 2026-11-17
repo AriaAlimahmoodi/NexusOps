@@ -133,3 +133,11 @@ def test_checkpoint_rejects_changed_source_configuration(tmp_path,monkeypatch):
     changed=cfg(); changed["pagination"]["page_size"]=3
     with pytest.raises(APIAcquisitionError,match="configuration differs"):
         acquire_api_source(changed,output_root=tmp_path)
+
+
+def test_resume_disabled_refuses_to_overwrite_existing_checkpoint(tmp_path,monkeypatch):
+    monkeypatch.setattr(runner,"urlopen",lambda request,timeout:Response(b'{"data":{"items":[{"id":1},{"id":2}],"total":4}}'))
+    data=cfg()
+    acquire_api_source(data,output_root=tmp_path,max_pages=1)
+    with pytest.raises(APIAcquisitionError,match="resume disabled"):
+        acquire_api_source(data,output_root=tmp_path,resume=False)
