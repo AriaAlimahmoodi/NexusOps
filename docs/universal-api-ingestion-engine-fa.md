@@ -15,6 +15,7 @@ Atomic Publisher مستقل باقی می‌مانند.
 - tools/source_engine/runner.py: درخواست HTTP و مدیریت صفحه‌بندی.
 - tools/source_engine/checkpoint.py: نوشتن اتمیک Checkpoint و Manifest.
 - scripts/acquire_api_source.py: رابط خط فرمان عمومی.
+- tools/adapters/configured_api_adapter.py: اتصال پیکربندی API به Adapter Registry موجود با قالب api_config؛ صفحه‌های خام ذخیره‌شده را دوباره می‌خواند و به‌صورت iterator در اختیار مسیر ingest_source و preflight قرار می‌دهد.
 - configs/sources/: پیکربندی مستقل هر API.
 
 ## پیکربندی
@@ -50,8 +51,11 @@ Manifest شامل SHA-256 صفحه‌های خام است.
 فرمان:
 python -m scripts.acquire_api_source --config configs/sources/my_api.json
 
-خروجی در data/raw/api_sources/<source-id>/ ذخیره می‌شود. موتور هیچ اتصال
-Elasticsearch ندارد و هیچ Index یا Alias موجودی را تغییر نمی‌دهد.
+خروجی در data/raw/api_sources/<source-id>/ ذخیره می‌شود. موتور هیچ اتصال Elasticsearch ندارد و هیچ Index یا Alias موجودی را تغییر نمی‌دهد.
+برای اتصال به مسیر موجود Adapter Registry، format_name برابر api_config و
+SourceSpec.uri برابر مسیر فایل پیکربندی است. Adapter تا کامل‌شدن دریافت، ورود
+canonical را متوقف می‌کند؛ اجازه استفاده از دریافت partial فقط با گزینه صریح
+allow_partial امکان‌پذیر است.
 
 ## پیکربندی‌های ESCO
 دو فایل esco_skills.json و esco_occupations.json نمونه‌های واقعی پیکربندی
