@@ -60,11 +60,51 @@ def test_acquire_esco_pages_by_record_offset_and_writes_raw_pages(tmp_path, monk
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 3
     assert result["occupations"]["complete"] is True
-    assert (tmp_path / "esco/api-default/en/skills/page_00000.json").exists()
+    assert (tmp_path / "esco/api-default/en/skills/offset_00000_limit_002.json").exists()
     assert (tmp_path / "esco/api-default/en/occupations/manifest.json").exists()
     assert [call[1]["offset"] for call in fake.calls if call[0] == "skills"] == [0, 2]
     assert all(call[1]["selected_version"] is None for call in fake.calls)
 
+
+
+def test_acquire_esco_retries_smaller_limit_without_skipping_offset(tmp_path, monkeypatch):
+    class AdaptiveFakeESCOClient:
+        def __init__(self):
+            self.calls = []
+
+        def get_skills_by_scheme(self, **kwargs):
+            raise AssertionError("Only occupation paging is under test")
+
+        def get_occupations_by_scheme(self, **kwargs):
+            self.calls.append((kwargs["offset"], kwargs["limit"]))
+            offset, limit = kwargs["offset"], kwargs["limit"]
+            if offset == 0:
+                records = [{"uri": f"o{i}"} for i in range(100)]
+            elif offset == 100 and limit == 100:
+                records = []
+            elif offset == 100 and limit == 10:
+                records = [{"uri": f"o{i}"} for i in range(100, 110)]
+            elif offset == 110:
+                records = [{"uri": "o110"}]
+            else:
+                records = []
+            return {
+                "offset": offset,
+                "total": 111,
+                "_embedded": {"occupations": records},
+            }
+
+    fake = AdaptiveFakeESCOClient()
+    monkeypatch.setattr(acquisition, "ESCOClient", lambda: fake)
+    monkeypatch.setattr(acquisition, "RAW_ROOT", tmp_path)
+
+    result = acquisition.acquire_esco(page_size=100, delay_seconds=0)
+
+    assert result["occupations"]["complete"] is True
+    assert result["occupations"]["records_processed_this_run"] == 111
+    assert (100, 100) in fake.calls
+    assert (100, 10) in fake.calls
+    assert (110, 10) in fake.calls
 
 def test_acquire_remotive_reuses_existing_snapshot_without_request(
     tmp_path, monkeypatch
