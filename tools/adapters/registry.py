@@ -14,6 +14,7 @@ from tools.adapters.base import (
     SourceSpec,
     validate_source_adapter,
 )
+from tools.adapters.configured_api_adapter import ConfiguredAPISourceAdapter
 from tools.adapters.csv_adapter import CSVSourceAdapter
 from tools.adapters.json_adapter import JSONSourceAdapter
 
@@ -72,4 +73,5 @@ def create_default_adapter_registry() -> SourceAdapterRegistry:
     registry.register(CSVSourceAdapter())
     registry.register(JSONSourceAdapter())
     registry.register(APISourceAdapter())
+    registry.register(ConfiguredAPISourceAdapter())
     return registry
