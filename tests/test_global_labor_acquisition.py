@@ -37,6 +37,10 @@ def test_embedded_items_extracts_esco_uri_keyed_collection():
     ]
 
 
+def test_embedded_items_accepts_empty_hal_collection():
+    assert acquisition.embedded_items({"_embedded": {}}) == []
+
+
 def test_embedded_items_rejects_unknown_response_shape():
     with pytest.raises(ValueError, match="missing object '_embedded'"):
         acquisition.embedded_items({"unexpected": []})
