@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from scripts import acquire_global_labor_datasets as acquisition
+from tools.source_connectors.us_public_data import ApiRequestError
 
 
 class FakeESCOClient:
@@ -186,3 +187,57 @@ def test_resume_preserves_cached_esco_page_limit(tmp_path, monkeypatch):
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 10
     assert fake.skill_calls == [(5, 5)]
+
+def test_esco_http_500_falls_back_to_smaller_limit_at_same_offset(
+    tmp_path, monkeypatch
+):
+    skills_dir = tmp_path / "esco" / "api-default" / "en" / "skills"
+    skills_dir.mkdir(parents=True)
+    cached = {
+        "offset": 0,
+        "total": 6,
+        "_embedded": {
+            f"esco:skill:{index}": {"uri": f"esco:skill:{index}"}
+            for index in range(5)
+        },
+    }
+    (skills_dir / "offset_00000_limit_005.json").write_text(
+        json.dumps(cached), encoding="utf-8"
+    )
+
+    class FallbackFakeESCOClient:
+        def __init__(self):
+            self.skill_calls = []
+
+        def get_skills_by_scheme(self, **kwargs):
+            call = (kwargs["offset"], kwargs["limit"])
+            self.skill_calls.append(call)
+            if call == (5, 5):
+                raise ApiRequestError(
+                    "ESCO", "ESCO returned HTTP 500.", status_code=500
+                )
+            assert call == (5, 1)
+            return {
+                "offset": 5,
+                "total": 6,
+                "_embedded": {
+                    "esco:skill:5": {"uri": "esco:skill:5"}
+                },
+            }
+
+        def get_occupations_by_scheme(self, **kwargs):
+            return {
+                "offset": kwargs["offset"],
+                "total": 0,
+                "_embedded": {},
+            }
+
+    fake = FallbackFakeESCOClient()
+    monkeypatch.setattr(acquisition, "ESCOClient", lambda: fake)
+    monkeypatch.setattr(acquisition, "RAW_ROOT", tmp_path)
+
+    result = acquisition.acquire_esco(page_size=100, delay_seconds=0)
+
+    assert result["skills"]["complete"] is True
+    assert result["skills"]["records_processed_this_run"] == 6
+    assert fake.skill_calls == [(5, 5), (5, 1)]
