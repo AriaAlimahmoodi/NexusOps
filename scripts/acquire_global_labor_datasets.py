@@ -239,7 +239,7 @@ def acquire_esco(
                         # ESCO can return HTTP 500 for larger pages at particular
                         # offsets. Retry the SAME offset with smaller limits rather
                         # than aborting or advancing past records.
-                        if exc.status_code == 500 and request_limit > 1:
+                        if exc.status_code == 500 and attempt < len(limits) - 1:
                             print(
                                 f"ESCO {kind}: HTTP 500 at offset={offset} "
                                 f"limit={request_limit}; trying a smaller page."
