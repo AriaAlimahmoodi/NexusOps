@@ -83,6 +83,23 @@ def embedded_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return max(candidates, key=len)
 
 
+def _cached_esco_page(dataset_dir: Path, offset: int) -> dict[str, Any] | None:
+    """Reuse a non-empty page for this exact record offset, including legacy files."""
+    candidates = sorted(dataset_dir.glob(f"offset_{offset:05d}_limit_*.json"))
+    candidates += sorted(dataset_dir.glob("page_*.json"))
+    for path in candidates:
+        try:
+            with path.open("r", encoding="utf-8") as stream:
+                payload = json.load(stream)
+            if payload.get("offset", 0) != offset:
+                continue
+            if embedded_items(payload):
+                return payload
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+    return None
+
+
 def acquire_esco(
     *,
     language: str = "en",
@@ -101,61 +118,103 @@ def acquire_esco(
     summaries: dict[str, Any] = {}
 
     for kind, scheme_uri in ESCO_SCHEMES.items():
-        dataset_dir = (
-            RAW_ROOT / "esco" / ESCO_VERSION / language / kind
-        )
+        dataset_dir = RAW_ROOT / "esco" / ESCO_VERSION / language / kind
         dataset_dir.mkdir(parents=True, exist_ok=True)
         page_count = 0
         record_count = 0
         complete = False
         started_at = utc_now()
+        offset = 0
+        effective_page_size = page_size
 
-        page_number = 0
-        while max_pages is None or page_number < max_pages:
-            page_path = dataset_dir / f"page_{page_number:05d}.json"
-            if page_path.exists():
-                with page_path.open("r", encoding="utf-8") as stream:
-                    payload = json.load(stream)
+        while max_pages is None or page_count < max_pages:
+            cached_payload = _cached_esco_page(dataset_dir, offset)
+            used_limit = effective_page_size
+            if cached_payload is not None:
+                payload = cached_payload
+                items = embedded_items(payload)
             else:
-                if page_number:
-                    time.sleep(delay_seconds)
-                if kind == "skills":
-                    payload = client.get_skills_by_scheme(
-                        scheme_uri=scheme_uri,
-                        language=language,
-                        limit=page_size,
-                        offset=page_number * page_size,
-                        selected_version=None,
+                payload = None
+                items = []
+                # The Occupation endpoint has returned empty pages at limit=50/100
+                # while the same offsets work at limit=5/10. Retry smaller limits
+                # at the SAME offset; never advance across an empty page.
+                limits = [effective_page_size]
+                limits.extend(
+                    candidate for candidate in (10, 5, 1)
+                    if candidate < effective_page_size
+                )
+                for attempt, request_limit in enumerate(limits):
+                    if page_count or attempt:
+                        time.sleep(delay_seconds)
+                    if kind == "skills":
+                        response = client.get_skills_by_scheme(
+                            scheme_uri=scheme_uri,
+                            language=language,
+                            limit=request_limit,
+                            offset=offset,
+                            selected_version=None,
+                        )
+                    else:
+                        response = client.get_occupations_by_scheme(
+                            scheme_uri=scheme_uri,
+                            language=language,
+                            limit=request_limit,
+                            offset=offset,
+                            selected_version=None,
+                        )
+                    raw_path = dataset_dir / (
+                        f"offset_{offset:05d}_limit_{request_limit:03d}.json"
                     )
-                else:
-                    payload = client.get_occupations_by_scheme(
-                        scheme_uri=scheme_uri,
-                        language=language,
-                        limit=page_size,
-                        offset=page_number * page_size,
-                        selected_version=None,
-                    )
-                write_json_atomic(page_path, payload)
+                    write_json_atomic(raw_path, response)
+                    response_items = embedded_items(response)
+                    if response_items:
+                        payload = response
+                        items = response_items
+                        used_limit = request_limit
+                        break
+                    response_total = response.get("total")
+                    response_offset = response.get("offset", offset)
+                    if isinstance(response_total, int) and response_offset >= response_total:
+                        payload = response
+                        items = []
+                        used_limit = request_limit
+                        break
 
-            items = embedded_items(payload)
+                if payload is None:
+                    raise RuntimeError(
+                        f"ESCO {kind}: no records returned at offset={offset} "
+                        f"after retrying limits={limits}. Raw responses were retained."
+                    )
+
             page_count += 1
             record_count += len(items)
             print(
-                f"ESCO {kind}: page={page_number} "
+                f"ESCO {kind}: offset={offset} limit={used_limit} "
                 f"records={len(items)} cumulative={record_count}"
             )
 
-            response_offset = payload.get("offset", page_number * page_size)
+            response_offset = payload.get("offset", offset)
             response_total = payload.get("total")
+            next_offset = response_offset + len(items)
             if isinstance(response_total, int):
-                complete = response_offset + len(items) >= response_total
+                complete = next_offset >= response_total
             else:
-                complete = len(items) < page_size
+                complete = len(items) < used_limit
+
             if complete:
                 break
-            page_number += 1
+            if not items or next_offset <= offset:
+                raise RuntimeError(
+                    f"ESCO {kind}: pagination made no progress at offset={offset}. "
+                    "Raw responses were retained."
+                )
+            offset = next_offset
+            effective_page_size = used_limit
 
-        page_files = sorted(dataset_dir.glob("page_*.json"))
+        page_files = sorted(
+            list(dataset_dir.glob("offset_*.json")) + list(dataset_dir.glob("page_*.json"))
+        )
         summary = {
             "provider": "ESCO",
             "dataset": kind,
@@ -170,7 +229,8 @@ def acquire_esco(
                 "GET /resource/skill" if kind == "skills"
                 else "GET /resource/occupation"
             ),
-            "page_size": page_size,
+            "initial_page_size": page_size,
+            "last_effective_page_size": effective_page_size,
             "pages_processed_this_run": page_count,
             "page_files_present": len(page_files),
             "records_processed_this_run": record_count,
@@ -187,11 +247,10 @@ def acquire_esco(
         if not complete:
             print(
                 f"ESCO {kind}: partial acquisition; rerun the same command "
-                "to continue from the next page."
+                "to continue from the next record offset."
             )
 
     return summaries
-
 
 def acquire_remotive(*, refresh: bool = False) -> dict[str, Any]:
     dataset_dir = RAW_ROOT / "remotive"
