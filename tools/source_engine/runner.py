@@ -98,7 +98,7 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
     if state.get("strategy")!=strategy: raise APIAcquisitionError("Checkpoint pagination strategy differs from configuration.")
     cap=max_pages if max_pages is not None else p.get("max_pages",10000)
     if isinstance(cap,bool) or not isinstance(cap,int) or cap<1: raise ValueError("max_pages must be positive.")
-    initial_pages=state["pages_completed"]; started=_now(); complete=False
+    initial_pages=state["pages_completed"]; started=_now(); complete=state.get("status")=="completed"
     before_page=state
     try:
         while state["pages_completed"]-initial_pages<cap:
