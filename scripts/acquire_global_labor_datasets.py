@@ -240,7 +240,7 @@ def acquire_esco(
                         if exc.status_code == 500 and attempt < len(limits) - 1:
                             print(
                                 f"ESCO {kind}: HTTP 500 at offset={offset} "
-                                f"limit={request_limit}; trying a smaller page."
+                                f"limit={request_limit}; probing another page size."
                             )
                             continue
                         raise
