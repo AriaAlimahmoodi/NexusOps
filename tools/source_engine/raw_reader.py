@@ -49,7 +49,16 @@ def _contained_file(root: Path, path: Path) -> Path:
     if path.is_symlink():
         raise RawSourceIntegrityError("Symlinks are not allowed in raw acquisitions.")
     root_real = root.resolve(strict=True)
-    path_real = path.resolve(strict=True)
+    try:
+        path_real = path.resolve(strict=True)
+    except FileNotFoundError:
+        raise RawSourceIntegrityError(
+            f"Raw page file is missing: {path.name}."
+        ) from None
+    except OSError as exc:
+        raise RawSourceIntegrityError(
+            f"Cannot resolve raw page {path.name} ({type(exc).__name__})."
+        ) from None
     if root_real not in path_real.parents:
         raise RawSourceIntegrityError("Raw page path escapes its acquisition directory.")
     return path_real
