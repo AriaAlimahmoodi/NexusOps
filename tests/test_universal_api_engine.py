@@ -1,0 +1,106 @@
+from io import BytesIO
+from urllib.parse import parse_qs, urlsplit
+import json
+import pytest
+from urllib.error import HTTPError
+
+import tools.source_engine.runner as runner
+from tools.source_engine.config import SourceConfigurationError, load_source_config
+from tools.source_engine.runner import APIAcquisitionError, acquire_api_source
+
+class Response(BytesIO):
+    def __enter__(self): return self
+    def __exit__(self,*args): self.close()
+
+def cfg(strategy="offset"):
+    pagination={"strategy":strategy,"max_pages":20}
+    response={"format":"json","records_path":"data.items"}
+    if strategy=="offset":
+        pagination.update(offset_param="offset",limit_param="limit",initial_offset=0,page_size=2,total_path="data.total")
+    elif strategy=="page":
+        pagination.update(page_param="page",limit_param="limit",start_page=1,page_size=2)
+    elif strategy=="cursor":
+        pagination.update(cursor_param="cursor",page_size=2); response["next_cursor_path"]="data.next"
+    elif strategy=="next_url":
+        response["next_url_path"]="data.next"
+    return {"id":"test_source","request":{"url":"https://api.example.test/items","method":"GET","query":{"lang":"en"}},
+            "response":response,"pagination":pagination,"reliability":{"max_attempts":1}}
+
+def test_offset_pagination_advances_by_actual_record_count_and_stops_at_total(tmp_path,monkeypatch):
+    calls=[]
+    def fake(request,timeout):
+        q=parse_qs(urlsplit(request.full_url).query); offset=int(q["offset"][0]); calls.append(offset)
+        items=[{"id":i} for i in range(offset,min(offset+2,3))]
+        return Response(json.dumps({"data":{"items":items,"total":3}}).encode())
+    monkeypatch.setattr(runner,"urlopen",fake)
+    result=acquire_api_source(cfg(),output_root=tmp_path)
+    assert calls==[0,2]
+    assert result["records_saved_total"]==3
+    assert result["status"]=="completed"
+    assert len(result["page_sha256"])==2
+
+def test_page_pagination_and_short_page_termination(tmp_path,monkeypatch):
+    calls=[]
+    def fake(request,timeout):
+        page=int(parse_qs(urlsplit(request.full_url).query)["page"][0]); calls.append(page)
+        items=[{"id":1},{"id":2}] if page==1 else [{"id":3}]
+        return Response(json.dumps({"data":{"items":items}}).encode())
+    monkeypatch.setattr(runner,"urlopen",fake)
+    result=acquire_api_source(cfg("page"),output_root=tmp_path)
+    assert calls==[1,2] and result["records_saved_total"]==3 and result["status"]=="completed"
+
+def test_cursor_pagination_uses_next_cursor_and_detects_end(tmp_path,monkeypatch):
+    calls=[]
+    def fake(request,timeout):
+        q=parse_qs(urlsplit(request.full_url).query); calls.append(q.get("cursor",[None])[0])
+        data={"items":[{"id":len(calls)}],"next":"c2" if len(calls)==1 else None}
+        return Response(json.dumps({"data":data}).encode())
+    monkeypatch.setattr(runner,"urlopen",fake)
+    result=acquire_api_source(cfg("cursor"),output_root=tmp_path)
+    assert calls==[None,"c2"] and result["records_saved_total"]==2
+
+def test_next_url_rejects_cross_origin_before_second_request(tmp_path,monkeypatch):
+    calls=[]
+    def fake(request,timeout):
+        calls.append(request.full_url)
+        return Response(b'{"data":{"items":[{"id":1}],"next":"https://evil.example/steal"}}')
+    monkeypatch.setattr(runner,"urlopen",fake)
+    with pytest.raises(APIAcquisitionError,match="original API origin"):
+        acquire_api_source(cfg("next_url"),output_root=tmp_path)
+    assert len(calls)==1
+
+def test_resume_continues_from_checkpoint_without_repeating_committed_page(tmp_path,monkeypatch):
+    calls=[]
+    def fake(request,timeout):
+        q=parse_qs(urlsplit(request.full_url).query); offset=int(q["offset"][0]); calls.append(offset)
+        items=[{"id":i} for i in range(offset,offset+2)]
+        return Response(json.dumps({"data":{"items":items,"total":4}}).encode())
+    monkeypatch.setattr(runner,"urlopen",fake)
+    first=acquire_api_source(cfg(),output_root=tmp_path,max_pages=1)
+    second=acquire_api_source(cfg(),output_root=tmp_path)
+    assert first["status"]=="partial"
+    assert second["status"]=="completed"
+    assert calls==[0,2] and second["records_saved_total"]==4
+
+def test_http_500_is_not_retried_by_default(tmp_path,monkeypatch):
+    calls=[]
+    def failed(request,timeout):
+        calls.append(1); raise HTTPError(request.full_url,500,"Server Error",{},None)
+    monkeypatch.setattr(runner,"urlopen",failed)
+    with pytest.raises(APIAcquisitionError,match="HTTP status 500"):
+        acquire_api_source(cfg(),output_root=tmp_path)
+    assert len(calls)==1
+
+def test_config_expands_environment_secret_without_persisting_it(tmp_path,monkeypatch):
+    monkeypatch.setenv("NEXUS_TEST_TOKEN","secret-value")
+    path=tmp_path/"source.json"
+    data=cfg(); data["request"]["headers"]={"Authorization":"Bearer ${ENV:NEXUS_TEST_TOKEN}"}
+    path.write_text(json.dumps(data),encoding="utf-8")
+    loaded=load_source_config(path)
+    assert loaded["request"]["headers"]["Authorization"]=="Bearer secret-value"
+
+def test_config_rejects_unknown_fields():
+    data=cfg(); data["pagination"]["mystery"]=True
+    from tools.source_engine.config import validate_source_config
+    with pytest.raises(SourceConfigurationError,match="Unknown 'pagination'"):
+        validate_source_config(data)

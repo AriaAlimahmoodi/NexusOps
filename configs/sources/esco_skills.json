@@ -1,0 +1,49 @@
+{
+  "id": "esco_skills",
+  "name": "ESCO Skills Taxonomy",
+  "enabled": true,
+  "request": {
+    "url": "https://ec.europa.eu/esco/api/resource/skill",
+    "method": "GET",
+    "headers": {
+      "Accept": "application/hal+json, application/json"
+    },
+    "query": {
+      "isInScheme": "http://data.europa.eu/esco/concept-scheme/skills",
+      "language": "en",
+      "viewObsolete": "false"
+    },
+    "timeout": 45
+  },
+  "response": {
+    "format": "json",
+    "records_path": "_embedded",
+    "record_key_mode": "object_values"
+  },
+  "pagination": {
+    "strategy": "offset",
+    "offset_param": "offset",
+    "limit_param": "limit",
+    "initial_offset": 0,
+    "page_size": 100,
+    "total_path": "total",
+    "max_pages": 10000
+  },
+  "reliability": {
+    "max_attempts": 3,
+    "retry_statuses": [
+      429,
+      502,
+      503,
+      504
+    ],
+    "backoff_seconds": 1,
+    "max_backoff_seconds": 15,
+    "request_interval_seconds": 0.25
+  },
+  "storage": {
+    "preserve_raw_pages": true,
+    "checkpoint": true,
+    "manifest": true
+  }
+}
