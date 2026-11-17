@@ -60,6 +60,10 @@ def embedded_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "ESCO response is not a recognized HAL collection: "
             "missing object '_embedded'. Raw page has been retained."
         )
+    if not embedded:
+        # An empty _embedded object is a valid empty collection page. The
+        # caller decides whether to retry a smaller limit or stop at total.
+        return []
 
     # ESCO collection responses embed resources as {concept_uri: resource};
     # some HAL endpoints instead use named lists. Support both shapes, but
