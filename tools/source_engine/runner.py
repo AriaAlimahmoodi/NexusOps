@@ -131,6 +131,7 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
             elif strategy=="cursor":
                 cursor=_path(document,response["next_cursor_path"])
                 if cursor is None or cursor=="": complete=True
+                elif isinstance(cursor,bool) or not isinstance(cursor,(str,int,float)): raise APIAcquisitionError("Next cursor must be a string or number.")
                 elif cursor in state["seen_cursors"]: raise APIAcquisitionError("Cursor pagination returned a repeated cursor.")
                 else: state["seen_cursors"].append(cursor); state["cursor"]=cursor
             elif strategy=="next_url":
