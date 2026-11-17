@@ -101,7 +101,7 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
     initial_pages=state["pages_completed"]; started=_now(); complete=state.get("status")=="completed"
     before_page=state
     try:
-        while state["pages_completed"]-initial_pages<cap:
+        while not complete and state["pages_completed"]-initial_pages<cap:
             before_page=json.loads(json.dumps(state))
             params=dict(config["request"].get("query",{})); url=config["request"]["url"]
             if strategy=="page":
