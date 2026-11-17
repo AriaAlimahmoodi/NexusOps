@@ -12,10 +12,11 @@ from tools.adapters.registry import (
 def test_default_registry_registers_all_builtin_adapters():
     registry = create_default_adapter_registry()
 
-    assert registry.formats == ("csv", "json", "api")
+    assert registry.formats == ("csv", "json", "api", "api_config")
     assert registry.get_adapter("csv").format_name == "csv"
     assert registry.get_adapter("JSON").format_name == "json"
     assert registry.get_adapter("api").format_name == "api"
+    assert registry.get_adapter("api_config").format_name == "api_config"
 
 
 def test_default_registry_instances_are_independent():
@@ -106,7 +107,7 @@ def test_registry_rejects_invalid_format_names(format_name):
 def test_registry_reports_unknown_format_and_available_formats():
     registry = create_default_adapter_registry()
 
-    with pytest.raises(KeyError, match="Available formats: csv, json, api"):
+    with pytest.raises(KeyError, match="Available formats: csv, json, api, api_config"):
         registry.get_adapter("parquet")
 
 
