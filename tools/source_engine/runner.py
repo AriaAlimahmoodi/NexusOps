@@ -90,7 +90,11 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
     sid=config["id"]; storage=config.get("storage",{}); directory=Path(storage.get("root",output_root))/sid
     pages=directory/"pages"; pages.mkdir(parents=True,exist_ok=True)
     checkpoint=directory/"checkpoint.json"; manifest_path=directory/"manifest.json"
+    if not resume and checkpoint.exists():
+        raise APIAcquisitionError("A checkpoint already exists; refusing to overwrite source pages with resume disabled.")
     state=read_checkpoint(checkpoint,sid) if resume and storage.get("checkpoint",True) else None
+    if state is None and any(pages.glob("page_*.json")):
+        raise APIAcquisitionError("Raw pages exist without a usable checkpoint; use the matching checkpoint or a new source id/output directory.")
     if state is None: state=_initial(config)
     p=config["pagination"]; response=config["response"]; strategy=p["strategy"]
     fingerprint=hashlib.sha256(json.dumps(config,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
