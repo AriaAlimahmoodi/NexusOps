@@ -115,6 +115,54 @@ def _cached_esco_page(
     return None
 
 
+def _request_esco_page(
+    client: ESCOClient,
+    *,
+    kind: str,
+    scheme_uri: str,
+    language: str,
+    offset: int,
+    limit: int,
+    delay_seconds: float,
+) -> dict[str, Any]:
+    """Request one ESCO page, retrying transient connection failures in place."""
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            if kind == "skills":
+                return client.get_skills_by_scheme(
+                    scheme_uri=scheme_uri,
+                    language=language,
+                    limit=limit,
+                    offset=offset,
+                    selected_version=None,
+                )
+            return client.get_occupations_by_scheme(
+                scheme_uri=scheme_uri,
+                language=language,
+                limit=limit,
+                offset=offset,
+                selected_version=None,
+            )
+        except ApiRequestError as exc:
+            transient = (
+                exc.status_code is None
+                or exc.status_code in {429, 502, 503, 504}
+            )
+            if not transient or attempt == max_attempts - 1:
+                raise
+            wait_seconds = delay_seconds * (attempt + 1)
+            print(
+                f"ESCO {kind}: transient request failure at offset={offset} "
+                f"limit={limit} (attempt {attempt + 1}/{max_attempts}); "
+                f"retrying in {wait_seconds:.2f}s."
+            )
+            if wait_seconds:
+                time.sleep(wait_seconds)
+
+    raise RuntimeError("Unreachable ESCO retry state")
+
+
 def acquire_esco(
     *,
     language: str = "en",
@@ -164,22 +212,15 @@ def acquire_esco(
                     if page_count or attempt:
                         time.sleep(delay_seconds)
                     try:
-                        if kind == "skills":
-                            response = client.get_skills_by_scheme(
-                                scheme_uri=scheme_uri,
-                                language=language,
-                                limit=request_limit,
-                                offset=offset,
-                                selected_version=None,
-                            )
-                        else:
-                            response = client.get_occupations_by_scheme(
-                                scheme_uri=scheme_uri,
-                                language=language,
-                                limit=request_limit,
-                                offset=offset,
-                                selected_version=None,
-                            )
+                        response = _request_esco_page(
+                            client,
+                            kind=kind,
+                            scheme_uri=scheme_uri,
+                            language=language,
+                            offset=offset,
+                            limit=request_limit,
+                            delay_seconds=delay_seconds,
+                        )
                     except ApiRequestError as exc:
                         # ESCO can return HTTP 500 for larger pages at particular
                         # offsets. Retry the SAME offset with smaller limits rather
