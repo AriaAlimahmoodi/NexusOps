@@ -293,3 +293,54 @@ def test_esco_retries_transient_connection_failure_without_advancing_offset(
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 2
     assert fake.skill_calls == [(1, 1), (1, 1)]
+
+
+def test_esco_retries_http_500_at_limit_one_without_advancing_offset(
+    tmp_path, monkeypatch
+):
+    skills_dir = tmp_path / "esco" / "api-default" / "en" / "skills"
+    skills_dir.mkdir(parents=True)
+    cached = {
+        "offset": 0,
+        "total": 2,
+        "_embedded": {"esco:skill:0": {"uri": "esco:skill:0"}},
+    }
+    (skills_dir / "offset_00000_limit_001.json").write_text(
+        json.dumps(cached), encoding="utf-8"
+    )
+
+    class MinimumPageRetryFakeESCOClient:
+        def __init__(self):
+            self.skill_calls = []
+
+        def get_skills_by_scheme(self, **kwargs):
+            call = (kwargs["offset"], kwargs["limit"])
+            self.skill_calls.append(call)
+            if len(self.skill_calls) <= 2:
+                raise ApiRequestError(
+                    "ESCO", "ESCO returned HTTP 500.", status_code=500
+                )
+            assert call == (1, 1)
+            return {
+                "offset": 1,
+                "total": 2,
+                "_embedded": {"esco:skill:1": {"uri": "esco:skill:1"}},
+            }
+
+        def get_occupations_by_scheme(self, **kwargs):
+            return {
+                "offset": kwargs["offset"],
+                "total": 0,
+                "_embedded": {},
+            }
+
+    fake = MinimumPageRetryFakeESCOClient()
+    monkeypatch.setattr(acquisition, "ESCOClient", lambda: fake)
+    monkeypatch.setattr(acquisition, "RAW_ROOT", tmp_path)
+    monkeypatch.setattr(acquisition.time, "sleep", lambda _seconds: None)
+
+    result = acquisition.acquire_esco(page_size=1, delay_seconds=0)
+
+    assert result["skills"]["complete"] is True
+    assert result["skills"]["records_processed_this_run"] == 2
+    assert fake.skill_calls == [(1, 1), (1, 1), (1, 1)]
