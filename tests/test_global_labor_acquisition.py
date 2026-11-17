@@ -137,3 +137,52 @@ def test_acquire_remotive_reuses_existing_snapshot_without_request(
     assert result["records_saved"] == 1
     assert result["complete_for_provider_response"] is True
     assert (raw_dir / "manifest.json").exists()
+
+def test_resume_preserves_cached_esco_page_limit(tmp_path, monkeypatch):
+    skills_dir = tmp_path / "esco" / "api-default" / "en" / "skills"
+    skills_dir.mkdir(parents=True)
+    cached = {
+        "offset": 0,
+        "total": 10,
+        "_embedded": {
+            f"esco:skill:{index}": {"uri": f"esco:skill:{index}"}
+            for index in range(5)
+        },
+    }
+    (skills_dir / "offset_00000_limit_005.json").write_text(
+        json.dumps(cached), encoding="utf-8"
+    )
+
+    class ResumeFakeESCOClient:
+        def __init__(self):
+            self.skill_calls = []
+
+        def get_skills_by_scheme(self, **kwargs):
+            self.skill_calls.append((kwargs["offset"], kwargs["limit"]))
+            assert kwargs["offset"] == 5
+            assert kwargs["limit"] == 5
+            return {
+                "offset": 5,
+                "total": 10,
+                "_embedded": {
+                    f"esco:skill:{index}": {"uri": f"esco:skill:{index}"}
+                    for index in range(5, 10)
+                },
+            }
+
+        def get_occupations_by_scheme(self, **kwargs):
+            return {
+                "offset": kwargs["offset"],
+                "total": 0,
+                "_embedded": {},
+            }
+
+    fake = ResumeFakeESCOClient()
+    monkeypatch.setattr(acquisition, "ESCOClient", lambda: fake)
+    monkeypatch.setattr(acquisition, "RAW_ROOT", tmp_path)
+
+    result = acquisition.acquire_esco(page_size=100, delay_seconds=0)
+
+    assert result["skills"]["complete"] is True
+    assert result["skills"]["records_processed_this_run"] == 10
+    assert fake.skill_calls == [(5, 5)]
