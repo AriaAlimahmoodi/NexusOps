@@ -87,8 +87,10 @@ def embedded_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return max(candidates, key=len)
 
 
-def _cached_esco_page(dataset_dir: Path, offset: int) -> dict[str, Any] | None:
-    """Reuse a non-empty page for this exact record offset, including legacy files."""
+def _cached_esco_page(
+    dataset_dir: Path, offset: int
+) -> tuple[dict[str, Any], int] | None:
+    """Reuse a non-empty page and preserve its original request limit."""
     candidates = sorted(dataset_dir.glob(f"offset_{offset:05d}_limit_*.json"))
     candidates += sorted(dataset_dir.glob("page_*.json"))
     for path in candidates:
@@ -97,8 +99,15 @@ def _cached_esco_page(dataset_dir: Path, offset: int) -> dict[str, Any] | None:
                 payload = json.load(stream)
             if payload.get("offset", 0) != offset:
                 continue
-            if embedded_items(payload):
-                return payload
+            items = embedded_items(payload)
+            if not items:
+                continue
+
+            # The original limit is part of the filename for current pages.
+            # Reusing it is essential: some ESCO offsets fail with larger limits.
+            match = re.fullmatch(r"offset_\\d+_limit_(\\d+)\\.json", path.name)
+            cached_limit = int(match.group(1)) if match else len(items)
+            return payload, cached_limit
         except (OSError, json.JSONDecodeError, ValueError):
             continue
     return None
@@ -132,11 +141,12 @@ def acquire_esco(
         effective_page_size = page_size
 
         while max_pages is None or page_count < max_pages:
-            cached_payload = _cached_esco_page(dataset_dir, offset)
+            cached_page = _cached_esco_page(dataset_dir, offset)
             used_limit = effective_page_size
-            if cached_payload is not None:
-                payload = cached_payload
+            if cached_page is not None:
+                payload, used_limit = cached_page
                 items = embedded_items(payload)
+                effective_page_size = used_limit
             else:
                 payload = None
                 items = []
