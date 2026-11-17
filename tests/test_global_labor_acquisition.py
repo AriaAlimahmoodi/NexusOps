@@ -346,7 +346,7 @@ def test_esco_probes_larger_page_at_same_offset_after_minimum_limit_500(
 
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 3
-    assert fake.skill_calls == [(1, 1), (1, 1), (1, 2)]
+    assert fake.skill_calls == [(1, 1), (1, 2)]
     assert (
         skills_dir / "offset_00001_limit_002.json"
     ).exists()
