@@ -56,7 +56,8 @@ def _request(config,url):
                 try: return json.load(response)
                 except json.JSONDecodeError: raise APIAcquisitionError("API response is not valid JSON.") from None
         except HTTPError as exc:
-            status=exc.code; retry_after=exc.headers.get("Retry-After") if exc.headers else None; exc.close()
+            status=exc.code; retry_after=exc.headers.get("Retry-After") if exc.headers else None
+            if exc.fp is not None: exc.close()
             if status not in statuses or attempt+1>=attempts: raise APIAcquisitionError(f"API request failed with HTTP status {status}.") from None
             try: wait=min(float(retry_after),maximum) if retry_after else min(backoff*(2**attempt),maximum)
             except ValueError: wait=min(backoff*(2**attempt),maximum)
