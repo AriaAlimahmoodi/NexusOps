@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from tools.source_connectors import ESCOClient, RemotiveClient
+from tools.source_connectors.us_public_data import ApiRequestError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -162,22 +163,34 @@ def acquire_esco(
                 for attempt, request_limit in enumerate(limits):
                     if page_count or attempt:
                         time.sleep(delay_seconds)
-                    if kind == "skills":
-                        response = client.get_skills_by_scheme(
-                            scheme_uri=scheme_uri,
-                            language=language,
-                            limit=request_limit,
-                            offset=offset,
-                            selected_version=None,
-                        )
-                    else:
-                        response = client.get_occupations_by_scheme(
-                            scheme_uri=scheme_uri,
-                            language=language,
-                            limit=request_limit,
-                            offset=offset,
-                            selected_version=None,
-                        )
+                    try:
+                        if kind == "skills":
+                            response = client.get_skills_by_scheme(
+                                scheme_uri=scheme_uri,
+                                language=language,
+                                limit=request_limit,
+                                offset=offset,
+                                selected_version=None,
+                            )
+                        else:
+                            response = client.get_occupations_by_scheme(
+                                scheme_uri=scheme_uri,
+                                language=language,
+                                limit=request_limit,
+                                offset=offset,
+                                selected_version=None,
+                            )
+                    except ApiRequestError as exc:
+                        # ESCO can return HTTP 500 for larger pages at particular
+                        # offsets. Retry the SAME offset with smaller limits rather
+                        # than aborting or advancing past records.
+                        if exc.status_code == 500 and request_limit > 1:
+                            print(
+                                f"ESCO {kind}: HTTP 500 at offset={offset} "
+                                f"limit={request_limit}; trying a smaller page."
+                            )
+                            continue
+                        raise
                     raw_path = dataset_dir / (
                         f"offset_{offset:05d}_limit_{request_limit:03d}.json"
                     )
