@@ -69,7 +69,8 @@ def _request(config,url):
 
 def _initial(config):
     p=config["pagination"]
-    return {"source_id":config["id"],"strategy":p["strategy"],"pages_completed":0,"records_saved":0,
+    fingerprint=hashlib.sha256(json.dumps(config,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+    return {"source_id":config["id"],"config_fingerprint":fingerprint,"strategy":p["strategy"],"pages_completed":0,"records_saved":0,
             "offset":p.get("initial_offset",0),"page":p.get("start_page",1),"cursor":p.get("initial_cursor"),
             "next_url":None,"seen_cursors":[],"status":"running"}
 
@@ -92,6 +93,8 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
     state=read_checkpoint(checkpoint,sid) if resume and storage.get("checkpoint",True) else None
     if state is None: state=_initial(config)
     p=config["pagination"]; response=config["response"]; strategy=p["strategy"]
+    fingerprint=hashlib.sha256(json.dumps(config,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+    if state.get("config_fingerprint")!=fingerprint: raise APIAcquisitionError("Source configuration differs from the saved checkpoint; use a new source id or archive the old checkpoint.")
     if state.get("strategy")!=strategy: raise APIAcquisitionError("Checkpoint pagination strategy differs from configuration.")
     cap=max_pages if max_pages is not None else p.get("max_pages",10000)
     if isinstance(cap,bool) or not isinstance(cap,int) or cap<1: raise ValueError("max_pages must be positive.")
