@@ -344,3 +344,60 @@ def test_esco_retries_http_500_at_limit_one_without_advancing_offset(
     assert result["skills"]["complete"] is True
     assert result["skills"]["records_processed_this_run"] == 2
     assert fake.skill_calls == [(1, 1), (1, 1), (1, 1)]
+
+
+def test_esco_probes_larger_page_at_same_offset_after_minimum_limit_500(
+    tmp_path, monkeypatch
+):
+    skills_dir = tmp_path / "esco" / "api-default" / "en" / "skills"
+    skills_dir.mkdir(parents=True)
+    cached = {
+        "offset": 0,
+        "total": 3,
+        "_embedded": {"esco:skill:0": {"uri": "esco:skill:0"}},
+    }
+    (skills_dir / "offset_00000_limit_001.json").write_text(
+        json.dumps(cached), encoding="utf-8"
+    )
+
+    class LargerPageFallbackFakeESCOClient:
+        def __init__(self):
+            self.skill_calls = []
+
+        def get_skills_by_scheme(self, **kwargs):
+            call = (kwargs["offset"], kwargs["limit"])
+            self.skill_calls.append(call)
+            if call == (1, 1):
+                raise ApiRequestError(
+                    "ESCO", "ESCO returned HTTP 500.", status_code=500
+                )
+            assert call == (1, 2)
+            return {
+                "offset": 1,
+                "total": 3,
+                "_embedded": {
+                    "esco:skill:1": {"uri": "esco:skill:1"},
+                    "esco:skill:2": {"uri": "esco:skill:2"},
+                },
+            }
+
+        def get_occupations_by_scheme(self, **kwargs):
+            return {
+                "offset": kwargs["offset"],
+                "total": 0,
+                "_embedded": {},
+            }
+
+    fake = LargerPageFallbackFakeESCOClient()
+    monkeypatch.setattr(acquisition, "ESCOClient", lambda: fake)
+    monkeypatch.setattr(acquisition, "RAW_ROOT", tmp_path)
+    monkeypatch.setattr(acquisition.time, "sleep", lambda _seconds: None)
+
+    result = acquisition.acquire_esco(page_size=1, delay_seconds=0)
+
+    assert result["skills"]["complete"] is True
+    assert result["skills"]["records_processed_this_run"] == 3
+    assert fake.skill_calls == [(1, 1), (1, 1), (1, 2)]
+    assert (
+        skills_dir / "offset_00001_limit_002.json"
+    ).exists()
