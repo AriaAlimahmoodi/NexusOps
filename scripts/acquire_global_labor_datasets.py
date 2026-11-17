@@ -126,7 +126,9 @@ def _request_esco_page(
     delay_seconds: float,
 ) -> dict[str, Any]:
     """Request one ESCO page, retrying transient connection failures in place."""
-    max_attempts = 3
+    # At limit=1, HTTP 500 cannot be handled by reducing the page size.
+    # Retry it in place with bounded exponential backoff before failing safely.
+    max_attempts = 5 if limit == 1 else 3
     for attempt in range(max_attempts):
         try:
             if kind == "skills":
@@ -148,10 +150,15 @@ def _request_esco_page(
             transient = (
                 exc.status_code is None
                 or exc.status_code in {429, 502, 503, 504}
+                or (exc.status_code == 500 and limit == 1)
             )
             if not transient or attempt == max_attempts - 1:
                 raise
-            wait_seconds = delay_seconds * (attempt + 1)
+            wait_seconds = (
+                max(delay_seconds, min(2 ** attempt, 30))
+                if exc.status_code == 500 and limit == 1
+                else delay_seconds * (attempt + 1)
+            )
             print(
                 f"ESCO {kind}: transient request failure at offset={offset} "
                 f"limit={limit} (attempt {attempt + 1}/{max_attempts}); "
