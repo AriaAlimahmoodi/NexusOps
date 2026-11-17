@@ -126,10 +126,9 @@ def _request_esco_page(
     delay_seconds: float,
 ) -> dict[str, Any]:
     """Request one ESCO page, retrying transient connection failures in place."""
-    # Retry transport failures in place. HTTP 500 at limit=1 is handled
-    # by probing alternative page sizes in acquire_esco(), not by repeating
-    # the exact same request many times.
-    max_attempts = 2 if limit == 1 else 3
+    # Retry transient transport/rate-limit failures in place. HTTP 500 is
+    # handled by probing alternative page sizes in acquire_esco().
+    max_attempts = 3
     for attempt in range(max_attempts):
         try:
             if kind == "skills":
@@ -151,7 +150,6 @@ def _request_esco_page(
             transient = (
                 exc.status_code is None
                 or exc.status_code in {429, 502, 503, 504}
-                or (exc.status_code == 500 and limit == 1)
             )
             if not transient or attempt == max_attempts - 1:
                 raise
