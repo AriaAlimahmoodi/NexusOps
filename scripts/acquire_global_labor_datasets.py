@@ -105,7 +105,7 @@ def _cached_esco_page(
 
             # The original limit is part of the filename for current pages.
             # Reusing it is essential: some ESCO offsets fail with larger limits.
-            match = re.fullmatch(r"offset_\\d+_limit_(\\d+)\\.json", path.name)
+            match = re.fullmatch(r"offset_\d+_limit_(\d+)\.json", path.name)
             cached_limit = int(match.group(1)) if match else len(items)
             return payload, cached_limit
         except (OSError, json.JSONDecodeError, ValueError):
