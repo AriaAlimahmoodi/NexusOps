@@ -20,6 +20,13 @@ class ConfiguredAPISourceAdapter:
         unknown = set(source.options) - self._OPTIONS
         if unknown:
             raise ValueError(f"Unsupported configured API adapter option(s): {sorted(unknown)}.")
+        for key in ("resume", "allow_partial"):
+            if key in source.options and not isinstance(source.options[key], bool):
+                raise ValueError(f"Configured API adapter option '{key}' must be boolean.")
+        if "max_pages" in source.options:
+            value = source.options["max_pages"]
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError("Configured API adapter max_pages must be a positive integer.")
         config = load_source_config(source.uri)
         if config.get("storage", {}).get("preserve_raw_pages", True) is not True:
             raise ValueError("Configured API ingestion requires preserve_raw_pages=true.")
