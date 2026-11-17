@@ -126,9 +126,10 @@ def _request_esco_page(
     delay_seconds: float,
 ) -> dict[str, Any]:
     """Request one ESCO page, retrying transient connection failures in place."""
-    # At limit=1, HTTP 500 cannot be handled by reducing the page size.
-    # Retry it in place with bounded exponential backoff before failing safely.
-    max_attempts = 5 if limit == 1 else 3
+    # Retry transport failures in place. HTTP 500 at limit=1 is handled
+    # by probing alternative page sizes in acquire_esco(), not by repeating
+    # the exact same request many times.
+    max_attempts = 2 if limit == 1 else 3
     for attempt in range(max_attempts):
         try:
             if kind == "skills":
@@ -211,10 +212,16 @@ def acquire_esco(
                 # while the same offsets work at limit=5/10. Retry smaller limits
                 # at the SAME offset; never advance across an empty page.
                 limits = [effective_page_size]
-                limits.extend(
-                    candidate for candidate in (10, 5, 1)
-                    if candidate < effective_page_size
-                )
+                if effective_page_size == 1:
+                    # If ESCO fails at a single-record offset, probe larger
+                    # windows at that SAME offset. This does not skip records:
+                    # the next offset is computed from the returned record count.
+                    limits.extend((2, 5, 10))
+                else:
+                    limits.extend(
+                        candidate for candidate in (10, 5, 1)
+                        if candidate < effective_page_size
+                    )
                 for attempt, request_limit in enumerate(limits):
                     if page_count or attempt:
                         time.sleep(delay_seconds)
