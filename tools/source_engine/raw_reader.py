@@ -81,8 +81,10 @@ def iter_raw_api_records(
     root = Path(raw_directory)
     if not root.is_dir() or root.is_symlink():
         raise RawSourceIntegrityError("Raw acquisition directory is missing or unsafe.")
-    manifest = _read_json(root / "manifest.json")
-    checkpoint = _read_json(root / "checkpoint.json")
+    manifest_path = _contained_file(root, root / "manifest.json")
+    checkpoint_path = _contained_file(root, root / "checkpoint.json")
+    manifest = _read_json(manifest_path)
+    checkpoint = _read_json(checkpoint_path)
     if not isinstance(manifest, Mapping) or not isinstance(checkpoint, Mapping):
         raise RawSourceIntegrityError("Manifest and checkpoint must be JSON objects.")
 
@@ -104,6 +106,15 @@ def iter_raw_api_records(
         raise RawSourceIntegrityError("Invalid page hash inventory.")
     if count < 1 or len(hashes) != count:
         raise RawSourceIntegrityError("Page count does not match hash inventory.")
+    checkpoint_count = checkpoint.get("pages_completed")
+    if (
+        not isinstance(checkpoint_count, int)
+        or isinstance(checkpoint_count, bool)
+        or checkpoint_count != count
+    ):
+        raise RawSourceIntegrityError(
+            "Manifest and checkpoint page counts differ."
+        )
 
     pages = root / "pages"
     if not pages.is_dir() or pages.is_symlink():
