@@ -44,7 +44,7 @@ def _add_params(url,params):
 
 def _request(config,url):
     q=config["request"]; rel=config.get("reliability",{}); method=q.get("method","GET")
-    headers={"Accept":"application/json"}; headers.update(q.get("headers",{}))
+    headers={"Accept":"application/json","User-Agent":"NexusOps-API-Engine/1.0"}; headers.update(q.get("headers",{}))
     data=json.dumps(q["body"]).encode("utf-8") if method=="POST" else None
     if method=="POST": headers.setdefault("Content-Type",q.get("content_type","application/json"))
     attempts=rel.get("max_attempts",3); statuses=set(rel.get("retry_statuses",[429,502,503,504]))
