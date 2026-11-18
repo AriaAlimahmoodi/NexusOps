@@ -86,3 +86,29 @@ def test_rejects_missing_page_from_manifest_inventory(tmp_path):
     (tmp_path / "pages" / "page_00000000.json").unlink()
     with pytest.raises(RawSourceIntegrityError):
         list(iter_raw_api_records(tmp_path, config))
+
+
+
+def test_rejects_symlinked_manifest_or_checkpoint(tmp_path, monkeypatch):
+    config = _write_acquisition(tmp_path)
+    original_is_symlink = type(tmp_path).is_symlink
+
+    def marked_symlink(path):
+        if path.name in {"manifest.json", "checkpoint.json"}:
+            return True
+        return original_is_symlink(path)
+
+    monkeypatch.setattr(type(tmp_path), "is_symlink", marked_symlink)
+    with pytest.raises(RawSourceIntegrityError, match="Symlinks"):
+        list(iter_raw_api_records(tmp_path, config))
+
+
+def test_rejects_manifest_checkpoint_page_count_mismatch(tmp_path):
+    config = _write_acquisition(tmp_path)
+    checkpoint_path = tmp_path / "checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    checkpoint["pages_completed"] = 2
+    checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+
+    with pytest.raises(RawSourceIntegrityError, match="page counts differ"):
+        list(iter_raw_api_records(tmp_path, config))
