@@ -77,6 +77,12 @@ def analyze_dataset_compatibility(
             compatible = None
         elif source_type in {"unknown", "mixed", None}:
             compatible = None
+        elif (
+            target_type == "keyword"
+            and source_type == "json_array"
+        ):
+            item_types = set(stats.get("json_array_item_types", {}))
+            compatible = item_types == {"str"}
         else:
             compatible = source_type in _SOURCE_TYPES_BY_TARGET.get(
                 target_type, set()
