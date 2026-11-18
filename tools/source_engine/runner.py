@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlencode,urljoin,urlsplit,urlunsplit,parse_qsl
-from urllib.request import Request,urlopen
+from urllib.request import HTTPRedirectHandler,Request,build_opener
 from tools.source_engine.checkpoint import read_checkpoint,write_json_atomic
 
 class APIAcquisitionError(RuntimeError):
@@ -31,9 +31,34 @@ def _extract(document,response):
     if any(not isinstance(x,dict) for x in value): raise APIAcquisitionError("Every extracted API record must be a JSON object.")
     return value
 
+def _origin(url):
+    try:
+        parsed=urlsplit(url)
+        scheme=parsed.scheme.lower()
+        host=parsed.hostname
+        if scheme not in {"http","https"} or not host or parsed.username is not None or parsed.password is not None:
+            return None
+        normalized_host=host.lower() if ":" in host else host.encode("idna").decode("ascii").lower()
+        port=parsed.port or (443 if scheme=="https" else 80)
+        return scheme,normalized_host,port
+    except (UnicodeError,ValueError):
+        return None
+
 def _same_origin(a,b):
-    x,y=urlsplit(a),urlsplit(b)
-    return (x.scheme.lower(),(x.hostname or "").lower(),x.port)==(y.scheme.lower(),(y.hostname or "").lower(),y.port)
+    origin_a,origin_b=_origin(a),_origin(b)
+    return origin_a is not None and origin_a==origin_b
+
+class _SameOriginRedirectHandler(HTTPRedirectHandler):
+    """Allow redirects only when scheme, host and effective port stay unchanged."""
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        if not _same_origin(req.full_url,newurl):
+            raise APIAcquisitionError("API redirect must remain on the original HTTP(S) origin; cross-origin redirects and HTTPS downgrades are blocked.")
+        return super().redirect_request(req,fp,code,msg,headers,newurl)
+
+def _open_url(request,timeout):
+    # A custom opener replaces urllib's default redirect handler without
+    # mutating process-global opener state.
+    return build_opener(_SameOriginRedirectHandler()).open(request,timeout=timeout)
 
 def _add_params(url,params):
     p=urlsplit(url); query=parse_qsl(p.query,keep_blank_values=True)
@@ -52,7 +77,7 @@ def _request(config,url):
     for attempt in range(attempts):
         req=Request(url,data=data,headers=headers,method=method)
         try:
-            with urlopen(req,timeout=float(q.get("timeout",30))) as response:
+            with _open_url(req,timeout=float(q.get("timeout",30))) as response:
                 try: return json.load(response)
                 except json.JSONDecodeError: raise APIAcquisitionError("API response is not valid JSON.") from None
         except HTTPError as exc:
