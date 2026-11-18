@@ -89,12 +89,15 @@ def test_rejects_missing_page_from_manifest_inventory(tmp_path):
 
 
 
-def test_rejects_symlinked_manifest_or_checkpoint(tmp_path, monkeypatch):
+@pytest.mark.parametrize("symlink_name", ["manifest.json", "checkpoint.json"])
+def test_rejects_symlinked_manifest_or_checkpoint(
+    tmp_path, monkeypatch, symlink_name
+):
     config = _write_acquisition(tmp_path)
     original_is_symlink = type(tmp_path).is_symlink
 
     def marked_symlink(path):
-        if path.name in {"manifest.json", "checkpoint.json"}:
+        if path.name == symlink_name:
             return True
         return original_is_symlink(path)
 
