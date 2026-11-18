@@ -195,3 +195,72 @@ def test_redirect_handler_blocks_cross_origin_and_unsafe_redirects(target):
     request = Request("https://api.example.test/items", headers={"Authorization": "Bearer secret"})
     with pytest.raises(APIAcquisitionError, match="cross-origin redirects"):
         handler.redirect_request(request, None, 302, "Found", {}, target)
+
+
+# Exercise urllib's real redirect flow against local HTTP servers. These tests
+# verify that the handler is installed in the opener used by production code,
+# not merely that redirect_request makes the expected decision.
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
+
+
+class _LocalRedirectHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.server.received.append((self.path, self.headers.get("Authorization")))
+        if self.path == "/start":
+            self.send_response(302)
+            self.send_header("Location", self.server.redirect_location)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"redirect reached")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def _start_redirect_server(redirect_location=""):
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _LocalRedirectHandler)
+    server.redirect_location = redirect_location
+    server.received = []
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, thread
+
+
+def _stop_redirect_server(server, thread):
+    server.shutdown()
+    server.server_close()
+    thread.join(timeout=2)
+
+
+def test_real_urllib_same_origin_redirect_succeeds():
+    server, thread = _start_redirect_server("/final")
+    try:
+        url = f"http://127.0.0.1:{server.server_port}/start"
+        request = Request(url, headers={"Authorization": "Bearer local-test"})
+        with runner._open_url(request, timeout=3) as response:
+            assert response.status == 200
+            assert response.read() == b"redirect reached"
+        assert [item[0] for item in server.received] == ["/start", "/final"]
+        assert server.received[1][1] == "Bearer local-test"
+    finally:
+        _stop_redirect_server(server, thread)
+
+
+def test_real_urllib_cross_origin_redirect_is_blocked_before_destination_request():
+    destination, destination_thread = _start_redirect_server("")
+    target = f"http://127.0.0.1:{destination.server_port}/collect"
+    source, source_thread = _start_redirect_server(target)
+    try:
+        url = f"http://127.0.0.1:{source.server_port}/start"
+        request = Request(url, headers={"Authorization": "Bearer must-not-leak"})
+        with pytest.raises(APIAcquisitionError, match="cross-origin redirects"):
+            runner._open_url(request, timeout=3)
+        assert [item[0] for item in source.received] == ["/start"]
+        assert destination.received == []
+    finally:
+        _stop_redirect_server(source, source_thread)
+        _stop_redirect_server(destination, destination_thread)
