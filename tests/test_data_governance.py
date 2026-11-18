@@ -141,16 +141,25 @@ def test_skill_mapping_rejects_invalid_gap_tolerance():
         audit_skill_mapping([], [], [], gap_tolerance=-1)
 
 
-def test_all_dataset_profiles_register_queryable_provenance_fields():
+def test_all_dataset_profiles_register_provenance_contracts():
     from tools.dataset_registry import DATASET_PROFILES
 
+    required_fields = {
+        "source",
+        "observed_at",
+        "collection_batch",
+        "time_granularity",
+    }
+    optional_fields = {
+        "published_at",
+        "valid_from",
+        "valid_until",
+    }
+
     for dataset_id, profile in DATASET_PROFILES.items():
-        fields = profile["fields"]
-        assert {"source", "observed_at", "published_at", "collection_batch"} <= set(fields)
-        assert "filter" in fields["source"]["roles"]
-        assert "filter" in fields["observed_at"]["roles"]
-        assert "filter" in fields["published_at"]["roles"]
-        assert "filter" in fields["collection_batch"]["roles"]
+        contract = profile["provenance_contract"]
+        assert required_fields <= set(contract["required_fields"]), dataset_id
+        assert optional_fields <= set(contract["optional_fields"]), dataset_id
 
 
 def test_synthetic_audit_marks_records_as_synthetic_not_unverified():
