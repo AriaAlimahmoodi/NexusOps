@@ -141,3 +141,33 @@ def test_resume_disabled_refuses_to_overwrite_existing_checkpoint(tmp_path,monke
     acquire_api_source(data,output_root=tmp_path,max_pages=1)
     with pytest.raises(APIAcquisitionError,match="resume disabled"):
         acquire_api_source(data,output_root=tmp_path,resume=False)
+
+def test_request_uses_transparent_default_user_agent(monkeypatch):
+    captured = {}
+    def fake(request, timeout):
+        captured["user_agent"] = request.get_header("User-agent")
+        return Response(b'{}')
+    monkeypatch.setattr(runner, "urlopen", fake)
+    result = runner._request(
+        {"request": {"url": "https://api.example.test/items", "method": "GET"},
+         "reliability": {"max_attempts": 1}},
+        "https://api.example.test/items",
+    )
+    assert result == {}
+    assert captured["user_agent"] == "NexusOps-API-Engine/1.0"
+
+
+def test_request_allows_configured_user_agent_override(monkeypatch):
+    captured = {}
+    def fake(request, timeout):
+        captured["user_agent"] = request.get_header("User-agent")
+        return Response(b'{}')
+    monkeypatch.setattr(runner, "urlopen", fake)
+    runner._request(
+        {"request": {"url": "https://api.example.test/items", "method": "GET",
+                     "headers": {"User-Agent": "Custom-Source-Client/2.0"}},
+         "reliability": {"max_attempts": 1}},
+        "https://api.example.test/items",
+    )
+    assert captured["user_agent"] == "Custom-Source-Client/2.0"
+
