@@ -28,7 +28,7 @@ def test_configured_api_adapter_is_registered_and_streams_raw_pages(tmp_path,mon
         offset=int(parse_qs(urlsplit(request.full_url).query)["offset"][0]); calls.append(offset)
         items=[{"id":i} for i in range(offset,min(offset+2,3))]
         return Response(json.dumps({"data":{"items":items,"total":3}}).encode())
-    monkeypatch.setattr(runner,"urlopen",fake)
+    monkeypatch.setattr(runner,"_open_url",fake)
     config=make_config(tmp_path/"source.json")
     registry=create_default_adapter_registry()
     records=list(registry.iter_records("api_config",SourceSpec(str(config),options={"output_root":str(tmp_path/"raw")})))
@@ -42,7 +42,7 @@ def test_configured_api_adapter_reuses_completed_checkpoint_without_request(tmp_
     def fake(request,timeout):
         calls.append(1)
         return Response(b'{"data":{"items":[{"id":1}],"total":1}}')
-    monkeypatch.setattr(runner,"urlopen",fake)
+    monkeypatch.setattr(runner,"_open_url",fake)
     adapter=ConfiguredAPISourceAdapter()
     source=SourceSpec(str(config),options={"output_root":str(tmp_path/"raw")})
     assert list(adapter.iter_records(source))==[{"id":1}]
@@ -51,7 +51,7 @@ def test_configured_api_adapter_reuses_completed_checkpoint_without_request(tmp_
 
 def test_configured_api_adapter_blocks_partial_acquisition_by_default(tmp_path,monkeypatch):
     config=make_config(tmp_path/"source.json")
-    monkeypatch.setattr(runner,"urlopen",lambda request,timeout:Response(b'{"data":{"items":[{"id":1},{"id":2}],"total":5}}'))
+    monkeypatch.setattr(runner,"_open_url",lambda request,timeout:Response(b'{"data":{"items":[{"id":1},{"id":2}],"total":5}}'))
     source=SourceSpec(str(config),options={"output_root":str(tmp_path/"raw"),"max_pages":1})
     with pytest.raises(ValueError,match="partial"):
         list(ConfiguredAPISourceAdapter().iter_records(source))
