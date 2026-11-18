@@ -104,3 +104,36 @@ def test_unknown_or_mixed_source_type_is_not_misclassified_as_mismatch(source_ty
     )
     assert demand_score["same_name_type_compatible"] is None
     assert report["decision"] == "partially_compatible"
+
+def test_string_arrays_are_compatible_with_keyword_fields():
+    columns = _compatible_labor_market_columns()
+    profile = _profile(columns)
+    profile["columns"]["skill"] = {
+        "inferred_type": "json_array",
+        "json_array_item_types": {"str": 3},
+    }
+
+    report = analyze_dataset_compatibility(profile, "labor_market")
+    skill = next(
+        item for item in report["fields"] if item["source_field"] == "skill"
+    )
+
+    assert skill["same_name_type_compatible"] is True
+
+
+def test_non_string_arrays_are_not_compatible_with_keyword_fields():
+    columns = _compatible_labor_market_columns()
+    profile = _profile(columns)
+    profile["columns"]["skill"] = {
+        "inferred_type": "json_array",
+        "json_array_item_types": {"dict": 3},
+    }
+
+    report = analyze_dataset_compatibility(profile, "labor_market")
+    skill = next(
+        item for item in report["fields"] if item["source_field"] == "skill"
+    )
+
+    assert skill["same_name_type_compatible"] is False
+    assert report["decision"] == "incompatible"
+
