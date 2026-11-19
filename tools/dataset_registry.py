@@ -5,6 +5,10 @@ from tools.datasets.labor_market import LABOR_MARKET_PROFILE
 from tools.datasets.skill_mapping import SKILL_MAPPING_PROFILE
 from tools.datasets.university_courses import UNIVERSITY_COURSES_PROFILE
 from tools.datasets.university_graduates import UNIVERSITY_GRADUATES_PROFILE
+from tools.datasets.us_public import (
+    US_COLLEGE_INSTITUTIONS_PROFILE,
+    US_UNEMPLOYMENT_MONTHLY_PROFILE,
+)
 
 
 DATASET_PROFILES = {
@@ -15,6 +19,8 @@ DATASET_PROFILES = {
         UNIVERSITY_GRADUATES_PROFILE,
         COURSE_GRADUATE_RECORDS_PROFILE,
         SKILL_MAPPING_PROFILE,
+        US_UNEMPLOYMENT_MONTHLY_PROFILE,
+        US_COLLEGE_INSTITUTIONS_PROFILE,
     )
 }
 

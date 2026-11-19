@@ -14,6 +14,8 @@ EXPECTED_DATASETS = {
     "university_graduates",
     "course_graduate_records",
     "skill_mapping",
+    "us_unemployment_monthly",
+    "us_college_institutions",
 }
 
 
