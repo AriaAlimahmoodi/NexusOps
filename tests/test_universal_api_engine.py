@@ -264,3 +264,44 @@ def test_real_urllib_cross_origin_redirect_is_blocked_before_destination_request
     finally:
         _stop_redirect_server(source, source_thread)
         _stop_redirect_server(destination, destination_thread)
+
+
+def test_empty_offset_page_before_total_resumes_at_same_offset(tmp_path, monkeypatch):
+    offsets = []
+    batches = iter([[{"id": 1}], [], [{"id": 2}]])
+
+    def fetch(config, url):
+        offsets.append(int(parse_qs(urlsplit(url).query)["offset"][0]))
+        return {"data": {"items": next(batches), "total": 2}}
+
+    monkeypatch.setattr(runner, "_request", fetch)
+    with pytest.raises(APIAcquisitionError, match="Empty offset page"):
+        acquire_api_source(cfg(), output_root=tmp_path)
+    pages = tmp_path / "test_source" / "pages"
+    assert [page.name for page in pages.iterdir()] == ["page_00000000.json"]
+    result = acquire_api_source(cfg(), output_root=tmp_path)
+    assert offsets == [0, 1, 1]
+    assert result["status"] == "completed"
+    assert result["records_saved_total"] == 2
+
+
+def test_remotive_config_reuses_completed_snapshot(tmp_path, monkeypatch):
+    from pathlib import Path
+    from tools.source_engine.raw_reader import iter_raw_api_records
+
+    config = load_source_config(
+        Path(__file__).resolve().parents[1] / "configs/sources/remotive_jobs.json"
+    )
+    urls = []
+    job = {"id": 17, "url": "https://remotive.com/example"}
+
+    def fetch(config, url):
+        urls.append(url)
+        return {"jobs": [job]}
+
+    monkeypatch.setattr(runner, "_request", fetch)
+    for _ in range(2):
+        result = acquire_api_source(config, output_root=tmp_path)
+        assert result["status"] == "completed"
+    assert urls == ["https://remotive.com/api/remote-jobs"]
+    assert list(iter_raw_api_records(tmp_path / config["id"], config)) == [job]

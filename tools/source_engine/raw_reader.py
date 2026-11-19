@@ -126,6 +126,20 @@ def iter_raw_api_records(
     if key_mode not in {"array", "object_values"}:
         raise ValueError("Unsupported response.record_key_mode.")
 
+    # Older acquisitions may omit record totals. Check every total supplied.
+    declared_totals = [
+        evidence[key]
+        for evidence, key in (
+            (manifest, "records_saved_total"), (checkpoint, "records_saved")
+        )
+        if key in evidence
+    ]
+    if any(type(total) is not int or total < 0 for total in declared_totals):
+        raise RawSourceIntegrityError("Invalid saved record count.")
+    if len(set(declared_totals)) > 1:
+        raise RawSourceIntegrityError("Manifest and checkpoint record counts differ.")
+
+    records_read = 0
     for index in range(count):
         name = f"page_{index:08d}.json"
         expected = hashes.get(name)
@@ -144,9 +158,13 @@ def iter_raw_api_records(
             records = list(records.values())
         if not isinstance(records, list):
             raise RawSourceIntegrityError("records_path must resolve to an array.")
+        records_read += len(records)
         for position, record in enumerate(records):
             if not isinstance(record, dict):
                 raise RawSourceIntegrityError(
                     f"Record {position} in {name} is not a JSON object."
                 )
             yield record
+
+    if declared_totals and records_read != declared_totals[0]:
+        raise RawSourceIntegrityError("Raw pages disagree with the saved record count.")

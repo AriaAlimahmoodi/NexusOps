@@ -115,3 +115,25 @@ def test_rejects_manifest_checkpoint_page_count_mismatch(tmp_path):
 
     with pytest.raises(RawSourceIntegrityError, match="page counts differ"):
         list(iter_raw_api_records(tmp_path, config))
+
+
+@pytest.mark.parametrize(
+    "manifest_total,checkpoint_total,message",
+    [(2, 3, "record counts differ"), (3, 3, "Raw pages disagree"),
+     (True, 2, "Invalid saved record count"), (-1, -1, "Invalid saved record count")],
+)
+def test_rejects_inconsistent_record_totals(
+    tmp_path, manifest_total, checkpoint_total, message
+):
+    config = _write_acquisition(tmp_path)
+    for filename, field, total in (
+        ("manifest.json", "records_saved_total", manifest_total),
+        ("checkpoint.json", "records_saved", checkpoint_total),
+    ):
+        path = tmp_path / filename
+        evidence = json.loads(path.read_text(encoding="utf-8"))
+        evidence[field] = total
+        path.write_text(json.dumps(evidence), encoding="utf-8")
+
+    with pytest.raises(RawSourceIntegrityError, match=message):
+        list(iter_raw_api_records(tmp_path, config))

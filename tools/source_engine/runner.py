@@ -144,19 +144,20 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
                 url=state["next_url"]; params={}
             request_url=_add_params(url,params)
             document=_request(config,request_url); records=_extract(document,response)
-            page_file=pages/f"page_{state['pages_completed']:08d}.json"
-            if storage.get("preserve_raw_pages",True): write_json_atomic(page_file,document)
-            state["pages_completed"]+=1; state["records_saved"]+=len(records)
             if strategy=="none": complete=True
             elif strategy=="page":
                 complete=len(records)<p["page_size"]; state["page"]+=1
             elif strategy=="offset":
-                previous=state["offset"]; state["offset"]+=len(records)
-                if not records: complete=True
-                if state["offset"]<=previous and records: raise APIAcquisitionError("Offset pagination made no forward progress.")
+                state["offset"] += len(records)
                 if p.get("total_path"):
-                    total=_path(document,p["total_path"])
-                    if isinstance(total,int) and state["offset"]>=total: complete=True
+                    total = _path(document, p["total_path"])
+                    if type(total) is not int or total < 0:
+                        raise APIAcquisitionError("Offset pagination requires a non-negative integer total.")
+                    if not records and state["offset"] < total:
+                        raise APIAcquisitionError("Empty offset page before the reported total.")
+                    complete = state["offset"] >= total
+                else:
+                    complete = not records
             elif strategy=="cursor":
                 cursor=_path(document,response["next_cursor_path"])
                 if cursor is None or cursor=="": complete=True
@@ -171,6 +172,9 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
                     resolved=urljoin(request_url,nxt)
                     if not _same_origin(config["request"]["url"],resolved): raise APIAcquisitionError("Pagination next URL must remain on the original API origin.")
                     state["next_url"]=resolved
+            page_file=pages/f"page_{state['pages_completed']:08d}.json"
+            if storage.get("preserve_raw_pages",True): write_json_atomic(page_file,document)
+            state["pages_completed"]+=1; state["records_saved"]+=len(records)
             state["status"]="completed" if complete else "running"
             if storage.get("checkpoint",True): write_json_atomic(checkpoint,state)
             delay=config.get("reliability",{}).get("request_interval_seconds",0)
