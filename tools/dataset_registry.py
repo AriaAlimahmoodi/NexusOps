@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from tools.datasets.course_graduate_records import COURSE_GRADUATE_RECORDS_PROFILE
+from tools.datasets.curriculum_catalog import CURRICULUM_CATALOG_PROFILE
 from tools.datasets.labor_market import LABOR_MARKET_PROFILE
 from tools.datasets.skill_mapping import SKILL_MAPPING_PROFILE
 from tools.datasets.university_courses import UNIVERSITY_COURSES_PROFILE
@@ -21,6 +22,7 @@ DATASET_PROFILES = {
         SKILL_MAPPING_PROFILE,
         US_UNEMPLOYMENT_MONTHLY_PROFILE,
         US_COLLEGE_INSTITUTIONS_PROFILE,
+        CURRICULUM_CATALOG_PROFILE,
     )
 }
 

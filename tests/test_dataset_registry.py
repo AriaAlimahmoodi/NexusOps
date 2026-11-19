@@ -16,6 +16,7 @@ EXPECTED_DATASETS = {
     "skill_mapping",
     "us_unemployment_monthly",
     "us_college_institutions",
+    "curriculum_catalog",
 }
 
 
