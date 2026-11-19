@@ -69,6 +69,30 @@ def build_source(kind, path, retrieved_at):
     }, digest
 
 
+def _check_elasticsearch(client):
+    from elasticsearch import ApiError, SSLError, TransportError, UnsupportedProductError
+
+    try:
+        client.info()
+    except UnsupportedProductError:
+        raise RuntimeError("The configured URL did not respond as Elasticsearch. Check ELASTICSEARCH_URL.") from None
+    except ApiError as error:
+        if error.status_code == 401:
+            detail = "Check ELASTICSEARCH_USERNAME and ELASTICSEARCH_PASSWORD."
+        elif error.status_code == 403:
+            detail = "The configured account cannot access Elasticsearch cluster information."
+        else:
+            detail = "Check the Elasticsearch server logs and the connection settings."
+        raise RuntimeError(f"Elasticsearch returned HTTP {error.status_code}. {detail}") from None
+    except SSLError:
+        raise RuntimeError("Elasticsearch TLS handshake failed. Check the URL scheme and TLS configuration.") from None
+    except TransportError as error:
+        raise RuntimeError(
+            f"Elasticsearch transport error ({type(error).__name__}). "
+            "Check that the service is running and ELASTICSEARCH_URL points to it."
+        ) from None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True, choices=tuple(_SOURCES))
@@ -92,8 +116,7 @@ def main() -> int:
 
             client = get_elasticsearch_client()
             try:
-                if not client.ping():
-                    raise RuntimeError("Elasticsearch connection failed. Check the NexusOps .env settings.")
+                _check_elasticsearch(client)
                 report = run_ingestion_with_evidence(client, *batch, **options, report_path=args.report)
                 print(json.dumps(report, indent=2))
             finally:

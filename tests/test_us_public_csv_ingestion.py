@@ -1,6 +1,10 @@
-import pytest
+from types import SimpleNamespace
+from unittest.mock import Mock
 
-from scripts.ingest_us_public_csv import build_source
+import pytest
+from elasticsearch import ApiError
+
+from scripts.ingest_us_public_csv import _check_elasticsearch, build_source
 from test_atomic_data_publisher import FakeClient, install_fake_bulk
 from tools.data_ingestion import ingest_source
 from tools.source_ingestion_preflight import audit_source_ingestion_preflight
@@ -46,3 +50,13 @@ def test_scorecard_csv_calculates_difference_and_preserves_suppression(tmp_path,
     assert docs["100001"]["out_of_state_tuition_difference_usd"] == 2000
     assert docs["100002"]["undergraduate_enrollment"] is None
     assert docs["100002"]["out_of_state_tuition_difference_usd"] is None
+
+
+def test_connection_check_reports_http_status_without_printing_response():
+    client = Mock()
+    client.info.side_effect = ApiError(
+        "sensitive server response", SimpleNamespace(status=401), {}
+    )
+    with pytest.raises(RuntimeError, match="HTTP 401") as exc:
+        _check_elasticsearch(client)
+    assert "sensitive server response" not in str(exc.value)
