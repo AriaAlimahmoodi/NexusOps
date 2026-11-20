@@ -835,6 +835,14 @@ def build_query_plan(
     # --------------------------------------------------------
     # 0. Domain-specific university-market analytics
     # --------------------------------------------------------
+    if re.search(r"jobvision|جاب.?ویژن", query, re.I) and re.search(
+        r"purdue|پردو|trend|growth|روند|رشد", query, re.I
+    ):
+        return QueryPlan(tool_name="skill_evidence", arguments={"question": query},
+                         requested_entities=entities, requested_fields=fields, requested_count=None,
+                         comparison_requested=comparison, memory_allowed=False, fresh_mcp_required=True,
+                         reason="Scoped JobVision skill evidence.")
+
     domain_intents = (
         ("skill_trends", ("روند مهارت", "روند تقاضا", "تحلیل روند", "skill trend", "demand trend")),
         ("management_report", ("گزارش مدیریتی", "گزارش جامع", "گزارش تحلیلی دانشگاه", "management report", "executive report")),
