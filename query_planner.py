@@ -835,7 +835,8 @@ def build_query_plan(
     # --------------------------------------------------------
     # 0. Domain-specific university-market analytics
     # --------------------------------------------------------
-    if re.search(r"jobvision|جاب.?ویژن", query, re.I) and re.search(
+    from tools.computational_engine.service import is_course_alignment
+    if is_course_alignment(query) or re.search(r"jobvision|جاب.?ویژن", query, re.I) and re.search(
         r"purdue|پردو|trend|growth|روند|رشد", query, re.I
     ):
         return QueryPlan(tool_name="skill_evidence", arguments={"question": query},

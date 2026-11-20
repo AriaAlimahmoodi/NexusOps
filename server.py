@@ -244,7 +244,7 @@ def _skill_evidence(question):
         return answer(client, question)
 
 
-@server.tool(name="skill_evidence", description="Compare a skill in JobVision and Purdue or calculate JobVision demand growth between two YYYY-MM months.")
+@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, or calculate monthly demand growth.")
 async def skill_evidence_tool(question: str, ctx: Context) -> str:
     return await run_sync_tool("skill_evidence", _skill_evidence, question, context=ctx)
 

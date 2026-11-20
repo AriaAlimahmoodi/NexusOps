@@ -68,7 +68,14 @@ def plan(question):
     return skills[0], dates
 
 
+def is_course_alignment(question):
+    return bool(re.search(r"gap\s*priority|course.market alignment|همسویی دروس با بازار|ارتباط دروس با بازار", question, re.I))
+
+
 def answer(client, question):
+    if is_course_alignment(question):
+        from tools.computational_engine.course_alignment import live_report
+        return live_report(client)
     skill, dates = plan(question)
     if dates:
         return trend_report(client, skill, dates, question)

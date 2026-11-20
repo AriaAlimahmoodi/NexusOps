@@ -38,18 +38,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument("--input", type=Path)
-    modes.add_argument("--pilot", action="store_true")
+    modes.add_argument("--courses", "--pilot", action="store_true", help="Evaluate course alignment across published batches (v2)")
     parser.add_argument("--prompt-password", action="store_true")
     args = parser.parse_args()
-    if args.pilot:
+    if args.courses:
         if args.prompt_password:
             os.environ["ELASTICSEARCH_PASSWORD"] = getpass("Elasticsearch password: ")
         from config import get_elasticsearch_client
 
         with get_elasticsearch_client() as client:
-            payload, education = pilot_inputs(client)
-        report = compute_gap_priority(**payload)
-        report["pilot_curriculum_context"] = education
+            from tools.computational_engine.course_alignment import live_report
+            report = live_report(client)
     else:
         payload = json.loads(args.input.read_text(encoding="utf-8-sig"))
         report = compute_gap_priority(**payload)
