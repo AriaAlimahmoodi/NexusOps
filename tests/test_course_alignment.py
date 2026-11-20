@@ -10,6 +10,7 @@ def test_alignment_keeps_snapshots_separate_and_counts_unique_skills():
     jobs = [dict(collection_batch=b, skills=s) for b, s in
             [("a", ["python", "python"]), ("a", []), ("b", ["sql"])]]
     a, b = evaluate([course(["python", "net", "python"])], jobs)
+    assert (a["observed_alignment_percent"], b["observed_alignment_percent"]) == (50, 0)
     assert (a["result"], b["result"]) == (None, None)
     assert a["postings_by_course_skill"] == {"net": 0, "python": 1}
     assert a["total_postings"] == 2

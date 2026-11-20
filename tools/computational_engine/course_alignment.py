@@ -73,6 +73,9 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
                        job_fields=sorted(fields[batch]), first_month=min(months[batch], default=None),
                        last_month=max(months[batch], default=None), postings_by_course_skill=counts, documented_skills=sorted(skills),
                        matched_skill_count=matches, documented_skill_count=len(skills))
+            row["observed_alignment_percent"] = (
+                100 * matches / len(skills) if skills and markets.get(batch) else None
+            )
             row["titles_checked"] = titles_checked[batch]
             row["posting_evidence_by_skill"] = {
                 skill: {
@@ -150,7 +153,7 @@ def live_report(client):
             auxiliary[index] = {"classification": classification, "field": field,
                                 "matching_documents_by_canonical_skill": dict(sorted(matches.items()))}
 
-    return {"computation_id": "gap_priority", "metric_version": "2.2.0",
+    return {"computation_id": "gap_priority", "metric_version": "2.3.0",
             "unit": "review_priority_points", "formula": "100 * unmatched documented skills / documented skills",
             "scope": "Computer Engineering, each program and curriculum batch against each posting batch",
             "course_index": courses, "market_index": postings, "inventory": inventory,
