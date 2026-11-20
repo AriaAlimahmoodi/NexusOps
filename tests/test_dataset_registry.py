@@ -18,6 +18,7 @@ EXPECTED_DATASETS = {
     "us_unemployment_monthly",
     "us_college_institutions",
     "curriculum_catalog",
+    "course_skill_evidence",
 }
 
 

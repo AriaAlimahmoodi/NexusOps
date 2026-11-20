@@ -17,7 +17,7 @@ JOB_POSTINGS_PROFILE = {
     },
     "fields": {
         name: {"type": "keyword", "roles": ["dimension", "filter", "group_by"]}
-        for name in ("posting_id", "job_field", "activation_month", "skills")
+        for name in ("posting_id", "job_field", "activation_month", "skills", "raw_skill_labels")
     } | {"skill_count": {"type": "integer", "roles": ["metric", "filter"]}},
     "validation": {
         "required_fields": ["posting_id", "job_field", "activation_month", "skills", "skill_count"],

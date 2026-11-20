@@ -2,11 +2,13 @@
 import json
 import math
 
+from tools.computational_engine.skill_ids import canonical
+
 
 def evaluate_rule(record, rule):
     values = [record[name] for name in rule["inputs"]]
     op = rule["op"]
-    if op == "labels":
+    if op in {"labels", "raw_labels", "canonical_labels"}:
         value, = values
         items = json.loads(value) if isinstance(value, str) and value.strip() else value
         if items is None or items == "":
@@ -18,7 +20,12 @@ def evaluate_rule(record, rule):
             label = item[rule["key"]] if "key" in rule else item
             if not isinstance(label, str) or not label.strip():
                 raise ValueError("Invalid skill or category label")
-            labels.append(label.strip().casefold())
+            if op == "raw_labels":
+                labels.append(label)
+            elif op == "canonical_labels":
+                labels.append(canonical(label))
+            else:
+                labels.append(label.strip().casefold())
         return list(dict.fromkeys(labels))
     if op == "count":
         items, = values
