@@ -79,3 +79,14 @@ def get_dataset_index(dataset_id: str, classification: str = "synthetic") -> str
     if classification == "real":
         return profile["real_index"]
     raise ValueError("classification must be 'synthetic' or 'real'.")
+
+
+def get_dataset_query_fields(profile: dict, classification: str) -> dict:
+    """Expose registered real-data provenance for querying, outside analytical profiles."""
+    fields = dict(profile.get("fields", {}))
+    if classification == "real":
+        required = profile.get("provenance_contract", {}).get("required_fields", [])
+        for name in ("source", "collection_batch", "time_granularity"):
+            if name in required:
+                fields[name] = {"type": "keyword", "roles": ["filter", "group_by"]}
+    return fields

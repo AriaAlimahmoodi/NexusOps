@@ -157,6 +157,11 @@ class AnalyticsService:
                 + validation_report.warnings
             )
 
+        if request.classification == "real":
+            formatted_result["data_source"] = {
+                "classification": request.classification,
+                "index": resolved_request["dataset"]["index"],
+            }
         return formatted_result
 
     @staticmethod
