@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from tools.datasets.course_graduate_records import COURSE_GRADUATE_RECORDS_PROFILE
 from tools.datasets.curriculum_catalog import CURRICULUM_CATALOG_PROFILE
+from tools.datasets.job_postings import JOB_POSTINGS_PROFILE
 from tools.datasets.labor_market import LABOR_MARKET_PROFILE
 from tools.datasets.skill_mapping import SKILL_MAPPING_PROFILE
 from tools.datasets.university_courses import UNIVERSITY_COURSES_PROFILE
@@ -16,6 +17,7 @@ DATASET_PROFILES = {
     profile["dataset_id"]: profile
     for profile in (
         LABOR_MARKET_PROFILE,
+        JOB_POSTINGS_PROFILE,
         UNIVERSITY_COURSES_PROFILE,
         UNIVERSITY_GRADUATES_PROFILE,
         COURSE_GRADUATE_RECORDS_PROFILE,
