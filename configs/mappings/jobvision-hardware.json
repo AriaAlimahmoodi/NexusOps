@@ -20,7 +20,8 @@
     "Jobpost_ActivationTime_YEAR_MONTH": "activation_month",
     "labels": "skills",
     "total_labels": "skill_count",
-    "original_skill_labels": "raw_skill_labels"
+    "original_skill_labels": "raw_skill_labels",
+    "Jobpost_RawTitle": "posting_title"
   },
   "rules": [
     {

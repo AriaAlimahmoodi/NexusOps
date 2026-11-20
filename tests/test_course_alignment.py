@@ -74,3 +74,18 @@ def test_candidate_export_preserves_rows_and_ignores_target_skill_for_selection(
         batch, opts = build(cfg, dest, "2026-11-20T00:00:00Z")
         check = audit_source_ingestion_preflight(*batch, **opts)
         assert check["valid_records"] == 1, check
+
+
+def test_title_evidence_counts_each_posting_once():
+    jobs = [
+        dict(collection_batch="j", skills=["FPGA"], posting_title="FPGA developer"),
+        dict(collection_batch="j", skills=[], posting_title="FPGA and System-Verilog engineer"),
+        dict(collection_batch="j", skills=["fpga"], posting_title="Engineer"),
+        dict(collection_batch="legacy", skills=["fpga"]),
+    ]
+    current, legacy = evaluate([course(["fpga", "systemverilog"])], jobs)
+    assert current["posting_evidence_by_skill"]["fpga"] == dict(
+        structured_skills=2, posting_title=2, both=1, unique_postings=3)
+    assert current["postings_by_course_skill"] == {"fpga": 3, "systemverilog": 1}
+    assert current["titles_checked"] == 3
+    assert legacy["posting_evidence_by_skill"]["fpga"]["posting_title"] is None

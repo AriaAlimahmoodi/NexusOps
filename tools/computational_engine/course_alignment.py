@@ -1,11 +1,18 @@
 """Course-level, direct skill alignment against independent posting snapshots."""
 import json
+import re
 from pathlib import Path
 
 from tools.computational_engine.skill_ids import canonical
 from collections import Counter, defaultdict
 
 from tools.dataset_registry import get_dataset_index, list_registered_datasets
+
+
+TITLE_PATTERNS = {
+    "fpga": re.compile(r"(?<![a-z0-9])FPGAs?(?![a-z0-9])", re.I),
+    "systemverilog": re.compile(r"(?<![a-z0-9])System[\s-]*Verilog(?![a-z0-9])", re.I),
+}
 
 
 def skill_ids(record):
@@ -25,6 +32,10 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
     for statement in statements:
         evidence[statement["program_id"], statement["course_id"]].append(statement)
     markets = defaultdict(Counter)
+    structured_matches = defaultdict(Counter)
+    title_matches = defaultdict(Counter)
+    matches_in_both = defaultdict(Counter)
+    titles_checked = Counter()
     totals = Counter()
     assessable = Counter()
     fields = defaultdict(set)
@@ -33,7 +44,13 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
         batch = posting["collection_batch"]
         totals[batch] += 1
         ids = skill_ids(posting)
-        markets[batch].update(ids)
+        title = posting.get("posting_title") or ""
+        titles_checked[batch] += bool(title.strip())
+        from_title = {skill for skill, pattern in TITLE_PATTERNS.items() if pattern.search(title)}
+        structured_matches[batch].update(ids)
+        title_matches[batch].update(from_title)
+        matches_in_both[batch].update(ids & from_title)
+        markets[batch].update(ids | from_title)
         assessable[batch] += bool(ids)
         if posting.get("job_field"):
             fields[batch].add(posting["job_field"])
@@ -56,6 +73,16 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
                        job_fields=sorted(fields[batch]), first_month=min(months[batch], default=None),
                        last_month=max(months[batch], default=None), postings_by_course_skill=counts, documented_skills=sorted(skills),
                        matched_skill_count=matches, documented_skill_count=len(skills))
+            row["titles_checked"] = titles_checked[batch]
+            row["posting_evidence_by_skill"] = {
+                skill: {
+                    "structured_skills": structured_matches[batch][skill],
+                    "posting_title": title_matches[batch][skill] if skill in TITLE_PATTERNS and titles_checked[batch] else None,
+                    "both": matches_in_both[batch][skill] if skill in TITLE_PATTERNS and titles_checked[batch] else None,
+                    "unique_postings": count,
+                }
+                for skill, count in counts.items()
+            }
             review = reviews.get((course["program_id"], course["course_id"], batch), {})
             reviewed = (review.get("role_scope_checked") is True and review.get("skill_capture_checked") is True
                         and skills.issubset(review.get("assessed_skills", [])))
@@ -95,7 +122,7 @@ def live_report(client):
 
     course_rows = read(courses, ["program_id", "course_id", "course_name", "major", "skills", "collection_batch"],
                        {"term": {"major": "Computer Engineering"}})
-    market_rows = read(postings, ["skills", "collection_batch", "job_field", "activation_month"], {"match_all": {}})
+    market_rows = read(postings, ["skills", "collection_batch", "job_field", "activation_month", "posting_title"], {"match_all": {}})
     review_file = Path(__file__).resolve().parents[2] / "configs/evidence/market_reviews.json"
     evidence_index = get_dataset_index("course_skill_evidence", "real")
     statements = []
@@ -123,7 +150,7 @@ def live_report(client):
             auxiliary[index] = {"classification": classification, "field": field,
                                 "matching_documents_by_canonical_skill": dict(sorted(matches.items()))}
 
-    return {"computation_id": "gap_priority", "metric_version": "2.1.0",
+    return {"computation_id": "gap_priority", "metric_version": "2.2.0",
             "unit": "review_priority_points", "formula": "100 * unmatched documented skills / documented skills",
             "scope": "Computer Engineering, each program and curriculum batch against each posting batch",
             "course_index": courses, "market_index": postings, "inventory": inventory,
