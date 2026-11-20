@@ -6,6 +6,7 @@ from pathlib import Path
 from tools.computational_engine.skill_ids import canonical
 from collections import Counter, defaultdict
 
+from tools.computational_engine.source_context import summarize
 from tools.dataset_registry import get_dataset_index, list_registered_datasets
 
 
@@ -38,11 +39,14 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
     titles_checked = Counter()
     totals = Counter()
     assessable = Counter()
+    sources = defaultdict(set)
     fields = defaultdict(set)
     months = defaultdict(set)
     for posting in postings:
         batch = posting["collection_batch"]
         totals[batch] += 1
+        if posting.get("source"):
+            sources[batch].add(posting["source"])
         ids = skill_ids(posting)
         title = posting.get("posting_title") or ""
         titles_checked[batch] += bool(title.strip())
@@ -76,6 +80,7 @@ def evaluate(courses, postings, market_reviews=(), statements=()):
             row["observed_alignment_percent"] = (
                 100 * matches / len(skills) if skills and markets.get(batch) else None
             )
+            row["market_sources"] = sorted(sources[batch])
             row["titles_checked"] = titles_checked[batch]
             row["posting_evidence_by_skill"] = {
                 skill: {
@@ -125,7 +130,7 @@ def live_report(client):
 
     course_rows = read(courses, ["program_id", "course_id", "course_name", "major", "skills", "collection_batch"],
                        {"term": {"major": "Computer Engineering"}})
-    market_rows = read(postings, ["skills", "collection_batch", "job_field", "activation_month", "posting_title"], {"match_all": {}})
+    market_rows = read(postings, ["skills", "collection_batch", "job_field", "activation_month", "posting_title", "source"], {"match_all": {}})
     review_file = Path(__file__).resolve().parents[2] / "configs/evidence/market_reviews.json"
     evidence_index = get_dataset_index("course_skill_evidence", "real")
     statements = []
@@ -157,4 +162,4 @@ def live_report(client):
             "unit": "review_priority_points", "formula": "100 * unmatched documented skills / documented skills",
             "scope": "Computer Engineering, each program and curriculum batch against each posting batch",
             "course_index": courses, "market_index": postings, "inventory": inventory,
-            "auxiliary_evidence": auxiliary, "courses": results}
+            "auxiliary_evidence": auxiliary, "source_context": summarize(read, inventory), "courses": results}

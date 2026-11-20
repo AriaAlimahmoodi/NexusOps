@@ -15,6 +15,7 @@ from elasticsearch.helpers import bulk
 
 from tools.data_ingestion import validate_collection_manifest
 from tools.data_normalization import normalize_real_record
+from tools.dataset_registry import canonical_mapping as _canonical_mapping
 from tools.dataset_registry import get_dataset_index, get_dataset_profile
 
 
@@ -33,28 +34,6 @@ def _manifest_issues(manifest: Any) -> list[dict[str, str]]:
         }]
     # Validate required metadata without materializing the incoming iterable.
     return validate_collection_manifest(manifest, [])
-
-
-def _canonical_mapping(dataset_id: str) -> dict[str, Any]:
-    profile = get_dataset_profile(dataset_id)
-    properties = {
-        field: {"type": config["type"]}
-        for field, config in profile.get("fields", {}).items()
-        if config.get("type")
-    }
-
-    provenance_contract = profile.get("provenance_contract", {})
-    timestamp_fields = {"observed_at", "published_at", "valid_from", "valid_until"}
-    for field in (
-        list(provenance_contract.get("required_fields", []))
-        + list(provenance_contract.get("optional_fields", []))
-    ):
-        properties[field] = {
-            "type": "date" if field in timestamp_fields else "keyword"
-        }
-
-    properties["data_classification"] = {"type": "keyword"}
-    return {"dynamic": "strict", "properties": properties}
 
 
 def _merge_canonical_mapping(

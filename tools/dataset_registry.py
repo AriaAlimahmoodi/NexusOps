@@ -93,3 +93,25 @@ def get_dataset_query_fields(profile: dict, classification: str) -> dict:
             if name in required:
                 fields[name] = {"type": "keyword", "roles": ["filter", "group_by"]}
     return fields
+
+
+def canonical_mapping(dataset_id: str) -> dict:
+    profile = get_dataset_profile(dataset_id)
+    properties = {
+        field: {"type": config["type"]}
+        for field, config in profile.get("fields", {}).items()
+        if config.get("type")
+    }
+
+    provenance_contract = profile.get("provenance_contract", {})
+    timestamp_fields = {"observed_at", "published_at", "valid_from", "valid_until"}
+    for field in (
+        list(provenance_contract.get("required_fields", []))
+        + list(provenance_contract.get("optional_fields", []))
+    ):
+        properties[field] = {
+            "type": "date" if field in timestamp_fields else "keyword"
+        }
+
+    properties["data_classification"] = {"type": "keyword"}
+    return {"dynamic": "strict", "properties": properties}
