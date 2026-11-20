@@ -1,0 +1,45 @@
+{
+  "id": "dummyjson_products_smoke",
+  "name": "DummyJSON Products API Smoke Test",
+  "enabled": true,
+  "request": {
+    "url": "https://dummyjson.com/products",
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "query": {},
+    "timeout": 30
+  },
+  "response": {
+    "format": "json",
+    "records_path": "products",
+    "record_key_mode": "array"
+  },
+  "pagination": {
+    "strategy": "offset",
+    "offset_param": "skip",
+    "limit_param": "limit",
+    "initial_offset": 0,
+    "page_size": 100,
+    "total_path": "total",
+    "max_pages": 5
+  },
+  "reliability": {
+    "max_attempts": 2,
+    "retry_statuses": [
+      429,
+      502,
+      503,
+      504
+    ],
+    "backoff_seconds": 1,
+    "max_backoff_seconds": 5,
+    "request_interval_seconds": 0.25
+  },
+  "storage": {
+    "preserve_raw_pages": true,
+    "checkpoint": true,
+    "manifest": true
+  }
+}

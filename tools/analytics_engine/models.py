@@ -424,6 +424,8 @@ class AnalyticsRequest:
 
         if not isinstance(self.options, dict):
             raise AnalyticsModelError("'options' must be an object.")
+        if self.classification not in ("synthetic", "real"):
+            raise AnalyticsModelError("options.data_classification must be 'synthetic' or 'real'.")
         if self.operation in (AnalyticsOperation.SELECT, AnalyticsOperation.AGGREGATE):
             if isinstance(self.limit, bool) or not isinstance(self.limit, int) or not 1 <= self.limit <= 1000:
                 raise AnalyticsModelError("limit must be an integer between 1 and 1000.")
@@ -471,6 +473,10 @@ class AnalyticsRequest:
                 raise AnalyticsModelError(
                     "'sort' must contain SortSpec objects."
                 )
+
+    @property
+    def classification(self) -> str:
+        return self.options.get("data_classification", "synthetic")
 
     @classmethod
     def from_dict(cls, data: dict) -> AnalyticsRequest:

@@ -1,0 +1,8 @@
+{
+  "id": "remotive_jobs",
+  "name": "Remotive active remote jobs",
+  "request": {"url": "https://remotive.com/api/remote-jobs", "timeout": 45},
+  "response": {"format": "json", "records_path": "jobs"},
+  "pagination": {"strategy": "none"},
+  "reliability": {"max_attempts": 1}
+}

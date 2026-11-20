@@ -19,7 +19,7 @@ The analytical engine must not depend directly on this module.
 from typing import Any
 
 from config import get_elasticsearch_client
-from tools.dataset_registry import get_dataset_profile
+from tools.dataset_registry import get_dataset_index, get_dataset_profile, get_dataset_query_fields
 
 
 def _response_to_dict(response: Any) -> dict:
@@ -277,7 +277,7 @@ def _compare_profile_with_schema(
 
 
 def discover_dataset_schema(
-    dataset_id: str,
+    dataset_id: str, *, classification: str = "synthetic",
 ) -> dict:
     """
     Discover and validate the schema of a registered dataset.
@@ -298,7 +298,8 @@ def discover_dataset_schema(
             f"'{source_type}' has not been implemented."
         )
 
-    index = profile["index"]
+    index = get_dataset_index(dataset_id, classification) if classification != "synthetic" else profile["index"]
+    profile_fields = get_dataset_query_fields(profile, classification)
 
     client = get_elasticsearch_client()
 
@@ -318,7 +319,7 @@ def discover_dataset_schema(
     )
 
     comparison = _compare_profile_with_schema(
-        profile.get("fields", {}),
+        profile_fields,
         actual_fields,
     )
 
@@ -327,7 +328,7 @@ def discover_dataset_schema(
         "index": index,
         "source_type": source_type,
         "actual_field_count": len(actual_fields),
-        "profile_field_count": len(profile.get("fields", {})),
+        "profile_field_count": len(profile_fields),
         "actual_fields": actual_fields,
         "comparison": comparison,
         "schema_consistent": (

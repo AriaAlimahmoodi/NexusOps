@@ -1,0 +1,57 @@
+{
+  "dataset": "job_postings",
+  "format": "csv",
+  "options": {
+    "delimiter": ","
+  },
+  "manifest": {
+    "source_name": "JobVision hardware role candidates",
+    "source_url": "JobVision_Jobposts_Dataset.csv",
+    "publisher": "JobVision",
+    "geographic_scope": "Iran",
+    "license": "Not recorded in source audit",
+    "collection_method": "Local CSV snapshot",
+    "limitations": "Hardware role candidate snapshot selected by job title, role description or category, not by target skill. SoftwareSkills is partial."
+  },
+  "time_granularity": "month",
+  "fields": {
+    "RowNumber": "posting_id",
+    "Jobpost_MainJobCategory": "job_field",
+    "Jobpost_ActivationTime_YEAR_MONTH": "activation_month",
+    "labels": "skills",
+    "total_labels": "skill_count",
+    "original_skill_labels": "raw_skill_labels",
+    "Jobpost_RawTitle": "posting_title"
+  },
+  "rules": [
+    {
+      "output": "labels",
+      "op": "canonical_labels",
+      "inputs": [
+        "Jobpost_SoftwareSkills"
+      ],
+      "key": "TitleEn"
+    },
+    {
+      "output": "total_labels",
+      "op": "count",
+      "inputs": [
+        "labels"
+      ]
+    },
+    {
+      "op": "raw_labels",
+      "output": "original_skill_labels",
+      "inputs": [
+        "Jobpost_SoftwareSkills"
+      ],
+      "key": "TitleEn"
+    }
+  ],
+  "review": {
+    "mapping_id": "jobvision-hardware-candidates-v1",
+    "reviewed_by": "NexusOps implementation review",
+    "reviewed_at": "2026-11-20T00:00:00Z",
+    "review_reference": "jobvision-record-grain-audit-v1.json and jobvision-source-profile.json"
+  }
+}
