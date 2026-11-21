@@ -8,7 +8,10 @@ from tools.computational_engine.jobvision_fpga import SNAPSHOT, load_snapshot
 COURSE_REVIEW = SNAPSHOT.with_name("fpga-course-syllabi.json")
 FPGA = re.compile(r"\bFPGAs?\b", re.IGNORECASE)
 ACADEMIC = re.compile(r"\b(?:syllab(?:us|i|uses)|course\s+evidence)\b|سرفصل|شواهد\s+درس", re.IGNORECASE)
-COURSE_CODE = re.compile(r"\bECE\s*(\d{3,4})\b", re.IGNORECASE)
+COURSE_CODE = re.compile(
+    r"\b(?:ECE|(?:ENG\s*)?EC)\s*\d{3,4}\b|\b525\.\d{3}(?:\.\d{2})?\b(?!\.\d)",
+    re.IGNORECASE,
+)
 
 
 def is_fpga_course_question(question):
@@ -34,9 +37,16 @@ def course_evidence_report(question):
     with COURSE_REVIEW.open(encoding="utf-8") as stream:
         review = json.load(stream)
     courses = review["courses"]
-    requested = {f"ECE {code}" for code in COURSE_CODE.findall(question)}
-    if requested - {course["course_id"] for course in courses}:
-        raise ValueError("Choose a reviewed FPGA pilot course: ECE 2020, ECE 2031, or ECE 385.")
+    course_codes = {
+        re.sub(r"\s+", "", code).upper(): course["course_id"]
+        for course in courses
+        for code in (course["course_id"], *course.get("aliases", ()))
+    }
+    requested_codes = {re.sub(r"\s+", "", code).upper() for code in COURSE_CODE.findall(question)}
+    if requested_codes - course_codes.keys():
+        choices = ", ".join(course["course_id"] for course in courses)
+        raise ValueError(f"Choose a reviewed FPGA pilot course: {choices}.")
+    requested = {course_codes[code] for code in requested_codes}
 
     snapshot = load_snapshot()
     skills = review["skill_ids"]

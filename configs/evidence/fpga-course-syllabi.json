@@ -1,5 +1,5 @@
 {
-  "version": "fpga-course-syllabi-v1",
+  "version": "fpga-course-syllabi-v2",
   "reviewed_on": "2026-11-22",
   "skill_ids": ["fpga", "vhdl", "verilog", "matlab", "systemverilog"],
   "courses": [
@@ -53,6 +53,45 @@
       "mentions": {
         "fpga": {"phrase": "field-programmable gate arrays (FPGAs)", "section": "Official Description"},
         "systemverilog": {"phrase": "SystemVerilog", "section": "Official Description"}
+      },
+      "reviewed_absences": []
+    },
+    {
+      "institution": "Boston University",
+      "course_id": "ENG EC 551",
+      "aliases": ["EC 551"],
+      "course_name": "Advanced Digital Design with Verilog and FPGA",
+      "term": "Fall 2026",
+      "section": null,
+      "source": {
+        "kind": "catalog_description",
+        "version": "Boston University Academics catalog page with Fall 2026 offerings",
+        "url": "https://www.bu.edu/academics/eng/courses/eng-ec-551/",
+        "reviewed_scope": "Official course description and offering schedule. A complete section syllabus was not reviewed."
+      },
+      "mentions": {
+        "fpga": {"phrase": "field programmable gate array (FPGA) devices", "section": "Course description"},
+        "verilog": {"phrase": "use of HDL (Verilog) for design, synthesis and simulation", "section": "Course description"}
+      },
+      "reviewed_absences": []
+    },
+    {
+      "institution": "Johns Hopkins University",
+      "course_id": "525.677.81",
+      "aliases": ["525.677"],
+      "course_name": "Hardware Architectures for DSP Algorithms",
+      "term": "Fall 2026",
+      "section": "81",
+      "source": {
+        "kind": "abridged_syllabus",
+        "version": "Fall 2026, section 81 public syllabus",
+        "url": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81",
+        "reviewed_scope": "Public abridged syllabus and course learning outcomes. The complete syllabus is on Canvas."
+      },
+      "mentions": {
+        "fpga": {"phrase": "hardware implementation suitable for an FPGA", "section": "Course Learning Outcomes (CLOs)"},
+        "vhdl": {"phrase": "using SystemC and VHDL", "section": "Course Learning Outcomes (CLOs)"},
+        "matlab": {"phrase": "high-level signal processing algorithms in MATLAB", "section": "Course Learning Outcomes (CLOs)"}
       },
       "reviewed_absences": []
     }
