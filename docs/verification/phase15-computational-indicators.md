@@ -50,6 +50,12 @@ The repository n8n workflow routes the same question to the MCP `skill_evidence`
 
 ## Live n8n acceptance
 
-The user supplied the successful active chat response and MCP trace `nx-866` for «شاخص‌های مهارت FPGA را نشان بده». The tool `skill_evidence` completed in 37.826 ms on 2026-11-21 at 23:30:02 UTC. The response reproduced all five market and syllabus counts in the table above and reported missing competency targets for all five skills. This execution used the aggregate snapshot. Real posting-level verification against the raw CSV remains pending.
+The user supplied the successful active chat response and MCP trace `nx-866` for «شاخص‌های مهارت FPGA را نشان بده». The tool `skill_evidence` completed in 37.826 ms on 2026-11-21 at 23:30:02 UTC. The response reproduced all five market and syllabus counts in the table above and reported missing competency targets for all five skills. This execution used the aggregate snapshot.
 
 Tested implementation: [e4f3d14](https://github.com/AriaAlimahmoodi/NexusOps/commit/e4f3d14e47c2499b67361523df3554de25b229e5). [GitHub Actions run](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44958850817).
+
+## Raw posting verification and phase acceptance
+
+The user ran the Phase 15 CLI against the original JobVision CSV and supplied the VHDL trace summary. It reported `verified_rows`, 120 denominator row IDs and 87 matching row IDs (72.5%). The first five matching RowNumber values printed were 369, 1130, 1175, 2043 and 2299. This reproduces the live VHDL numerator and denominator using the raw posting identities.
+
+The engine meets the Phase 15 acceptance criteria for manual agreement and evidence traceability. The published pilot still reports null competency gaps and ranks until a program-specific target and referenced assessments are supplied.
