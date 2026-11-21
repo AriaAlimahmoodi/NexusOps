@@ -43,3 +43,20 @@ def test_profile_rejects_conflicting_identity(tmp_path):
 
     with pytest.raises(ValueError, match="Conflicting payloads for matching RowNumber 1"):
         profile(path, "fpga")
+
+
+def test_published_scope_counts_recorded_labels_and_deduplicates_title_evidence():
+    from tools.computational_engine.service import answer, is_scope_question
+
+    vhdl = answer(None, "VHDL demand in JobVision FPGA postings")["market"]
+    assert vhdl["demand_count"]["result"] == 87
+    assert vhdl["posting_evidence"]["posting_title"] is None
+
+    fpga = answer(None, "FPGA demand in JobVision FPGA postings")["market"]
+    assert fpga["posting_evidence"]["posting_title"] == 120
+    assert fpga["demand_count"]["result"] == 120
+
+    assert not is_scope_question("Compare FPGA demand in JobVision and Purdue")
+    assert not is_scope_question("FPGA demand trend in JobVision from 2022-04 to 2024-03")
+    with pytest.raises(ValueError, match="Specify one skill"):
+        answer(None, "SystemVerilog and VHDL in JobVision FPGA postings")

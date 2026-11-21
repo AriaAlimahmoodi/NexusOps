@@ -5,6 +5,7 @@ import re
 
 from tools.dataset_registry import get_dataset_index
 from tools.computational_engine.curriculum import METRIC_REGISTRY, MetricDefinition
+from tools.computational_engine.jobvision_fpga import is_scope_question, market_evidence
 
 
 def now():
@@ -72,7 +73,38 @@ def is_course_alignment(question):
     return bool(re.search(r"gap\s*priority|course.market alignment|همسویی دروس با بازار|ارتباط دروس با بازار", question, re.I))
 
 
+def jobvision_fpga_demand(question):
+    skill, evidence, snapshot = market_evidence(question)
+    total = snapshot["total_postings"]
+    missing = snapshot["missing"]
+    source = snapshot["source"]
+    return {
+        "question": question,
+        "executed_at": now(),
+        "skill_id": skill,
+        "market": {
+            "scope": {
+                "source": source["publisher"], "country": source["country"],
+                "role": snapshot["role"]["id"], "selection_field": snapshot["role"]["selection_field"],
+                "collection_batch": source["collection_batch_sha256"],
+                "first_activation_month": snapshot["first_activation_month"],
+                "last_activation_month": snapshot["last_activation_month"],
+            },
+            "demand_count": compute("demand_count", evidence["unique_postings"]),
+            "all_postings": compute("demand_share", evidence["unique_postings"], total),
+            "postings_with_recorded_skills": compute(
+                "recorded_share", evidence["structured_skills"], total - missing["structured_skills"]
+            ),
+            "postings_without_recorded_skills": missing["structured_skills"],
+            "postings_without_description": missing["description"],
+            "posting_evidence": evidence,
+        },
+    }
+
+
 def answer(client, question):
+    if is_scope_question(question):
+        return jobvision_fpga_demand(question)
     if is_course_alignment(question):
         from tools.computational_engine.course_alignment import live_report
         return live_report(client)

@@ -522,3 +522,32 @@ def test_mcp_parse_result_preserves_request_identity_for_http_transport_errors()
     assert parsed["rpcId"] == 7
     assert parsed["planId"] == "plan-1"
     assert "MCP HTTP 503" in parsed["error"]
+
+
+def test_jobvision_fpga_systemverilog_reaches_mcp_and_preserves_zero():
+    from server import _skill_evidence
+
+    question = "تقاضای SystemVerilog در آگهی‌های FPGA ایران چقدر است؟"
+    prepared = _prepare(question)
+    validated = _run_node_code(
+        "Validate Plan", [{"json": {"text": "unsupported"}}],
+        {"Prepare Input": [{"json": prepared}]},
+    )[0]["json"]
+    assert validated["valid"] is True
+    assert validated["plan"]["tool"] == "skill_evidence"
+    evidence = _skill_evidence(**validated["plan"]["arguments"])
+    formatted = [{"json": {"selectedTool": "skill_evidence"}}]
+    final = _run_node_code(
+        "Compose Final", formatted,
+        {"Format Result": formatted, "MCP Parse Result": [{"json": {"ok": True, "data": evidence}}]},
+    )[0]["json"]
+
+    market = json.loads(final["output"])["market"]
+    assert market["scope"]["role"] == "fpga"
+    assert market["scope"]["first_activation_month"] == "2022-04"
+    assert market["scope"]["last_activation_month"] == "2024-03"
+    assert market["demand_count"]["result"] == 0
+    assert market["all_postings"]["denominator"] == 120
+    assert market["postings_with_recorded_skills"]["denominator"] == 98
+    assert market["postings_without_description"] == 120
+    assert market["posting_evidence"]["description"] is None

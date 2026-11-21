@@ -1,0 +1,176 @@
+{
+  "source": {
+    "publisher": "JobVision",
+    "country": "Iran",
+    "input_file": "JobVision_Jobposts_Dataset.csv",
+    "collection_batch_sha256": "5ea2992462bba91dd6afe2d48f7e3878cc3a11c800f16472d60a66b4d1c13293",
+    "identity_field": "RowNumber",
+    "description_columns": []
+  },
+  "role": {
+    "id": "fpga",
+    "selection_field": "Jobpost_RawTitle",
+    "selection_pattern": "(?<![a-z0-9])FPGAs?(?![a-z0-9])"
+  },
+  "rows_read": 364838,
+  "total_postings": 120,
+  "missing": {
+    "structured_skills": 22,
+    "description": 120,
+    "activation_month": 0
+  },
+  "first_activation_month": "2022-04",
+  "last_activation_month": "2024-03",
+  "observations": {
+    "ads (advanced design systems)": {
+      "structured_skills": 2,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 2
+    },
+    "altium designer": {
+      "structured_skills": 15,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 15
+    },
+    "atmelstudio": {
+      "structured_skills": 1,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 1
+    },
+    "autocad electrical": {
+      "structured_skills": 3,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 3
+    },
+    "c": {
+      "structured_skills": 32,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 32
+    },
+    "c#": {
+      "structured_skills": 8,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 8
+    },
+    "c++": {
+      "structured_skills": 24,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 24
+    },
+    "cadence": {
+      "structured_skills": 1,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 1
+    },
+    "codevision": {
+      "structured_skills": 5,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 5
+    },
+    "embedded c": {
+      "structured_skills": 9,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 9
+    },
+    "fpga": {
+      "structured_skills": 0,
+      "posting_title": 120,
+      "description": 0,
+      "unique_postings": 120
+    },
+    "git": {
+      "structured_skills": 1,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 1
+    },
+    "iar embedded workbench": {
+      "structured_skills": 2,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 2
+    },
+    "latex": {
+      "structured_skills": 3,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 3
+    },
+    "linux": {
+      "structured_skills": 1,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 1
+    },
+    "matlab": {
+      "structured_skills": 42,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 42
+    },
+    "microsoft excel": {
+      "structured_skills": 1,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 1
+    },
+    "microsoft visio": {
+      "structured_skills": 2,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 2
+    },
+    "microsoft visual studio": {
+      "structured_skills": 3,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 3
+    },
+    "microsoft word": {
+      "structured_skills": 5,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 5
+    },
+    "modelsim": {
+      "structured_skills": 26,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 26
+    },
+    "proteus": {
+      "structured_skills": 4,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 4
+    },
+    "python": {
+      "structured_skills": 2,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 2
+    },
+    "verilog": {
+      "structured_skills": 52,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 52
+    },
+    "vhdl": {
+      "structured_skills": 87,
+      "posting_title": 0,
+      "description": 0,
+      "unique_postings": 87
+    }
+  }
+}
