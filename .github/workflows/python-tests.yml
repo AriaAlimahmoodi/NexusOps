@@ -8,6 +8,7 @@ on:
       - feat/phase12-source-preparation
       - feat/phase13-jobvision-market-data
       - feat/phase14-fpga-course-evidence
+      - feat/phase15-computational-indicators
     paths:
       - "**.py"
       - "workflows/**"

@@ -581,3 +581,28 @@ def test_fpga_syllabus_question_preserves_review_statuses_in_chat():
         ("ECE 2031", "verilog"): "not_mentioned_in_full_syllabus",
         ("ECE 385", "verilog"): "insufficient_course_information",
     }
+
+
+@pytest.mark.parametrize("question", ["Show FPGA competency gaps", "شاخص‌های مهارت اف‌پی‌جی‌ای را نشان بده"])
+def test_fpga_skill_indicators_follow_the_workflow_route(question):
+    from server import _skill_evidence
+
+    prepared = _prepare(question)
+    gated = _run_node_code("Domain Gate", [{"json": prepared}])[0]["json"]
+    assert gated["inScope"] is True
+    route = _run_node_code(
+        "Validate Plan", [{"json": {"text": "unsupported"}}],
+        {"Prepare Input": [{"json": prepared}]},
+    )[0]["json"]["plan"]
+    assert route["tool"] == "skill_evidence"
+    evidence = _skill_evidence(**route["arguments"])
+    formatted = [{"json": {"selectedTool": "skill_evidence"}}]
+    final = _run_node_code(
+        "Compose Final", formatted,
+        {"Format Result": formatted, "MCP Parse Result": [{"json": {"ok": True, "data": evidence}}]},
+    )[0]["json"]
+    report = json.loads(final["output"])["indicators"]
+    assert report["market_scope"]["total_postings"] == 120
+    assert report["skills"][1]["skill_id"] == "vhdl"
+    assert report["skills"][1]["market_demand"]["result"] == 72.5
+    assert report["skills"][1]["competency_gap"]["result"] is None

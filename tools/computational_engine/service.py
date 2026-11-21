@@ -6,6 +6,7 @@ import re
 from tools.dataset_registry import get_dataset_index
 from tools.computational_engine.curriculum import METRIC_REGISTRY, MetricDefinition
 from tools.computational_engine.fpga_course_evidence import course_evidence_report, is_fpga_course_question
+from tools.computational_engine.indicators import fpga_indicators, is_indicator_question
 from tools.computational_engine.jobvision_fpga import is_scope_question, market_evidence
 
 
@@ -104,10 +105,12 @@ def jobvision_fpga_demand(question):
 
 
 def uses_local_evidence(question):
-    return is_fpga_course_question(question) or is_scope_question(question)
+    return is_indicator_question(question) or is_fpga_course_question(question) or is_scope_question(question)
 
 
 def answer(client, question):
+    if is_indicator_question(question):
+        return {"question": question, "executed_at": now(), "indicators": fpga_indicators()}
     if is_fpga_course_question(question):
         return {"question": question, "executed_at": now(), "education": course_evidence_report(question)}
     if is_scope_question(question):

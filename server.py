@@ -246,7 +246,7 @@ def _skill_evidence(question):
         return answer(client, question)
 
 
-@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, calculate monthly demand growth, count a skill in the JobVision FPGA pilot, or show reviewed FPGA syllabus evidence.")
+@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, calculate monthly demand growth, count a skill in the JobVision FPGA pilot, show reviewed FPGA syllabus evidence, or report FPGA skill indicators and competency gaps.")
 async def skill_evidence_tool(question: str, ctx: Context) -> str:
     return await run_sync_tool("skill_evidence", _skill_evidence, question, context=ctx)
 

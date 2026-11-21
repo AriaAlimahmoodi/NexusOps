@@ -74,6 +74,7 @@ def compute_gap_priority(skill_id, market, target=None, curriculum=None):
     if not isinstance(evidence, Mapping) or not evidence.keys() <= set(competencies):
         raise ValueError("Curriculum evidence must reference competencies in the target")
     covered, gaps, unknown = [], [], []
+    competency_evidence = {}
     for competency in competencies:
         entry = evidence.get(competency)
         if entry is None:
@@ -82,6 +83,7 @@ def compute_gap_priority(skill_id, market, target=None, curriculum=None):
         if not isinstance(entry, Mapping):
             raise ValueError("Competency evidence must be an object")
         _require_text(entry, ("source_reference",))
+        competency_evidence[competency] = dict(entry)
         status = entry.get("status")
         if status == "taught_and_assessed":
             covered.append(competency)
@@ -93,6 +95,7 @@ def compute_gap_priority(skill_id, market, target=None, curriculum=None):
             raise ValueError(f"Unknown evidence status for {competency}")
 
     result.update(curriculum_source=curriculum["source_reference"],
+                  competency_evidence=competency_evidence,
                   covered_competencies=covered, verified_gaps=gaps, unknown_competencies=unknown)
     if unknown:
         return dict(result, limitation="incomplete_competency_evidence")
