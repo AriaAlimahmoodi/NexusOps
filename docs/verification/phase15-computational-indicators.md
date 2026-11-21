@@ -47,3 +47,9 @@ python -m pytest -q tests/test_phase15_indicators.py tests/test_n8n_workflow_run
 ```
 
 The repository n8n workflow routes the same question to the MCP `skill_evidence` tool. The local workflow node test checks the route and the final JSON in Persian and English.
+
+## Live n8n acceptance
+
+The user supplied the successful active chat response and MCP trace `nx-866` for «شاخص‌های مهارت FPGA را نشان بده». The tool `skill_evidence` completed in 37.826 ms on 2026-11-21 at 23:30:02 UTC. The response reproduced all five market and syllabus counts in the table above and reported missing competency targets for all five skills. This execution used the aggregate snapshot. Real posting-level verification against the raw CSV remains pending.
+
+Tested implementation: [e4f3d14](https://github.com/AriaAlimahmoodi/NexusOps/commit/e4f3d14e47c2499b67361523df3554de25b229e5). [GitHub Actions run](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44958850817).
