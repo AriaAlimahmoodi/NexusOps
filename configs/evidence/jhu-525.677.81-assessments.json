@@ -1,0 +1,58 @@
+{
+  "vhdl": {
+    "target": {
+      "skill_id": "vhdl",
+      "role_id": "fpga",
+      "program_id": "JHU-EP-ECE-course-525.677.81",
+      "level": "course",
+      "reference_version": "Fall-2026-section-81",
+      "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Course Learning Outcomes | refine-dsp-algorithm-to-rtl-with-vhdl",
+      "competency_ids": [
+        "refine-dsp-algorithm-to-rtl-with-vhdl"
+      ],
+      "minimum_covered": 1
+    },
+    "curriculum": {
+      "skill_id": "vhdl",
+      "role_id": "fpga",
+      "program_id": "JHU-EP-ECE-course-525.677.81",
+      "level": "course",
+      "reference_version": "Fall-2026-section-81",
+      "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Student Coursework Requirements",
+      "competencies": {
+        "refine-dsp-algorithm-to-rtl-with-vhdl": {
+          "status": "taught_and_assessed",
+          "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Assignments (40%): DSP design and verification with reports; Course Project (30%): design, code and project-flow report"
+        }
+      }
+    }
+  },
+  "matlab": {
+    "target": {
+      "skill_id": "matlab",
+      "role_id": "fpga",
+      "program_id": "JHU-EP-ECE-course-525.677.81",
+      "level": "course",
+      "reference_version": "Fall-2026-section-81",
+      "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Course Learning Outcomes | explain-high-level-dsp-design-in-matlab",
+      "competency_ids": [
+        "explain-high-level-dsp-design-in-matlab"
+      ],
+      "minimum_covered": 1
+    },
+    "curriculum": {
+      "skill_id": "matlab",
+      "role_id": "fpga",
+      "program_id": "JHU-EP-ECE-course-525.677.81",
+      "level": "course",
+      "reference_version": "Fall-2026-section-81",
+      "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Student Coursework Requirements",
+      "competencies": {
+        "explain-high-level-dsp-design-in-matlab": {
+          "status": "taught_and_assessed",
+          "source_reference": "https://apps.ep.jhu.edu/syllabus/fall-2026/525.677.81 | Assignments (40%): DSP design and verification with reports; Course Project (30%): design, code and project-flow report"
+        }
+      }
+    }
+  }
+}
