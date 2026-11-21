@@ -25,7 +25,7 @@ The FPGA pilot was accepted on 2026-11-22 for reproducible title-based selection
 | Postings missing an activation month | 0 |
 | Postings with a job description available in the snapshot | 0 |
 
-The submitted report contained 120 distinct `RowNumber` values and 120 title matches. Recounting structured labels from the posting records reproduced the report totals. The 120 matches also agree with the earlier hardware-candidate count. Row identities across the two outputs were not compared.
+The submitted report contained 120 distinct `RowNumber` values and 120 title matches. Recounting structured labels from the posting records reproduced the report totals. The full CSV run and the earlier hardware-candidate export selected the same 120 distinct `RowNumber` values after applying the FPGA title pattern to both. The sorted unique integer IDs from each output were serialized as a comma-delimited ASCII string without a trailing newline. Both strings had SHA-256 `05aafe358d34e71502bc189902a5b01b76ede8cfa2f9418977c564b6c828e42a`.
 
 ## Evidence and coverage
 
