@@ -29,4 +29,14 @@ The submitted report contained 120 distinct `RowNumber` values and 120 title mat
 
 ## Evidence and coverage
 
-All 120 FPGA observations came from the title field used for selection. Structured skill counts include VHDL (87), Verilog (52), and MATLAB (42). Shares across this pilot use the denominator of 120 postings. The source snapshot has no job-description column. SystemVerilog had zero direct observations in the available title and structured-skill fields, so its market-demand status remains `insufficient_evidence`. Assessing it requires traceable postings with job descriptions.
+All 120 FPGA observations came from the title field used for selection. Structured skill counts include VHDL (87), Verilog (52), and MATLAB (42). Shares across this pilot use the denominator of 120 postings. The source snapshot has no job-description column. The observed SystemVerilog count in the JobVision pilot is **0 / 120** across the available title and structured-skill fields. The missing description column limits the scope of this count.
+
+## SystemVerilog cross-check — 2026-11-22
+
+| Source and scope | Observed matches |
+| --- | ---: |
+| JobVision Iran FPGA pilot, title and structured skills | 0 / 120 |
+| [Remotive public API response](https://remotive.com/api/remote-jobs), titles and descriptions across all returned postings | 0 / 16 |
+| Remotive public job pages, targeted search for FPGA roles | At least 1 |
+
+The API response contained 16 distinct postings, all with descriptions, and none with FPGA or FPGAs in the title. Its SHA-256 was `257d5bc4f2a979d8dc577e697033d85f4be2f2327ed14f155f86a6f5100d6258`. The public listing for [Capgemini Junior DV and FPGA Prototyping Engineer, ID 6099369](https://remotive.com/remote/jobs/engineering/junior-dv-and-fpga-prototyping-engineer-6099369) explicitly mentions System Verilog for RTL implementation and is labeled Worldwide. The search has no population denominator. The international listing provides evidence for the international sample. The JobVision Iran count remains scoped to the 120 historical postings.
