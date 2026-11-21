@@ -1,0 +1,60 @@
+{
+  "version": "fpga-course-syllabi-v1",
+  "reviewed_on": "2026-11-22",
+  "skill_ids": ["fpga", "vhdl", "verilog", "matlab", "systemverilog"],
+  "courses": [
+    {
+      "institution": "Georgia Tech",
+      "course_id": "ECE 2031",
+      "course_name": "Digital Hardware Design Laboratory",
+      "term": "Spring 2027",
+      "section": "C",
+      "source": {
+        "kind": "full_syllabus",
+        "version": "Spring 2027 Hybrid, section C, posted 2026-11-02",
+        "url": "https://syllabus.gatech.edu/sites/default/files/2026-11/ECE2031Syllabus_Spring2027Hybrid_0.pdf",
+        "sha256": "a7235a0a932f6d02df317fde4ad3fa845cce8b6160ebe3fe9d983893028b053e",
+        "reviewed_scope": "All 12 pages of the official PDF. The course schedule and assignment details are on Canvas."
+      },
+      "mentions": {
+        "fpga": {"phrase": "implementation on FPGA board", "section": "Topics", "pdf_page": 5},
+        "vhdl": {"phrase": "Logic synthesis and simulation using VHDL", "section": "Topics", "pdf_page": 5}
+      },
+      "reviewed_absences": ["verilog", "matlab", "systemverilog"]
+    },
+    {
+      "institution": "Georgia Tech",
+      "course_id": "ECE 2020",
+      "course_name": "Fundamentals of Digital Design",
+      "term": "Fall 2026",
+      "section": "A",
+      "source": {
+        "kind": "full_syllabus",
+        "version": "Fall 2026, section A, CRN 86002",
+        "url": "https://syllabus.gatech.edu/sites/default/files/2026-08/ece202fa26-syllabus.pdf",
+        "sha256": "964e7fdd6b4d49a4757fb10f7b3c99339799fd3650ac4bb1fef3848156608cbb",
+        "reviewed_scope": "All 3 pages of the official PDF. Instructor notes and the common course website are separate resources."
+      },
+      "mentions": {},
+      "reviewed_absences": ["fpga", "vhdl", "verilog", "matlab", "systemverilog"]
+    },
+    {
+      "institution": "University of Illinois Urbana-Champaign",
+      "course_id": "ECE 385",
+      "course_name": "Digital Systems Laboratory",
+      "term": "Spring 2027",
+      "section": null,
+      "source": {
+        "kind": "departmental_outline",
+        "version": "Spring 2027 offering page, departmental outline last updated 2025-05-14",
+        "url": "https://ece.illinois.edu/academics/courses/ECE385-120271",
+        "reviewed_scope": "Official course description and departmental outline. A complete section syllabus for this offering was not reviewed."
+      },
+      "mentions": {
+        "fpga": {"phrase": "field-programmable gate arrays (FPGAs)", "section": "Official Description"},
+        "systemverilog": {"phrase": "SystemVerilog", "section": "Official Description"}
+      },
+      "reviewed_absences": []
+    }
+  ]
+}

@@ -238,15 +238,15 @@ async def top_skill_gaps_tool(ctx: Context, limit: int = 10) -> str:
 
 
 def _skill_evidence(question):
-    from config import get_elasticsearch_client
-    from tools.computational_engine.service import answer, is_scope_question
-    if is_scope_question(question):
+    from tools.computational_engine.service import answer, uses_local_evidence
+    if uses_local_evidence(question):
         return answer(None, question)
+    from config import get_elasticsearch_client
     with get_elasticsearch_client() as client:
         return answer(client, question)
 
 
-@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, calculate monthly demand growth, or count a skill in the JobVision FPGA pilot.")
+@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, calculate monthly demand growth, count a skill in the JobVision FPGA pilot, or show reviewed FPGA syllabus evidence.")
 async def skill_evidence_tool(question: str, ctx: Context) -> str:
     return await run_sync_tool("skill_evidence", _skill_evidence, question, context=ctx)
 

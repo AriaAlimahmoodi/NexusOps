@@ -551,3 +551,33 @@ def test_jobvision_fpga_systemverilog_reaches_mcp_and_preserves_zero():
     assert market["postings_with_recorded_skills"]["denominator"] == 98
     assert market["postings_without_description"] == 120
     assert market["posting_evidence"]["description"] is None
+
+
+def test_fpga_syllabus_question_preserves_review_statuses_in_chat():
+    from server import _skill_evidence
+
+    question = "برای FPGA شواهد سرفصل ECE 2031 و ECE 385 را نشان بده"
+    prepared = _prepare(question)
+    validated = _run_node_code(
+        "Validate Plan", [{"json": {"text": "unsupported"}}],
+        {"Prepare Input": [{"json": prepared}]},
+    )[0]["json"]
+    assert validated["valid"] is True
+    assert validated["plan"]["tool"] == "skill_evidence"
+    result = _skill_evidence(**validated["plan"]["arguments"])
+    formatted = [{"json": {"selectedTool": "skill_evidence"}}]
+    final = _run_node_code(
+        "Compose Final", formatted,
+        {"Format Result": formatted, "MCP Parse Result": [{"json": {"ok": True, "data": result}}]},
+    )[0]["json"]
+
+    courses = json.loads(final["output"])["education"]["courses"]
+    assert [course["course_id"] for course in courses] == ["ECE 2031", "ECE 385"]
+    assert {
+        (course["course_id"], row["skill_id"]): row["status"]
+        for course in courses for row in course["skills"]
+        if row["skill_id"] == "verilog"
+    } == {
+        ("ECE 2031", "verilog"): "not_mentioned_in_full_syllabus",
+        ("ECE 385", "verilog"): "insufficient_course_information",
+    }

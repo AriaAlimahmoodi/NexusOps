@@ -7,9 +7,11 @@ on:
       - feat/us-api-source-connectors
       - feat/phase12-source-preparation
       - feat/phase13-jobvision-market-data
+      - feat/phase14-fpga-course-evidence
     paths:
       - "**.py"
       - "workflows/**"
+      - "configs/evidence/**"
       - "tests/**"
       - "requirements*.txt"
       - ".github/workflows/python-tests.yml"

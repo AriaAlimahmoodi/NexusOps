@@ -835,14 +835,17 @@ def build_query_plan(
     # --------------------------------------------------------
     # 0. Domain-specific university-market analytics
     # --------------------------------------------------------
-    from tools.computational_engine.service import is_course_alignment
-    if is_course_alignment(query) or re.search(r"jobvision|جاب.?ویژن", query, re.I) and re.search(
-        r"purdue|پردو|trend|growth|روند|رشد", query, re.I
+    from tools.computational_engine.service import is_course_alignment, uses_local_evidence
+    if (
+        uses_local_evidence(query)
+        or is_course_alignment(query)
+        or (re.search(r"jobvision|جاب.?ویژن", query, re.I)
+            and re.search(r"purdue|پردو|trend|growth|روند|رشد", query, re.I))
     ):
         return QueryPlan(tool_name="skill_evidence", arguments={"question": query},
                          requested_entities=entities, requested_fields=fields, requested_count=None,
                          comparison_requested=comparison, memory_allowed=False, fresh_mcp_required=True,
-                         reason="Scoped JobVision skill evidence.")
+                         reason="Scoped market or university skill evidence.")
 
     domain_intents = (
         ("skill_trends", ("روند مهارت", "روند تقاضا", "تحلیل روند", "skill trend", "demand trend")),

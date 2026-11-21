@@ -17,6 +17,11 @@ OTHER_QUERY = re.compile(r"\b(?:purdue|trend|growth)\b|پردو|روند|رشد"
 QUERY_WORDS = set("how many postings jobs mention count of demand for in the skill jobvision iran market is what observed show me report".split())
 
 
+def load_snapshot():
+    with SNAPSHOT.open(encoding="utf-8") as stream:
+        return json.load(stream)
+
+
 def is_scope_question(question):
     return bool(ROLE.search(question) and SOURCE.search(question) and not OTHER_QUERY.search(question))
 
@@ -26,8 +31,7 @@ def skill_for_question(question):
     raw_skill = TITLE_PATTERNS["systemverilog"].sub("systemverilog", raw_skill)
     words = re.findall(r"[a-zA-Z][a-zA-Z0-9+#.-]*", raw_skill)
     skill = canonical(" ".join(word.rstrip(".") for word in words if word.lower() not in QUERY_WORDS))
-    with SNAPSHOT.open(encoding="utf-8") as stream:
-        snapshot = json.load(stream)
+    snapshot = load_snapshot()
     if skill not in snapshot["observations"] and skill not in TITLE_PATTERNS:
         raise ValueError("Specify one skill from the JobVision FPGA pilot, such as SystemVerilog or VHDL.")
     if re.search(r"[0-9]{4}-[0-9]{2}", question):
