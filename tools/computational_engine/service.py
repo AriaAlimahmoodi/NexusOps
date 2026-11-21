@@ -1,5 +1,9 @@
 """Versioned computations over the published JobVision and Purdue pilot scopes."""
 from datetime import datetime, timezone
+from functools import lru_cache
+from pathlib import Path
+import json
+import os
 import math
 import re
 
@@ -7,7 +11,7 @@ from tools.dataset_registry import get_dataset_index
 from tools.computational_engine.curriculum import METRIC_REGISTRY, MetricDefinition
 from tools.computational_engine.fpga_course_evidence import course_evidence_report, is_fpga_course_question
 from tools.computational_engine.indicators import fpga_indicators, is_indicator_question
-from tools.computational_engine.jobvision_fpga import is_scope_question, market_evidence
+from tools.computational_engine.jobvision_fpga import SNAPSHOT, is_scope_question, market_evidence
 
 
 def now():
@@ -108,9 +112,28 @@ def uses_local_evidence(question):
     return is_indicator_question(question) or is_fpga_course_question(question) or is_scope_question(question)
 
 
+@lru_cache(maxsize=1)
+def _verified_course_report(csv_path):
+    """Use the pinned, hash-verified market snapshot for this server process."""
+    from scripts.profile_jobvision_role import profile
+
+    review = SNAPSHOT.with_name("jhu-525.677.81-assessments.json")
+    assessments = json.loads(review.read_text(encoding="utf-8"))
+    report = fpga_indicators(role_profile=profile(csv_path, "fpga"), assessments=assessments)
+    report["competency_scope"] = {
+        "institution": "Johns Hopkins University",
+        "course_id": "525.677.81",
+        "term": "Fall 2026",
+        "assessment_reference": "configs/evidence/" + review.name,
+    }
+    return report
+
+
 def answer(client, question):
     if is_indicator_question(question):
-        return {"question": question, "executed_at": now(), "indicators": fpga_indicators()}
+        csv_path = os.environ.get("NEXUSOPS_JOBVISION_CSV")
+        indicators = _verified_course_report(Path(csv_path).resolve()) if csv_path else fpga_indicators()
+        return {"question": question, "executed_at": now(), "indicators": indicators}
     if is_fpga_course_question(question):
         return {"question": question, "executed_at": now(), "education": course_evidence_report(question)}
     if is_scope_question(question):
