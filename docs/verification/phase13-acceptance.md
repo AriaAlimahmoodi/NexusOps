@@ -40,3 +40,12 @@ All 120 FPGA observations came from the title field used for selection. Structur
 | Remotive public job pages, targeted search for FPGA roles | At least 1 |
 
 The API response contained 16 distinct postings, all with descriptions, and none with FPGA or FPGAs in the title. Its SHA-256 was `257d5bc4f2a979d8dc577e697033d85f4be2f2327ed14f155f86a6f5100d6258`. The public listing for [Capgemini Junior DV and FPGA Prototyping Engineer, ID 6099369](https://remotive.com/remote/jobs/engineering/junior-dv-and-fpga-prototyping-engineer-6099369) explicitly mentions System Verilog for RTL implementation and is labeled Worldwide. The search has no population denominator. The international listing provides evidence for the international sample. The JobVision Iran count remains scoped to the 120 historical postings.
+
+## Live n8n verification — 2026-11-22
+
+- Implementation: [`f0b0182`](https://github.com/AriaAlimahmoodi/NexusOps/commit/f0b01825fa3efb6da70d8d642c139ae57cb6602a). The 710 local tests and [GitHub Actions run #443](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44950083412) passed on this implementation.
+- Live request: «تقاضای SystemVerilog در آگهی‌های FPGA ایران چقدر است؟». Trace ID: `nx-857`. Tool result timestamp: `2026-11-21T21:23:26.663434+00:00`.
+- After the FPGA route was added to the active n8n workflow, Validate Plan selected `skill_evidence` and MCP Parse Result showed `ok: true` with a 38 ms tool round trip.
+- The result matched the verified JobVision FPGA snapshot and activation range (April 2022 through March 2024). SystemVerilog had **0 matches out of 120 postings (0%)** and **0 matches out of 98 postings with recorded skills (0%)**. The response reported 22 postings without structured skills and 120 without a description. Description evidence was `null`.
+
+The live n8n acceptance check for the JobVision FPGA pilot passed.
