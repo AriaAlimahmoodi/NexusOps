@@ -6,6 +6,7 @@ on:
       - refactor/integration-foundation
       - feat/us-api-source-connectors
       - feat/phase12-source-preparation
+      - feat/phase13-jobvision-market-data
     paths:
       - "**.py"
       - "workflows/**"
