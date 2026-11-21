@@ -23,4 +23,13 @@ The same question works through the `skill_evidence` MCP tool and the repository
 
 Local verification covered all 15 course–skill pairs, a real HTTP call to the local MCP server, and the n8n Validate Plan and Compose Final nodes. The suite passed 714 tests. For v1, the user supplied a successful active n8n execution on 2026-11-22 (Asia/Tehran). Validate Plan selected `skill_evidence` on attempt 0. The tool output confirmed all three statuses for ECE 2031 and ECE 385. The execution ID was not provided.
 
-Version `fpga-course-syllabi-v2` expands the review to 25 course–skill pairs. The new courses provide direct evidence for Verilog and MATLAB. Both public sources establish positive mentions, with insufficient information for skills lacking positive evidence. The US university course sample is evaluated against the same JobVision Iran posting snapshot. The active n8n check for the expanded course set is pending.
+Version `fpga-course-syllabi-v2` expands the review to 25 course–skill pairs. The new courses provide direct evidence for Verilog and MATLAB. Both public sources establish positive mentions, with insufficient information for skills lacking positive evidence. The US university course sample is evaluated against the same JobVision Iran posting snapshot.
+
+## Expanded pilot acceptance
+
+- Tested implementation: [`64180ff`](https://github.com/AriaAlimahmoodi/NexusOps/commit/64180ff090cec4e4ecc8c42afdf7d9cb36851f8b). The 716 local tests and [GitHub Actions run #445](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44956473691) passed.
+- Active n8n chat request: «شواهد سرفصل FPGA برای ENG EC 551 و 525.677.81 را نشان بده». The user supplied the successful tool response with timestamp `2026-11-21T22:32:24.534528+00:00` (2026-11-22 in Asia/Tehran). The execution ID was not provided.
+- The result reported `fpga-course-syllabi-v2`, the JobVision Iran FPGA scope of 120 postings, and exactly the two requested courses.
+- Boston University ENG EC 551 reported Verilog as `mentioned` with an official course description reference. Johns Hopkins 525.677.81 reported MATLAB as `mentioned` with a Course Learning Outcomes reference. Each partial source reported `insufficient_course_information` for skills without evidence.
+
+The active n8n acceptance check for the expanded FPGA course pilot passed.
