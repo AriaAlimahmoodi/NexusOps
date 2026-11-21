@@ -1,6 +1,6 @@
 # Phase 12 acceptance
 
-Operational acceptance recorded on 2026-11-21. GitHub Actions evidence remains outstanding.
+Operational and baseline CI acceptance recorded on 2026-11-21.
 
 - Backend commit: `5475d18eed450fe7a83dcb2e0bf5a43100aa375c`.
 - Export tested: `NexusOps-Phase12-Workflow.json`, 28 nodes. SHA-256: `1702048180411592a86737b85a2cb2fa1a133e314b15999df0a8d4465c97339b`.
@@ -10,4 +10,4 @@ Operational acceptance recorded on 2026-11-21. GitHub Actions evidence remains o
 - Raw-reader verification: a local fixture with one raw page and two records passed manifest and checkpoint validation. Deliberately changing the checkpoint page count caused rejection.
 - Runtime troubleshooting: request `nx-852` reached an MCP process that did not expose `skill_evidence`. After restarting the pinned server, request `nx-853` reached Elasticsearch and received HTTP 401. Starting the server with the known-good credential restored authenticated searches and execution 854 succeeded.
 
-GitHub returned no combined statuses and no pull-request workflow runs for the backend commit. Push-triggered CI and the cause of the earlier CI failure are unverified. The runtime errors above are from the live environment. Record the Actions run URL, conclusion and failing step when the historical CI log is available. Strict closure under the original roadmap remains pending that evidence.
+GitHub Actions run [#441](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44724481359) succeeded on the exact backend commit via push in 1m 13s. The python-tests job succeeded. The phase branch listed 17 successful runs and no failed runs in the visible history. The earlier CI failure could not be identified from that history. Its root cause remains unverified pending the original run ID or log.
