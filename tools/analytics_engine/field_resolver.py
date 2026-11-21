@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from tools.dataset_registry import get_dataset_profile
+from tools.dataset_registry import get_dataset_profile, get_dataset_query_fields
 from tools.datasets.schema_discovery import discover_dataset_schema
 
 from tools.analytics_engine.models import (
@@ -64,13 +64,14 @@ class FieldResolver:
     It provides normalized field metadata for later modules.
     """
 
-    def __init__(self, dataset_id: str):
+    def __init__(self, dataset_id: str, *, classification: str = "synthetic"):
         if not isinstance(dataset_id, str) or not dataset_id.strip():
             raise FieldResolutionError(
                 "dataset_id must be a non-empty string."
             )
 
         self.dataset_id = dataset_id.strip()
+        self.classification = classification
 
         try:
             self.profile = get_dataset_profile(self.dataset_id)
@@ -80,14 +81,15 @@ class FieldResolver:
             ) from None
 
         try:
-            self.schema = discover_dataset_schema(self.dataset_id)
+            options = {"classification": classification} if classification == "real" else {}
+            self.schema = discover_dataset_schema(self.dataset_id, **options)
         except Exception as exc:
             raise FieldResolutionError(
                 "Unable to discover dataset schema. "
                 f"{type(exc).__name__}: {exc}"
             ) from None
 
-        self.profile_fields = self.profile.get("fields", {})
+        self.profile_fields = get_dataset_query_fields(self.profile, classification)
         self.actual_fields = self.schema.get("actual_fields", {})
 
         if not self.actual_fields:
@@ -205,6 +207,8 @@ class FieldResolver:
                 f"Resolver dataset '{self.dataset_id}' does not match "
                 f"request dataset '{request.dataset_id}'."
             )
+        if request.classification != self.classification:
+            raise FieldResolutionError("Resolver classification does not match the request.")
 
         # ----------------------------------------------------
         # A. Resolve group_by fields
@@ -361,7 +365,7 @@ class FieldResolver:
         return {
             "dataset": {
                 "dataset_id": self.dataset_id,
-                "index": self.profile.get("index"),
+                "index": self.schema["index"] if self.classification == "real" else self.profile.get("index"),
                 "source_type": self.profile.get("source_type"),
                 "schema_consistent": self.schema.get(
                     "schema_consistent",
@@ -400,6 +404,9 @@ def resolve_analytics_request(
     request: AnalyticsRequest,
 ) -> dict[str, Any]:
 
-    resolver = FieldResolver(request.dataset_id)
+    resolver = (
+        FieldResolver(request.dataset_id, classification="real")
+        if request.classification == "real" else FieldResolver(request.dataset_id)
+    )
 
     return resolver.resolve_request(request)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from tools.dataset_registry import get_dataset_profile
+from tools.dataset_registry import get_dataset_profile, get_dataset_query_fields
 from tools.datasets.schema_discovery import discover_dataset_schema
 
 from tools.analytics_engine.models import (
@@ -183,7 +183,8 @@ class AnalyticsQueryValidator:
         # ----------------------------------------------------
 
         try:
-            schema = discover_dataset_schema(request.dataset_id)
+            options = {"classification": request.classification} if request.classification == "real" else {}
+            schema = discover_dataset_schema(request.dataset_id, **options)
         except Exception as exc:
             raise AnalyticsValidationError(
                 [
@@ -193,7 +194,7 @@ class AnalyticsQueryValidator:
             ) from None
 
         actual_fields = schema.get("actual_fields", {})
-        profile_fields = profile.get("fields", {})
+        profile_fields = get_dataset_query_fields(profile, request.classification)
 
         if not schema.get("schema_consistent", False):
             comparison = schema.get("comparison", {})

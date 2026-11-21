@@ -1,0 +1,44 @@
+{
+  "source_classification": "synthetic",
+  "source": {"format": "csv", "uri": "curriculum-coverage.csv", "options": {"delimiter": ","}},
+  "scope": {"program_id": "CS-BSC", "major": "Computer Science", "study_level": "BSc"},
+  "skill_id": "python",
+  "inventory": {
+    "reference": "NexusOps specification 0.2, section 5.4 example",
+    "required_course_ids": ["C01", "C02", "C03", "C04"]
+  },
+  "vocabulary": {
+    "reference": "NexusOps synthetic test vocabulary",
+    "skill_ids": ["python"],
+    "aliases": {"Python language": "python"}
+  },
+  "course_type_values": {"mandatory": "required", "optional": "elective"},
+  "manifest": {
+    "collection_batch": "synthetic-curriculum-example",
+    "source_name": "NexusOps synthetic curriculum example",
+    "source_url": "https://example.invalid/nexusops/curriculum-example",
+    "publisher": "NexusOps test suite",
+    "retrieved_at": "2026-11-20T00:00:00Z",
+    "geographic_scope": "synthetic",
+    "license": "test fixture",
+    "collection_method": "specification example",
+    "limitations": "Synthetic fixture for dry-run verification only."
+  },
+  "mapping": {
+    "mapping_id": "curriculum-example-v1",
+    "source_name": "NexusOps synthetic curriculum example",
+    "reviewed_by": "NexusOps fixture author",
+    "reviewed_at": "2026-11-20T00:00:00Z",
+    "review_reference": "NexusOps specification 0.2, section 5.4",
+    "field_mappings": {
+      "Program": "program_id",
+      "Major": "major",
+      "Level": "study_level",
+      "Course": "course_id",
+      "Title": "course_name",
+      "Type": "course_type",
+      "Credits": "credits",
+      "SkillLabels": "skills"
+    }
+  }
+}

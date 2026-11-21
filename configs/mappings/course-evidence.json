@@ -1,0 +1,33 @@
+{
+  "dataset": "course_skill_evidence",
+  "format": "csv",
+  "options": {
+    "delimiter": ","
+  },
+  "manifest": {
+    "source_name": "Official engineering course descriptions",
+    "source_url": "See source_url on each evidence row",
+    "publisher": "University faculty and departments",
+    "geographic_scope": "United States",
+    "license": "Not recorded in source audit",
+    "collection_method": "Reviewed official course descriptions and syllabi",
+    "limitations": "Selected explicit skill references. Undated outcomes are contextual only."
+  },
+  "time_granularity": "snapshot",
+  "fields": {
+    "program_id": "program_id",
+    "course_id": "course_id",
+    "term": "term",
+    "term_status": "term_status",
+    "source_url": "source_url",
+    "skill_id": "skill_id",
+    "source_phrase": "source_phrase"
+  },
+  "rules": [],
+  "review": {
+    "mapping_id": "official-course-evidence-v1",
+    "reviewed_by": "NexusOps implementation review",
+    "reviewed_at": "2026-11-20T00:00:00Z",
+    "review_reference": "Official source_url and source_phrase in each row"
+  }
+}

@@ -11,9 +11,14 @@ from tools.dataset_registry import (
 EXPECTED_DATASETS = {
     "university_courses",
     "labor_market",
+    "job_postings",
     "university_graduates",
     "course_graduate_records",
     "skill_mapping",
+    "us_unemployment_monthly",
+    "us_college_institutions",
+    "curriculum_catalog",
+    "course_skill_evidence",
 }
 
 

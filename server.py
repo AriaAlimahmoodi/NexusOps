@@ -237,6 +237,18 @@ async def top_skill_gaps_tool(ctx: Context, limit: int = 10) -> str:
     return await run_sync_tool("get_top_skill_gaps", get_top_skill_gaps, limit, context=ctx)
 
 
+def _skill_evidence(question):
+    from config import get_elasticsearch_client
+    from tools.computational_engine.service import answer
+    with get_elasticsearch_client() as client:
+        return answer(client, question)
+
+
+@server.tool(name="skill_evidence", description="Report course-market alignment (GapPriority) across published batches, compare a skill in JobVision and Purdue, or calculate monthly demand growth.")
+async def skill_evidence_tool(question: str, ctx: Context) -> str:
+    return await run_sync_tool("skill_evidence", _skill_evidence, question, context=ctx)
+
+
 @server.tool(
     name="analyze_university_market",
     description=(

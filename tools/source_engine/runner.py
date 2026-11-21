@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlencode,urljoin,urlsplit,urlunsplit,parse_qsl
-from urllib.request import Request,urlopen
+from urllib.request import HTTPRedirectHandler,Request,build_opener
 from tools.source_engine.checkpoint import read_checkpoint,write_json_atomic
 
 class APIAcquisitionError(RuntimeError):
@@ -31,9 +31,34 @@ def _extract(document,response):
     if any(not isinstance(x,dict) for x in value): raise APIAcquisitionError("Every extracted API record must be a JSON object.")
     return value
 
+def _origin(url):
+    try:
+        parsed=urlsplit(url)
+        scheme=parsed.scheme.lower()
+        host=parsed.hostname
+        if scheme not in {"http","https"} or not host or parsed.username is not None or parsed.password is not None:
+            return None
+        normalized_host=host.lower() if ":" in host else host.encode("idna").decode("ascii").lower()
+        port=parsed.port or (443 if scheme=="https" else 80)
+        return scheme,normalized_host,port
+    except (UnicodeError,ValueError):
+        return None
+
 def _same_origin(a,b):
-    x,y=urlsplit(a),urlsplit(b)
-    return (x.scheme.lower(),(x.hostname or "").lower(),x.port)==(y.scheme.lower(),(y.hostname or "").lower(),y.port)
+    origin_a,origin_b=_origin(a),_origin(b)
+    return origin_a is not None and origin_a==origin_b
+
+class _SameOriginRedirectHandler(HTTPRedirectHandler):
+    """Allow redirects only when scheme, host and effective port stay unchanged."""
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        if not _same_origin(req.full_url,newurl):
+            raise APIAcquisitionError("API redirect must remain on the original HTTP(S) origin; cross-origin redirects and HTTPS downgrades are blocked.")
+        return super().redirect_request(req,fp,code,msg,headers,newurl)
+
+def _open_url(request,timeout):
+    # A custom opener replaces urllib's default redirect handler without
+    # mutating process-global opener state.
+    return build_opener(_SameOriginRedirectHandler()).open(request,timeout=timeout)
 
 def _add_params(url,params):
     p=urlsplit(url); query=parse_qsl(p.query,keep_blank_values=True)
@@ -44,7 +69,7 @@ def _add_params(url,params):
 
 def _request(config,url):
     q=config["request"]; rel=config.get("reliability",{}); method=q.get("method","GET")
-    headers={"Accept":"application/json"}; headers.update(q.get("headers",{}))
+    headers={"Accept":"application/json","User-Agent":"NexusOps-API-Engine/1.0"}; headers.update(q.get("headers",{}))
     data=json.dumps(q["body"]).encode("utf-8") if method=="POST" else None
     if method=="POST": headers.setdefault("Content-Type",q.get("content_type","application/json"))
     attempts=rel.get("max_attempts",3); statuses=set(rel.get("retry_statuses",[429,502,503,504]))
@@ -52,7 +77,7 @@ def _request(config,url):
     for attempt in range(attempts):
         req=Request(url,data=data,headers=headers,method=method)
         try:
-            with urlopen(req,timeout=float(q.get("timeout",30))) as response:
+            with _open_url(req,timeout=float(q.get("timeout",30))) as response:
                 try: return json.load(response)
                 except json.JSONDecodeError: raise APIAcquisitionError("API response is not valid JSON.") from None
         except HTTPError as exc:
@@ -119,19 +144,20 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
                 url=state["next_url"]; params={}
             request_url=_add_params(url,params)
             document=_request(config,request_url); records=_extract(document,response)
-            page_file=pages/f"page_{state['pages_completed']:08d}.json"
-            if storage.get("preserve_raw_pages",True): write_json_atomic(page_file,document)
-            state["pages_completed"]+=1; state["records_saved"]+=len(records)
             if strategy=="none": complete=True
             elif strategy=="page":
                 complete=len(records)<p["page_size"]; state["page"]+=1
             elif strategy=="offset":
-                previous=state["offset"]; state["offset"]+=len(records)
-                if not records: complete=True
-                if state["offset"]<=previous and records: raise APIAcquisitionError("Offset pagination made no forward progress.")
+                state["offset"] += len(records)
                 if p.get("total_path"):
-                    total=_path(document,p["total_path"])
-                    if isinstance(total,int) and state["offset"]>=total: complete=True
+                    total = _path(document, p["total_path"])
+                    if type(total) is not int or total < 0:
+                        raise APIAcquisitionError("Offset pagination requires a non-negative integer total.")
+                    if not records and state["offset"] < total:
+                        raise APIAcquisitionError("Empty offset page before the reported total.")
+                    complete = state["offset"] >= total
+                else:
+                    complete = not records
             elif strategy=="cursor":
                 cursor=_path(document,response["next_cursor_path"])
                 if cursor is None or cursor=="": complete=True
@@ -146,6 +172,9 @@ def acquire_api_source(config: dict[str,Any], *, output_root="data/raw/api_sourc
                     resolved=urljoin(request_url,nxt)
                     if not _same_origin(config["request"]["url"],resolved): raise APIAcquisitionError("Pagination next URL must remain on the original API origin.")
                     state["next_url"]=resolved
+            page_file=pages/f"page_{state['pages_completed']:08d}.json"
+            if storage.get("preserve_raw_pages",True): write_json_atomic(page_file,document)
+            state["pages_completed"]+=1; state["records_saved"]+=len(records)
             state["status"]="completed" if complete else "running"
             if storage.get("checkpoint",True): write_json_atomic(checkpoint,state)
             delay=config.get("reliability",{}).get("request_interval_seconds",0)

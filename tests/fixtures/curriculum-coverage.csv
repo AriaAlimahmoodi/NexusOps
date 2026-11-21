@@ -1,0 +1,6 @@
+Program,Major,Level,Course,Title,Type,Credits,SkillLabels,Notes
+CS-BSC,Computer Science,BSc,C01,Advanced Programming,mandatory,3,"[""Python language""]",source-only
+CS-BSC,Computer Science,BSc,C02,Programming Lab,mandatory,1,"[""Python language""]",source-only
+CS-BSC,Computer Science,BSc,C03,Discrete Mathematics,mandatory,3,[],source-only
+CS-BSC,Computer Science,BSc,C04,Networking,mandatory,3,[],source-only
+CS-BSC,Computer Science,BSc,E01,Python Seminar,optional,5,"[""Python language""]",excluded from coverage

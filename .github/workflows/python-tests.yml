@@ -5,6 +5,7 @@ on:
     branches:
       - refactor/integration-foundation
       - feat/us-api-source-connectors
+      - feat/phase12-source-preparation
     paths:
       - "**.py"
       - "workflows/**"

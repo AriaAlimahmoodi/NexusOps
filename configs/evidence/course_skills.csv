@@ -1,0 +1,11 @@
+program_id,course_id,term,term_status,source_url,skill_id,source_phrase
+Illinois-Computer-Engineering-BS-2026-2027-fixed-core-pilot,ECE 385,Spring 2027,verified,https://ece.illinois.edu/academics/courses/ECE385-120271,systemverilog,SystemVerilog
+Illinois-Computer-Engineering-BS-2026-2027-fixed-core-pilot,ECE 385,Spring 2027,verified,https://ece.illinois.edu/academics/courses/ECE385-120271,fpga,field-programmable gate arrays (FPGAs)
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2020,Fall 2026,verified,https://syllabus.gatech.edu/sites/default/files/2026-08/ece202fa26-syllabus.pdf,boolean-logic,Boolean logic
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2020,Fall 2026,verified,https://syllabus.gatech.edu/sites/default/files/2026-08/ece202fa26-syllabus.pdf,finite-state-machines,finite state machines
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2020,Fall 2026,verified,https://syllabus.gatech.edu/sites/default/files/2026-08/ece202fa26-syllabus.pdf,assembly-language,simple programs in assembly code
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2031,Spring 2027,verified,https://syllabus.gatech.edu/sites/default/files/2026-11/ECE2031Syllabus_Spring2027Hybrid_0.pdf,vhdl,VHDL-based simple computer simulation
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2031,Spring 2027,verified,https://syllabus.gatech.edu/sites/default/files/2026-11/ECE2031Syllabus_Spring2027Hybrid_0.pdf,fpga,implementation on FPGA board
+Georgia-Tech-CmPE-BS-2026-2027-Hardware-Systems-fixed-pilot,ECE 2031,Spring 2027,verified,https://syllabus.gatech.edu/sites/default/files/2026-11/ECE2031Syllabus_Spring2027Hybrid_0.pdf,assembly-language,assembly language programming
+Purdue-BSCmpE-Fall-2026-Software-Engineering-fixed-pilot,ECE 20875,"departmental outcomes, term unspecified",undated,https://engineering.purdue.edu/ECE/Academics/Undergraduates/UGO/CourseInfo/courseInfo?courseid=729&show=true&type=undergrad,python,use Python to write data analyses
+Purdue-BSCmpE-Fall-2026-Software-Engineering-fixed-pilot,ECE 20875,"departmental outcomes, term unspecified",undated,https://engineering.purdue.edu/ECE/Academics/Undergraduates/UGO/CourseInfo/courseInfo?courseid=729&show=true&type=undergrad,regular-expressions,understanding of regular expressions
