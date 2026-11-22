@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "skill": "VHDL",
+      "course": "Georgia Tech ECE 2031"
+    },
+    {
+      "skill": "VHDL",
+      "course": "Johns Hopkins 525.677.81"
+    },
+    {
+      "skill": "Verilog",
+      "course": "Boston University ENG EC 551"
+    }
+  ]
+}
