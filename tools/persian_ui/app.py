@@ -1,5 +1,4 @@
 """Local Persian UI for existing and newly published datasets."""
-import json
 import re
 from collections import OrderedDict
 from pathlib import Path
@@ -18,8 +17,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from elasticsearch.helpers import scan
 
-from scripts.plan_phase19_migration import plan
+from scripts.plan_phase19_migration import load_reviews, plan
 from scripts.publish_phase19_evidence import REVIEW, publish, records_from, search
+from tools.dataset_registry import get_dataset_index
 from tools.computational_engine.service import answer, uses_local_evidence
 from tools.persian_ui import datasets
 
@@ -135,7 +135,7 @@ def create_app(client_factory=elasticsearch_client):
         dataset_id, document = reviews.get(request.review_id)
         try:
             with client_factory() as client, PUBLICATION_LOCK:
-                review = json.loads(REVIEW.read_text(encoding="utf-8"))
+                review = load_reviews(REVIEW)
                 candidate = {"_id": dataset_id, "_source": document}
                 eligible = records_from(plan([candidate], review))
                 try:
@@ -149,7 +149,7 @@ def create_app(client_factory=elasticsearch_client):
                     publish(client, records_from(plan(hits, review)))
         except ConflictError:
             raise HTTPException(409, "این شناسه قبلاً منتشر شده است. برای نسخهٔ تازه شناسهٔ دیگری انتخاب کنید.") from None
-        except (ApiError, TransportError, RuntimeError):
+        except (ApiError, TransportError, RuntimeError, OSError, ValueError):
             raise HTTPException(502, "انتشار در Elasticsearch تأیید نشد. وضعیت اتصال و دسترسی را بررسی کنید.") from None
         return {"dataset_id": dataset_id, "row_count": document["row_count"],
                 **({"shared_search": True} if eligible else {})}
@@ -163,6 +163,16 @@ def create_app(client_factory=elasticsearch_client):
             if request.dataset_id:
                 with client_factory() as client:
                     return datasets.answer_dataset(client, request.dataset_id, question)
+            if question.rstrip("؟? .") in {"فهرست دروس", "فهرست درس‌ها", "فهرست دروس کاتالوگ"}:
+                with client_factory() as client:
+                    hits = scan(client, index=get_dataset_index("curriculum_catalog", "real"),
+                                query={"query": {"term": {"data_classification": "real"}}},
+                                allow_partial_search_results=False)
+                    rows = sorted((hit["_source"] for hit in hits),
+                                  key=lambda row: (row["program_id"], row["course_id"], row["collection_batch"]))
+                titles = sorted({row["course_name"] for row in rows})
+                return {"answer": "\n".join(titles) if titles else "درسی در کاتالوگ واقعی پیدا نشد.",
+                        "evidence": {"courses": rows}}
             course_query = COURSE_SKILL_QUESTION.fullmatch(question)
             if course_query:
                 with client_factory() as client:
