@@ -31,4 +31,10 @@ The three Computer Engineering programs compared against two market batches yiel
 
 For Illinois ECE 385, the reviewed course description lists SystemVerilog, but no match was captured in the hardware candidate batch. The live report withheld a score and recommended reviewing role scope and skill capture before proposing curriculum changes. This accepts evidence-aware ranking and review decisions within published scopes.
 
-The live checks are complete for the existing catalog, scoped alignment, audited JobVision denominators, and historical Purdue outcomes. Real curriculum expansion to additional institutions and levels remains outstanding. No additional live access was needed to verify this report.
+The live checks are complete for the existing catalog, scoped alignment, audited JobVision denominators, and historical Purdue outcomes. Real curriculum expansion was subsequently verified as described below. No additional live access was needed to verify this report.
+
+## Curriculum expansion acceptance
+
+The operator published and verified four source-scoped excerpts in the active real curriculum catalog using d0dfbb6: eight Shahid Chamran Ahvaz bachelor records, six University of Tehran bachelor records, one Purdue ECE master's primary-area core record and one Purdue ECE doctoral primary-area core record. The totals matched the prepared batches. Tehran and Ahvaz are attributed secondary/student-association excerpts. The Purdue rows reflect official primary-area requirements excerpts. These records do not establish complete study plans or graduate-level coverage for Tehran and Ahvaz.
+
+Phase 21 is accepted for the implemented and verified scopes: the audited two-batch labor denominator, the historical Purdue outcome route, the live evidence-aware alignment report, and the published curriculum excerpts. Broader official program verification remains a data expansion item. The publication did not require a workflow change.
