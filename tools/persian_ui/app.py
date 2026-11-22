@@ -90,11 +90,19 @@ def ask_n8n(url, question):
     try:
         response = httpx.post(url, json={
             "action": "sendMessage", "chatInput": question, "sessionId": session_id,
-        }, timeout=300, follow_redirects=False)
+        }, timeout=httpx.Timeout(420, connect=5), follow_redirects=False)
         response.raise_for_status()
+    except httpx.TimeoutException:
+        raise HTTPException(504, "مهلت انتظار پاسخ n8n تمام شد. وضعیت اجرای همان سؤال را در Executions بررسی کنید.") from None
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(502, f"آدرس چت n8n وضعیت HTTP {exc.response.status_code} برگرداند.") from None
+    except httpx.RequestError as exc:
+        raise HTTPException(502, f"ارتباط با چت n8n برقرار نشد ({type(exc).__name__}).") from None
+    try:
         payload = response.json()
-    except (httpx.HTTPError, ValueError):
-        raise HTTPException(502, "گردش‌کار n8n پاسخ قابل خواندن برنگرداند.") from None
+    except ValueError:
+        content_type = response.headers.get("content-type", "").split(";", 1)[0]
+        raise HTTPException(502, f"پاسخ n8n به‌صورت JSON نبود ({content_type or 'unknown'}).") from None
     if isinstance(payload, list) and len(payload) == 1:
         payload = payload[0]
     if not isinstance(payload, dict):
