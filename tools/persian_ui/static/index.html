@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexusOps | تحلیل داده</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <a class="brand" href="/">NexusOps</a>
+      <nav aria-label="بخش‌های سامانه">
+        <button id="chat-tab" aria-current="page">گفت‌وگو</button>
+        <button id="intake-tab">دریافت و انتشار داده</button>
+      </nav>
+    </aside>
+    <main>
+      <section id="chat-panel" aria-labelledby="chat-title">
+        <header><h1 id="chat-title">گفت‌وگو با داده‌ها</h1></header>
+        <form id="source-form" class="source">
+          <label for="dataset">شناسهٔ دیتاست <small>اختیاری · پیش‌فرض داده‌های فعلی</small></label>
+          <input id="dataset" dir="ltr" placeholder="مثلاً skills-demo" maxlength="64">
+        </form>
+        <div id="messages" role="log" aria-live="polite">
+          <div class="empty" id="empty">
+            <p>از داده‌های منتشرشده بپرسید.</p>
+            <button id="example" class="secondary">بررسی شواهد FPGA</button>
+          </div>
+        </div>
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="question">سؤال شما</label>
+          <textarea id="question" rows="2" maxlength="1000" required placeholder="سؤال خود را بنویسید"></textarea>
+          <button type="submit">ارسال</button>
+        </form>
+      </section>
+      <section id="intake-panel" aria-labelledby="intake-title" hidden>
+        <header><h1 id="intake-title">دریافت و انتشار داده</h1></header>
+        <form id="intake-form" class="card">
+          <h2>دریافت</h2>
+          <label for="kind">نوع منبع</label>
+          <select id="kind"><option value="csv">فایل CSV</option><option value="json">فایل JSON</option><option value="api">نشانی API</option></select>
+          <label id="file-label">فایل <input id="file" type="file" accept=".csv" required></label>
+          <label id="url-label" hidden>نشانی HTTPS <input id="url" dir="ltr" type="url" maxlength="2048"></label>
+          <label id="path-label" hidden>مسیر آرایهٔ رکوردها <small>برای آرایهٔ سطح اول خالی بگذارید</small><input id="records-path" dir="ltr" placeholder="data.items"></label>
+          <button type="submit">دریافت و مشاهدهٔ نمونه</button>
+        </form>
+        <p id="intake-status" class="status" role="status" aria-live="polite"></p>
+        <details id="raw-preview" class="card" hidden><summary>نمونهٔ دادهٔ دریافت‌شده</summary><pre id="raw-json" dir="ltr"></pre></details>
+        <form id="mapping-form" class="card" hidden>
+          <h2>بازبینی نگاشت</h2>
+          <div class="grid">
+            <label>عنوان دیتاست<input id="title" maxlength="120" required></label>
+            <label>شناسهٔ دیتاست<input id="new-id" dir="ltr" pattern="[a-z][a-z0-9_\-]{1,63}" required></label>
+            <label>ستون مهارت<select id="skill" required></select></label>
+            <label>ستون درس <small>اختیاری</small><select id="course"></select></label>
+          </div>
+          <button type="submit">پیش‌نمایش نگاشت</button>
+        </form>
+        <form id="publish-form" class="card" hidden>
+          <h2>تأیید و انتشار</h2>
+          <pre id="mapped-json" dir="ltr"></pre>
+          <label class="check"><input id="approved" type="checkbox" required> نگاشت، داده و مجوز انتشار این مجموعه را تأیید می‌کنم.</label>
+          <button type="submit">انتشار و باز کردن گفت‌وگو</button>
+        </form>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

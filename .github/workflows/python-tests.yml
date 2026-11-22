@@ -10,6 +10,7 @@ on:
       - feat/phase14-fpga-course-evidence
       - feat/phase15-computational-indicators
       - feat/phase16-controlled-publication
+      - feat/phase17-persian-ui
     paths:
       - "**.py"
       - "workflows/**"
