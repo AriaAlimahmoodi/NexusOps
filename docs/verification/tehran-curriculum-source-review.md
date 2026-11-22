@@ -15,4 +15,8 @@ Sources:
 - https://www.konkurcomputer.ir/چارت-درسی-مهندسی-کامپیوتر-دانشگاه-تهران.html
 - https://github.com/Mohammad-Khoshroo/UT-PLAN — student planning repository with pointers to curriculum documents, recommended charts, and official semester schedules. A semester offering schedule is a different record type from a degree plan.
 
-The extracted named courses and readable prerequisite arrows are stored in configs/evidence/tehran-cmpe-user-chart-review.json with local IDs. The image evidence was not merged into the 1399 catalog excerpt or published to Elasticsearch.
+The extracted named courses and readable prerequisite arrows are stored in configs/evidence/tehran-cmpe-user-chart-review.json with local IDs. The image evidence is versioned independently of the 1399 catalog excerpt.
+
+## Live publication
+
+The operator supplied the successful atomic publication receipt for the undated Tehran Computer Engineering bachelor's excerpt. All 36 submitted records were indexed and the active real catalog contained 184 records. The preceding physical version was retained. The publication accepts the course rows only. Live catalog-chat retrieval and display deduplication for this excerpt were not verified by the receipt.
