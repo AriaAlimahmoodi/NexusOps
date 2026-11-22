@@ -87,10 +87,11 @@ def elasticsearch_client():
 
 def ask_n8n(url, question):
     session_id = uuid4().hex
+    loopback = urlsplit(url).hostname in {"localhost", "127.0.0.1", "::1"}
     try:
         response = httpx.post(url, json={
             "action": "sendMessage", "chatInput": question, "sessionId": session_id,
-        }, timeout=httpx.Timeout(420, connect=5), follow_redirects=False)
+        }, timeout=httpx.Timeout(420, connect=5), follow_redirects=False, trust_env=not loopback)
         response.raise_for_status()
     except httpx.TimeoutException:
         raise HTTPException(504, "مهلت انتظار پاسخ n8n تمام شد. وضعیت اجرای همان سؤال را در Executions بررسی کنید.") from None
