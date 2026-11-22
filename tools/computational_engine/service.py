@@ -8,6 +8,7 @@ import math
 import re
 
 from tools.dataset_registry import get_dataset_index
+from tools.computational_engine.published_fpga import answer_published, is_published_question
 from tools.computational_engine.curriculum import METRIC_REGISTRY, MetricDefinition
 from tools.computational_engine.fpga_course_evidence import course_evidence_report, is_fpga_course_question
 from tools.computational_engine.indicators import fpga_indicators, is_indicator_question
@@ -109,6 +110,8 @@ def jobvision_fpga_demand(question):
 
 
 def uses_local_evidence(question):
+    if is_published_question(question):
+        return False
     return is_indicator_question(question) or is_fpga_course_question(question) or is_scope_question(question)
 
 
@@ -130,6 +133,8 @@ def _verified_course_report(csv_path):
 
 
 def answer(client, question):
+    if is_published_question(question):
+        return answer_published(client, question)
     if is_indicator_question(question):
         csv_path = os.environ.get("NEXUSOPS_JOBVISION_CSV")
         indicators = _verified_course_report(Path(csv_path).resolve()) if csv_path else fpga_indicators()

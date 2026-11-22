@@ -9,6 +9,7 @@ on:
       - feat/phase13-jobvision-market-data
       - feat/phase14-fpga-course-evidence
       - feat/phase15-computational-indicators
+      - feat/phase16-controlled-publication
     paths:
       - "**.py"
       - "workflows/**"
