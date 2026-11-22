@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+from pathlib import Path
 
 RETRIEVED = "2026-11-23T00:00:00+03:30"
 DATASET = "curriculum_catalog"
@@ -86,19 +87,41 @@ def prepare(excerpt):
     return manifest, rows
 
 
+def tehran_image_excerpt():
+    path = Path(__file__).resolve().parents[1] / "configs/evidence/tehran-cmpe-user-chart-review.json"
+    chart = json.loads(path.read_text(encoding="utf-8"))
+    prior_titles = {name for _, name, _, _ in EXCERPTS[0]["courses"]}
+    courses = tuple((row["id"], row["name"], None, "unknown") for row in chart["courses"])
+    shared_titles = sorted(prior_titles.intersection(name for _, name, _, _ in courses))
+    return {
+        "id": "University-of-Tehran-CmPE-BS-user-image-undated-excerpt",
+        "level": "Bachelor of Science",
+        "publisher": "User-supplied chart with confirmed University of Tehran attribution",
+        "url": "https://github.com/AriaAlimahmoodi/NexusOps/blob/eec6b7b92819ced28e8244105c6ffafa0eb8e1a4/configs/evidence/tehran-cmpe-user-chart-review.json",
+        "country": "Iran",
+        "limitations": chart["review_limit"],
+        "courses": courses,
+        "shared_display_titles": shared_titles,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--publish", action="store_true", help="Append excerpts through the canonical real catalog publisher")
+    parser.add_argument("--tehran-image", action="store_true", help="Select the separate undated Tehran chart excerpt")
     args = parser.parse_args()
 
     from tools.data_ingestion import prepare_real_records
 
-    batches = [prepare(excerpt) for excerpt in EXCERPTS]
+    excerpts = (tehran_image_excerpt(),) if args.tehran_image else EXCERPTS
+    batches = [prepare(excerpt) for excerpt in excerpts]
     for manifest, rows in batches:
         prepare_real_records(DATASET, rows, manifest)
 
     if not args.publish:
-        print(json.dumps([{"manifest": manifest, "records": rows} for manifest, rows in batches],
+        print(json.dumps([{"manifest": manifest, "records": rows,
+                           "shared_display_titles": excerpt.get("shared_display_titles", [])}
+                          for excerpt, (manifest, rows) in zip(excerpts, batches)],
                          ensure_ascii=True, indent=2))
         return
 
