@@ -18,3 +18,7 @@ Course effect claims require linked completed courses and later outcomes, with a
 ## Status
 
 Phase 21 has started. This document records the initial contract review and acceptance targets. The operator reproduced the Purdue Computer Engineering May 2014 figures through the CLI and supplied the rendered evidence-tool answer after updating the server: 46 of 55 reported destinations in the employed category (83.64%), response coverage of 55 of 59 (93.22%), and insufficient evidence for a cohort-wide rate. This verifies the scoped historical calculation and rendered answer. The operator supplied successful Production trace `nx-893` with one successful result and zero failures after restoring the tracked cohort file to the sparse worktree. The live response retained the cohort, source locator, exact denominators and insufficient-evidence status. This accepts the file-backed historical cohort route. The curriculum and labor-market coverage workstreams remain open.
+
+## JobVision overlap audit
+
+The operator reported 29,587 software/network postings and 313 hardware candidates. IDs were unique within both batches. The 119 IDs shared by the two batches agreed on activation month, job field, and canonical skill set. Counting the shared IDs once yields 29,781 distinct posting IDs for these two audited batches. This denominator applies to the audited union only. The live split by recorded-skill availability still requires the updated pooled audit.
