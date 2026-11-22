@@ -20,4 +20,8 @@ A small acceptance source can be transcribed from the previously reviewed course
 
 ## Predeployment verification
 
-The automated suite covers existing chat and the complete receive, review, approve, publish and query lifecycle in one app instance for CSV, JSON and API input. The JavaScript interface also completed both acceptance scenarios over a running local HTTP server with a DOM test runner and a simulated Elasticsearch client. Main-environment browser and Elasticsearch acceptance remain pending.
+The automated suite covers existing chat and the complete receive, review, approve, publish and query lifecycle in one app instance for CSV, JSON and API input. The JavaScript interface also completed both acceptance scenarios over a running local HTTP server with a DOM test runner and a simulated Elasticsearch client. Main-environment acceptance is recorded below.
+
+## Main-environment results
+
+The operator supplied the response from the Persian UI after publishing `fpga-courses-p17`. The UI selected the fresh ID and returned VHDL in two of three rows, with Georgia Tech ECE 2031 and Johns Hopkins 525.677.81 as the mapped courses. This matches the expected uploaded-dataset response. The live response with the dataset ID blank and the existing FPGA evidence selected remains pending.
