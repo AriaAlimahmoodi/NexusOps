@@ -1,5 +1,7 @@
 """Local Persian UI for existing and newly published datasets."""
+import os
 import re
+from urllib.parse import urlsplit
 from collections import OrderedDict
 from pathlib import Path
 from threading import Lock
@@ -7,6 +9,7 @@ from time import monotonic
 from typing import Literal
 from uuid import uuid4
 
+import httpx
 from elasticsearch import ApiError, ConflictError, NotFoundError
 from elastic_transport import TransportError
 from fastapi import FastAPI, HTTPException, Request
@@ -82,7 +85,38 @@ def elasticsearch_client():
     return get_elasticsearch_client()
 
 
+def ask_n8n(url, question):
+    session_id = uuid4().hex
+    try:
+        response = httpx.post(url, json={
+            "action": "sendMessage", "chatInput": question, "sessionId": session_id,
+        }, timeout=300, follow_redirects=False)
+        response.raise_for_status()
+        payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(502, "گردش‌کار n8n پاسخ قابل خواندن برنگرداند.") from None
+    if isinstance(payload, list) and len(payload) == 1:
+        payload = payload[0]
+    if not isinstance(payload, dict):
+        raise HTTPException(502, "ساختار پاسخ n8n معتبر نیست.")
+    output = payload.get("output") or payload.get("text")
+    if not isinstance(output, str) or not output.strip():
+        raise HTTPException(502, "متن پاسخ در خروجی n8n پیدا نشد.")
+    return {"answer": output, "evidence": {
+        "n8n_session_id": session_id, "trace_id": payload.get("traceId"),
+        "successful_results": payload.get("successfulResults"),
+        "failed_results": payload.get("failedResults"),
+    }}
+
+
 def create_app(client_factory=elasticsearch_client):
+    n8n_url = os.getenv("NEXUSOPS_N8N_CHAT_URL", "").strip()
+    if n8n_url:
+        endpoint = urlsplit(n8n_url)
+        if (endpoint.scheme not in {"http", "https"} or not endpoint.hostname
+                or endpoint.username or endpoint.password or endpoint.fragment
+                or not endpoint.path.startswith("/webhook/") or not endpoint.path.endswith("/chat")):
+            raise ValueError("NEXUSOPS_N8N_CHAT_URL must be a Production chat URL.")
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver"])
     app.mount("/assets", StaticFiles(directory=STATIC), name="assets")
@@ -183,6 +217,8 @@ def create_app(client_factory=elasticsearch_client):
                 lessons = {f"{row['course_name']} ({row['course_id']})" for row in rows}
                 summary = "\n".join(sorted(lessons)) if lessons else "برای این مهارت شاهد درسی پیدا نشد."
                 return {"answer": summary, "evidence": {"courses": rows}}
+            if n8n_url:
+                return ask_n8n(n8n_url, question)
             if uses_local_evidence(question):
                 result = answer(None, question)
             else:
