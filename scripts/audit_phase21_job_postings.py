@@ -12,6 +12,33 @@ SOURCE_FAMILIES = {
 }
 
 
+def fingerprint(row):
+    skills = row.get("skills")
+    normalized = (tuple(sorted({value.strip().casefold() for value in skills
+                                if isinstance(value, str) and value.strip()}))
+                  if isinstance(skills, (list, tuple)) else None)
+    return row.get("activation_month"), row.get("job_field"), normalized
+
+
+def compare(left, right):
+    counts = Counter()
+    for identifier in left.keys() & right.keys():
+        if len(left[identifier]) != 1 or len(right[identifier]) != 1:
+            counts["ambiguous_within_batch"] += 1
+            continue
+        lhs, rhs = next(iter(left[identifier])), next(iter(right[identifier]))
+        if lhs == rhs and all(value is not None and value != "" for value in lhs):
+            counts["all_compared_fields_equal"] += 1
+        for name, a, b in zip(("activation_month", "job_field", "skills"), lhs, rhs):
+            if a is None or b is None or a == "" or b == "":
+                counts[f"{name}_missing"] += 1
+            elif a != b:
+                counts[f"{name}_different"] += 1
+            else:
+                counts[f"{name}_equal"] += 1
+    return dict(sorted(counts.items()))
+
+
 def audit(rows):
     batches = {}
     invalid = Counter()
@@ -24,11 +51,11 @@ def audit(rows):
             invalid["missing_identity"] += 1
             continue
         group = batches.setdefault((source, batch), {
-            "ids": set(), "documents": 0, "documents_with_skills": 0,
+            "ids": defaultdict(set), "documents": 0, "documents_with_skills": 0,
             "documents_with_title": 0, "months": set(), "categories": Counter(),
         })
         group["documents"] += 1
-        group["ids"].add(posting)
+        group["ids"][posting].add(fingerprint(row))
         skills = row.get("skills")
         if isinstance(skills, (tuple, list)) and any(isinstance(x, str) and x.strip() for x in skills):
             group["documents_with_skills"] += 1
@@ -65,7 +92,8 @@ def audit(rows):
             rhs = batches[right]["ids"]
             overlap.append({"source": source, "left_source": left[0], "left_batch": left[1],
                             "right_source": right[0], "right_batch": right[1],
-                            "matching_posting_ids": len(lhs & rhs)})
+                            "matching_posting_ids": len(lhs.keys() & rhs.keys()),
+                            "field_comparison": compare(lhs, rhs)})
     return {
         "batches": inventory,
         "excluded_documents": dict(invalid),
