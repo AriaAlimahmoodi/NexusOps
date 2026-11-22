@@ -85,6 +85,32 @@ def elasticsearch_client():
     return get_elasticsearch_client()
 
 
+CATALOG_QUESTIONS = {"فهرست دروس", "فهرست درس‌ها", "فهرست دروس کاتالوگ"}
+
+
+def is_course_discovery(question):
+    return question.rstrip("؟? .") in CATALOG_QUESTIONS or bool(COURSE_SKILL_QUESTION.fullmatch(question))
+
+
+def discover_courses(client, question):
+    if question.rstrip("؟? .") in CATALOG_QUESTIONS:
+        hits = scan(client, index=get_dataset_index("curriculum_catalog", "real"),
+                    query={"query": {"term": {"data_classification": "real"}}},
+                    allow_partial_search_results=False)
+        rows = sorted((hit["_source"] for hit in hits),
+                      key=lambda row: (row["program_id"], row["course_id"], row["collection_batch"]))
+        titles = {row["course_name"] for row in rows}
+    else:
+        skill = COURSE_SKILL_QUESTION.fullmatch(question)["skill"]
+        try:
+            rows = search(client, skill)
+        except NotFoundError:
+            rows = []
+        titles = {f"{row['course_name']} ({row['course_id']})" for row in rows}
+    summary = "\n".join(sorted(titles)) if titles else "شاهد درسی مرتبط پیدا نشد."
+    return {"answer": summary, "evidence": {"courses": rows}}
+
+
 def ask_n8n(url, question):
     session_id = uuid4().hex
     loopback = urlsplit(url).hostname in {"localhost", "127.0.0.1", "::1"}
@@ -115,6 +141,7 @@ def ask_n8n(url, question):
         "n8n_session_id": session_id, "trace_id": payload.get("traceId"),
         "successful_results": payload.get("successfulResults"),
         "failed_results": payload.get("failedResults"),
+        **(payload["evidence"] if isinstance(payload.get("evidence"), dict) else {}),
     }}
 
 
@@ -206,28 +233,11 @@ def create_app(client_factory=elasticsearch_client):
             if request.dataset_id:
                 with client_factory() as client:
                     return datasets.answer_dataset(client, request.dataset_id, question)
-            if question.rstrip("؟? .") in {"فهرست دروس", "فهرست درس‌ها", "فهرست دروس کاتالوگ"}:
-                with client_factory() as client:
-                    hits = scan(client, index=get_dataset_index("curriculum_catalog", "real"),
-                                query={"query": {"term": {"data_classification": "real"}}},
-                                allow_partial_search_results=False)
-                    rows = sorted((hit["_source"] for hit in hits),
-                                  key=lambda row: (row["program_id"], row["course_id"], row["collection_batch"]))
-                titles = sorted({row["course_name"] for row in rows})
-                return {"answer": "\n".join(titles) if titles else "درسی در کاتالوگ واقعی پیدا نشد.",
-                        "evidence": {"courses": rows}}
-            course_query = COURSE_SKILL_QUESTION.fullmatch(question)
-            if course_query:
-                with client_factory() as client:
-                    try:
-                        rows = search(client, course_query["skill"])
-                    except NotFoundError:
-                        rows = []
-                lessons = {f"{row['course_name']} ({row['course_id']})" for row in rows}
-                summary = "\n".join(sorted(lessons)) if lessons else "برای این مهارت شاهد درسی پیدا نشد."
-                return {"answer": summary, "evidence": {"courses": rows}}
             if n8n_url:
                 return ask_n8n(n8n_url, question)
+            if is_course_discovery(question):
+                with client_factory() as client:
+                    return discover_courses(client, question)
             if uses_local_evidence(question):
                 result = answer(None, question)
             else:
