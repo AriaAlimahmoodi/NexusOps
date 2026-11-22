@@ -24,4 +24,8 @@ The automated suite covers existing chat and the complete receive, review, appro
 
 ## Main-environment results
 
-The operator supplied the response from the Persian UI after publishing `fpga-courses-p17`. The UI selected the fresh ID and returned VHDL in two of three rows, with Georgia Tech ECE 2031 and Johns Hopkins 525.677.81 as the mapped courses. This matches the expected uploaded-dataset response. The live response with the dataset ID blank and the existing FPGA evidence selected remains pending.
+The operator supplied the response from the Persian UI after publishing `fpga-courses-p17`. The UI selected the fresh ID and returned VHDL in two of three rows, with Georgia Tech ECE 2031 and Johns Hopkins 525.677.81 as the mapped courses. This matches the expected uploaded-dataset response. The operator also supplied the live response with the existing FPGA evidence selected. The UI returned VHDL in 87 of 120 postings and Johns Hopkins 525.677.81, plus the expected Verilog count, related course and recommendation. Both original main-environment chat scenarios passed.
+
+### Additional live API acceptance
+
+Use the pinned [JSON source](https://raw.githubusercontent.com/AriaAlimahmoodi/NexusOps/f9129e5897d5076365a1b8c2b279d6ee3de78ec3/tests/fixtures/phase17-fpga-courses-api.json) with `raw.githubusercontent.com` in the API host allowlist and `items` as the records path. Review the `skill` and `course` fields and publish under a fresh ID such as `fpga-api-p17`. In the same process, ask which skill is most frequent. The expected answer is VHDL in two out of three rows with both mapped course titles. The live API acceptance result is pending.
