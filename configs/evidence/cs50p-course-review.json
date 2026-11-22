@@ -1,0 +1,24 @@
+{
+  "version": "cs50p-public-outline-v1",
+  "courses": [
+    {
+      "institution": "Harvard University",
+      "course_id": "CS50P",
+      "course_name": "CS50's Introduction to Programming with Python",
+      "term": "undated public course",
+      "section": null,
+      "source": {
+        "kind": "official_course_description",
+        "version": "Public course site",
+        "url": "https://cs50.harvard.edu/python/",
+        "reviewed_scope": "Official course description. No degree-program membership, term, or credit value was inferred."
+      },
+      "mentions": {
+        "python": {
+          "phrase": "entirely focused on programming with Python",
+          "section": "About this course"
+        }
+      }
+    }
+  ]
+}
