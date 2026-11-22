@@ -28,4 +28,7 @@ The operator supplied the response from the Persian UI after publishing `fpga-co
 
 ### Additional live API acceptance
 
-Use the pinned [JSON source](https://raw.githubusercontent.com/AriaAlimahmoodi/NexusOps/f9129e5897d5076365a1b8c2b279d6ee3de78ec3/tests/fixtures/phase17-fpga-courses-api.json) with `raw.githubusercontent.com` in the API host allowlist and `items` as the records path. Review the `skill` and `course` fields and publish under a fresh ID such as `fpga-api-p17`. In the same process, ask which skill is most frequent. The expected answer is VHDL in two out of three rows with both mapped course titles. The live API acceptance result is pending.
+Use the pinned [JSON source](https://raw.githubusercontent.com/AriaAlimahmoodi/NexusOps/f9129e5897d5076365a1b8c2b279d6ee3de78ec3/tests/fixtures/phase17-fpga-courses-api.json) with `raw.githubusercontent.com` in the API host allowlist and `items` as the records path. Review the `skill` and `course` fields and publish under a fresh ID such as `fpga-api-p17`. In the same process, ask which skill is most frequent. The expected answer is VHDL in two out of three rows with both mapped course titles. The operator supplied the successful live UI result after publishing `fpga-api-p17`. Chat selected the new dataset and returned VHDL in two of three rows, with Georgia Tech ECE 2031 and Johns Hopkins 525.677.81. This matched the pinned API source and confirmed the intake, mapping review, publication and chat flow in the main environment.
+
+
+Phase 17 is closed. The main environment passed both original chat scenarios and the additional live API intake scenario. [Implementation CI](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44999760332).
