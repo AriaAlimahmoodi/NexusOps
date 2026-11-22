@@ -17,4 +17,4 @@ Course effect claims require linked completed courses and later outcomes, with a
 
 ## Status
 
-Phase 21 has started. This document records the initial contract review and acceptance targets. No new datasets or metrics have been accepted.
+Phase 21 has started. This document records the initial contract review and acceptance targets. The operator reproduced the Purdue Computer Engineering May 2014 figures through the CLI and supplied the rendered evidence-tool answer after updating the server: 46 of 55 reported destinations in the employed category (83.64%), response coverage of 55 of 59 (93.22%), and insufficient evidence for a cohort-wide rate. This verifies the scoped historical calculation and rendered answer. A successful Production trace for this query was not supplied. The curriculum and labor-market coverage workstreams remain open.
