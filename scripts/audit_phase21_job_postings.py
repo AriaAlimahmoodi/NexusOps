@@ -90,10 +90,27 @@ def audit(rows):
         for left, right in combinations(batch_ids, 2):
             lhs = batches[left]["ids"]
             rhs = batches[right]["ids"]
+            comparison = compare(lhs, rhs)
+            shared = len(lhs.keys() & rhs.keys())
+            comparable = (source == "JobVision" and {left[0], right[0]} == SOURCE_FAMILIES.keys()
+                          and comparison.get("all_compared_fields_equal", 0) == shared
+                          and all(group["documents"] == len(group["ids"])
+                                  for group in (batches[left], batches[right])))
+            pooled = None
+            if comparable:
+                unique = {**lhs, **rhs}
+                with_skills = sum(bool(next(iter(values))[2]) for values in unique.values())
+                pooled = {
+                    "unique_posting_ids": len(unique),
+                    "with_recorded_skills": with_skills,
+                    "without_recorded_skills": len(unique) - with_skills,
+                    "scope": "Two compared JobVision batches only",
+                }
             overlap.append({"source": source, "left_source": left[0], "left_batch": left[1],
                             "right_source": right[0], "right_batch": right[1],
-                            "matching_posting_ids": len(lhs.keys() & rhs.keys()),
-                            "field_comparison": compare(lhs, rhs)})
+                            "matching_posting_ids": shared,
+                            "field_comparison": comparison,
+                            "pooled_denominators": pooled})
     return {
         "batches": inventory,
         "excluded_documents": dict(invalid),
