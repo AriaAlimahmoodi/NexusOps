@@ -1,4 +1,6 @@
 """Local Persian UI for existing and newly published datasets."""
+import json
+import re
 from collections import OrderedDict
 from pathlib import Path
 from threading import Lock
@@ -14,10 +16,19 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from elasticsearch.helpers import scan
+
+from scripts.plan_phase19_migration import plan
+from scripts.publish_phase19_evidence import REVIEW, publish, records_from, search
 from tools.computational_engine.service import answer, uses_local_evidence
 from tools.persian_ui import datasets
 
 STATIC = Path(__file__).with_name("static")
+PUBLICATION_LOCK = Lock()
+COURSE_SKILL_QUESTION = re.compile(
+    r"کدام\s+درس[\s‌-]*ها(?:یی?)?\s+(?P<skill>.+?)\s+(?:را\s+)?"
+    r"(?:آموزش\s+می[\s‌-]*دهند|تدریس\s+می[\s‌-]*کنند)\s*[؟?]?"
+)
 
 
 class ApiSource(BaseModel):
@@ -123,13 +134,25 @@ def create_app(client_factory=elasticsearch_client):
     def publish_dataset(request: Approval):
         dataset_id, document = reviews.get(request.review_id)
         try:
-            with client_factory() as client:
-                datasets.publish(client, dataset_id, document)
+            with client_factory() as client, PUBLICATION_LOCK:
+                review = json.loads(REVIEW.read_text(encoding="utf-8"))
+                candidate = {"_id": dataset_id, "_source": document}
+                eligible = records_from(plan([candidate], review))
+                try:
+                    datasets.publish(client, dataset_id, document)
+                except ConflictError:
+                    if not eligible or client.get(index=datasets.INDEX, id=dataset_id)["_source"] != document:
+                        raise
+                if eligible:
+                    hits = scan(client, index=datasets.INDEX, allow_partial_search_results=False,
+                                query={"query": {"match_all": {}}})
+                    publish(client, records_from(plan(hits, review)))
         except ConflictError:
             raise HTTPException(409, "این شناسه قبلاً منتشر شده است. برای نسخهٔ تازه شناسهٔ دیگری انتخاب کنید.") from None
-        except (ApiError, TransportError):
+        except (ApiError, TransportError, RuntimeError):
             raise HTTPException(502, "انتشار در Elasticsearch تأیید نشد. وضعیت اتصال و دسترسی را بررسی کنید.") from None
-        return {"dataset_id": dataset_id, "row_count": document["row_count"]}
+        return {"dataset_id": dataset_id, "row_count": document["row_count"],
+                **({"shared_search": True} if eligible else {})}
 
     @app.post("/api/chat")
     def chat(request: ChatQuestion):
@@ -140,6 +163,16 @@ def create_app(client_factory=elasticsearch_client):
             if request.dataset_id:
                 with client_factory() as client:
                     return datasets.answer_dataset(client, request.dataset_id, question)
+            course_query = COURSE_SKILL_QUESTION.fullmatch(question)
+            if course_query:
+                with client_factory() as client:
+                    try:
+                        rows = search(client, course_query["skill"])
+                    except NotFoundError:
+                        rows = []
+                lessons = {f"{row['course_name']} ({row['course_id']})" for row in rows}
+                summary = "\n".join(sorted(lessons)) if lessons else "برای این مهارت شاهد درسی پیدا نشد."
+                return {"answer": summary, "evidence": {"courses": rows}}
             if uses_local_evidence(question):
                 result = answer(None, question)
             else:
