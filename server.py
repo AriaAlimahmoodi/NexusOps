@@ -238,6 +238,24 @@ async def top_skill_gaps_tool(ctx: Context, limit: int = 10) -> str:
 
 
 def _skill_evidence(question):
+    if question.strip().rstrip("؟? .") == "وضعیت اشتغال فارغ‌التحصیلان مهندسی کامپیوتر Purdue در مه ۲۰۱۴":
+        from tools.computational_engine.graduate_outcomes import summarize
+
+        path = Path(__file__).resolve().parent / "configs/evidence/purdue-cmpe-may-2014-outcomes.json"
+        result = summarize(json.loads(path.read_text(encoding="utf-8")))
+        share = result["published_employed_destination_share"]
+        coverage = result["response_coverage_pct"]
+        return {
+            "answer": (
+                f"در پیمایش مقصد نخست فارغ‌التحصیلان مهندسی کامپیوتر Purdue در مه ۲۰۱۴، "
+                f"{share['numerator']} از {share['denominator']} مقصد گزارش‌شده "
+                f"({share['percent']:.2f}٪) در دستهٔ اشتغال ثبت شد. "
+                f"پوشش پاسخ {result['reported_total']} از {result['cohort_total']} نفر "
+                f"({coverage:.2f}٪) بود. برای نرخ قطعی کل جامعه شواهد کافی نیست."
+            ),
+            "evidence": result,
+        }
+
     from tools.computational_engine.service import answer, uses_local_evidence
     from tools.persian_ui.app import discover_courses, is_course_discovery
     if is_course_discovery(question):
