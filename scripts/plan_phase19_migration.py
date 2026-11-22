@@ -1,6 +1,7 @@
 """Inspect Phase 17 publications before admitting rows to shared search."""
 import argparse
 import json
+import os
 import unicodedata
 from pathlib import Path
 
@@ -12,6 +13,16 @@ from tools.persian_ui.datasets import INDEX, SCHEMA
 
 # This label was used in the Phase 17 acceptance input.
 REVIEWED_LABELS = {"johns hopkins 525.677.81": "johns hopkins university 525.677.81"}
+
+
+def load_reviews(base_path):
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    additional = os.getenv("NEXUSOPS_ADDITIONAL_COURSE_REVIEW")
+    if additional:
+        review = json.loads(Path(additional).read_text(encoding="utf-8"))
+        base["courses"].extend({**course, "review_version": review["version"]}
+                               for course in review["courses"])
+    return base
 
 
 def match_review(candidate, review):
@@ -29,7 +40,7 @@ def match_review(candidate, review):
     candidate["reviewed_evidence"] = {
         "institution": course["institution"], "course_id": course["course_id"],
         "course_name": course["course_name"], "term": course["term"],
-        "section": course.get("section"), "review_version": review["version"],
+        "section": course.get("section"), "review_version": course.get("review_version", review["version"]),
         "source": course["source"], "mention": assessment["evidence"],
     }
 
@@ -95,7 +106,7 @@ def main():
     parser.add_argument("--output", required=True, help="Path for the UTF-8 migration plan")
     parser.add_argument("--review", type=Path, help="Reviewed syllabus JSON for evidence matching")
     args = parser.parse_args()
-    review = json.loads(args.review.read_text(encoding="utf-8")) if args.review else None
+    review = load_reviews(args.review) if args.review else None
 
     from elasticsearch.helpers import scan
 
