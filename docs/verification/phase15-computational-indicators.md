@@ -58,4 +58,17 @@ Tested implementation: [e4f3d14](https://github.com/AriaAlimahmoodi/NexusOps/com
 
 The user ran the Phase 15 CLI against the original JobVision CSV and supplied the VHDL trace summary. It reported `verified_rows`, 120 denominator row IDs and 87 matching row IDs (72.5%). The first five matching RowNumber values printed were 369, 1130, 1175, 2043 and 2299. This reproduces the live VHDL numerator and denominator using the raw posting identities.
 
-The engine meets the Phase 15 acceptance criteria for manual agreement and evidence traceability. The published pilot still reports null competency gaps and ranks until a program-specific target and referenced assessments are supplied.
+The engine meets the Phase 15 acceptance criteria for manual agreement and evidence traceability. The aggregate-only run reported null competency gaps and ranks. The course-scoped run below adds reviewed targets and assessments.
+
+## Final live competency gap acceptance
+
+The user supplied the active n8n chat response and MCP trace `nx-867` for «شاخص‌های مهارت FPGA را نشان بده». The execution completed on 2026-11-22 at 07:02:39 UTC in 5.146 ms. The response identified Johns Hopkins University course 525.677.81, Fall 2026, and cited `configs/evidence/jhu-525.677.81-assessments.json`.
+
+| Skill | Verified JobVision matches | Gap score | Rank |
+| --- | ---: | ---: | ---: |
+| MATLAB | 42 of 120 | 0 | 1 |
+| VHDL | 87 of 120 | 0 | 2 |
+
+Both rows returned `verified_rows` and agreed with the prior CLI run. The ranks follow the documented canonical skill ID tie-breaker. FPGA, Verilog and SystemVerilog returned null scores and ranks because the reviewed course assessment covers MATLAB and VHDL.
+
+Phase 15 is closed for the documented pilot scope. Backend [e1bee428](https://github.com/AriaAlimahmoodi/NexusOps/commit/e1bee42815d06f6e32f40056a259962cd5f9ccb5) passed [CI](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44963088632).
