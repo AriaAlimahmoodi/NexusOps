@@ -1,0 +1,241 @@
+{
+  "institution": "University of Tehran",
+  "institution_evidence": "Confirmed by the user for the supplied chart image.",
+  "major": "Computer Engineering",
+  "level": "Bachelor",
+  "chart_version": "user-image-reviewed-v1",
+  "official_edition": null,
+  "entry_year": null,
+  "course_ids": "Local transcription identifiers",
+  "source": "User-supplied images.png",
+  "review_limit": "Partial transcription of readable named courses and clear arrows. No course-specific credits, requirement status or complete degree total inferred.",
+  "courses": [
+    {
+      "id": "UTIMG-1-1",
+      "term": 1,
+      "name": "فیزیک ۱"
+    },
+    {
+      "id": "UTIMG-1-2",
+      "term": 1,
+      "name": "ریاضی عمومی ۱"
+    },
+    {
+      "id": "UTIMG-1-3",
+      "term": 1,
+      "name": "کارگاه کامپیوتر"
+    },
+    {
+      "id": "UTIMG-1-4",
+      "term": 1,
+      "name": "مبانی کامپیوتر و برنامه‌سازی"
+    },
+    {
+      "id": "UTIMG-1-5",
+      "term": 1,
+      "name": "زبان انگلیسی"
+    },
+    {
+      "id": "UTIMG-2-1",
+      "term": 2,
+      "name": "فیزیک ۲"
+    },
+    {
+      "id": "UTIMG-2-2",
+      "term": 2,
+      "name": "ریاضی عمومی ۲"
+    },
+    {
+      "id": "UTIMG-2-3",
+      "term": 2,
+      "name": "کارگاه عمومی"
+    },
+    {
+      "id": "UTIMG-2-4",
+      "term": 2,
+      "name": "مدارهای منطقی"
+    },
+    {
+      "id": "UTIMG-2-5",
+      "term": 2,
+      "name": "برنامه‌سازی پیشرفته"
+    },
+    {
+      "id": "UTIMG-2-6",
+      "term": 2,
+      "name": "ریاضیات گسسته"
+    },
+    {
+      "id": "UTIMG-3-1",
+      "term": 3,
+      "name": "زبان فارسی"
+    },
+    {
+      "id": "UTIMG-3-2",
+      "term": 3,
+      "name": "آزمایشگاه فیزیک ۲"
+    },
+    {
+      "id": "UTIMG-3-3",
+      "term": 3,
+      "name": "معادلات دیفرانسیل"
+    },
+    {
+      "id": "UTIMG-3-4",
+      "term": 3,
+      "name": "آزمایشگاه مدارهای منطقی"
+    },
+    {
+      "id": "UTIMG-3-5",
+      "term": 3,
+      "name": "معماری کامپیوتر"
+    },
+    {
+      "id": "UTIMG-3-6",
+      "term": 3,
+      "name": "ساختمان داده‌ها و الگوریتم‌ها"
+    },
+    {
+      "id": "UTIMG-3-7",
+      "term": 3,
+      "name": "زبان تخصصی کامپیوتر"
+    },
+    {
+      "id": "UTIMG-4-1",
+      "term": 4,
+      "name": "آمار و احتمال مهندسی"
+    },
+    {
+      "id": "UTIMG-4-2",
+      "term": 4,
+      "name": "مدارهای الکتریکی و الکترونیکی"
+    },
+    {
+      "id": "UTIMG-4-3",
+      "term": 4,
+      "name": "آزمایشگاه معماری کامپیوتر"
+    },
+    {
+      "id": "UTIMG-4-4",
+      "term": 4,
+      "name": "طراحی سیستم‌های دیجیتال"
+    },
+    {
+      "id": "UTIMG-4-5",
+      "term": 4,
+      "name": "جبر خطی"
+    },
+    {
+      "id": "UTIMG-4-6",
+      "term": 4,
+      "name": "نظریه زبان‌ها و ماشین‌ها"
+    },
+    {
+      "id": "UTIMG-5-1",
+      "term": 5,
+      "name": "هوش مصنوعی"
+    },
+    {
+      "id": "UTIMG-5-2",
+      "term": 5,
+      "name": "آزمایشگاه مدارهای الکتریکی و الکترونیکی"
+    },
+    {
+      "id": "UTIMG-5-3",
+      "term": 5,
+      "name": "سیستم‌های عامل"
+    },
+    {
+      "id": "UTIMG-5-4",
+      "term": 5,
+      "name": "روش پژوهش و ارائه"
+    },
+    {
+      "id": "UTIMG-6-1",
+      "term": 6,
+      "name": "آزمایشگاه سیستم‌های عامل"
+    },
+    {
+      "id": "UTIMG-6-2",
+      "term": 6,
+      "name": "شبکه‌های کامپیوتری"
+    },
+    {
+      "id": "UTIMG-6-3",
+      "term": 6,
+      "name": "تحلیل و طراحی نرم‌افزار"
+    },
+    {
+      "id": "UTIMG-7-1",
+      "term": 7,
+      "name": "آزمایشگاه شبکه‌های کامپیوتری"
+    },
+    {
+      "id": "UTIMG-7-2",
+      "term": 7,
+      "name": "امنیت سیستم‌های کامپیوتری"
+    },
+    {
+      "id": "UTIMG-7-3",
+      "term": 7,
+      "name": "کارآموزی"
+    },
+    {
+      "id": "UTIMG-8-1",
+      "term": 8,
+      "name": "دانش خانواده و جمعیت"
+    },
+    {
+      "id": "UTIMG-8-2",
+      "term": 8,
+      "name": "پروژه کارشناسی"
+    }
+  ],
+  "relations": [
+    {
+      "from": "UTIMG-1-2",
+      "to": "UTIMG-2-2",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-1-1",
+      "to": "UTIMG-2-1",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-2-1",
+      "to": "UTIMG-3-2",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-1-4",
+      "to": "UTIMG-2-5",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-2-4",
+      "to": "UTIMG-3-4",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-2-4",
+      "to": "UTIMG-3-5",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-3-5",
+      "to": "UTIMG-4-3",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-5-3",
+      "to": "UTIMG-6-1",
+      "relation": "prerequisite"
+    },
+    {
+      "from": "UTIMG-6-2",
+      "to": "UTIMG-7-1",
+      "relation": "prerequisite"
+    }
+  ]
+}
