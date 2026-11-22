@@ -6,6 +6,12 @@ from pathlib import Path
 import argparse
 
 
+SOURCE_FAMILIES = {
+    "JobVision job postings": "JobVision",
+    "JobVision hardware role candidates": "JobVision",
+}
+
+
 def audit(rows):
     batches = {}
     invalid = Counter()
@@ -39,7 +45,7 @@ def audit(rows):
     by_source = defaultdict(list)
     inventory = []
     for (source, batch), group in sorted(batches.items()):
-        by_source[source].append(batch)
+        by_source[SOURCE_FAMILIES.get(source, source)].append((source, batch))
         inventory.append({
             "source": source, "batch": batch, "documents": group["documents"],
             "unique_ids_within_batch": len(group["ids"]),
@@ -55,9 +61,10 @@ def audit(rows):
     overlap = []
     for source, batch_ids in sorted(by_source.items()):
         for left, right in combinations(batch_ids, 2):
-            lhs = batches[source, left]["ids"]
-            rhs = batches[source, right]["ids"]
-            overlap.append({"source": source, "left_batch": left, "right_batch": right,
+            lhs = batches[left]["ids"]
+            rhs = batches[right]["ids"]
+            overlap.append({"source": source, "left_source": left[0], "left_batch": left[1],
+                            "right_source": right[0], "right_batch": right[1],
                             "matching_posting_ids": len(lhs & rhs)})
     return {
         "batches": inventory,
