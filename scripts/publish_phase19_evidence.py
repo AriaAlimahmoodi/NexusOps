@@ -7,7 +7,7 @@ from pathlib import Path
 from elasticsearch import ConflictError
 from elasticsearch.helpers import scan
 
-from scripts.plan_phase19_migration import plan
+from scripts.plan_phase19_migration import load_reviews, plan
 from tools.computational_engine.skill_ids import canonical
 from tools.persian_ui.datasets import INDEX
 
@@ -93,7 +93,7 @@ def main():
 
     with get_elasticsearch_client() as client:
         if args.publish:
-            review = json.loads(REVIEW.read_text(encoding="utf-8"))
+            review = load_reviews(REVIEW)
             hits = scan(client, index=INDEX, allow_partial_search_results=False,
                         query={"query": {"match_all": {}}})
             result = publish(client, records_from(plan(hits, review)))
