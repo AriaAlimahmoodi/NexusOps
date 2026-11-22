@@ -239,6 +239,11 @@ async def top_skill_gaps_tool(ctx: Context, limit: int = 10) -> str:
 
 def _skill_evidence(question):
     from tools.computational_engine.service import answer, uses_local_evidence
+    from tools.persian_ui.app import discover_courses, is_course_discovery
+    if is_course_discovery(question):
+        from config import get_elasticsearch_client
+        with get_elasticsearch_client() as client:
+            return discover_courses(client, question)
     if uses_local_evidence(question):
         return answer(None, question)
     from config import get_elasticsearch_client
