@@ -1,0 +1,27 @@
+{
+  "data_classification": "real",
+  "scope": {
+    "institution": "Purdue University",
+    "major": "Computer Engineering",
+    "survey_cohort": "May 2014",
+    "measure": "Reported first-destination category",
+    "follow_up_months": null
+  },
+  "source": {
+    "title": "May 2014 First Destination Survey",
+    "url": "https://www.cco.purdue.edu/Files/Uploaded/2014outcome.pdf",
+    "locator": "Engineering table, Computer Engineering row",
+    "note": "The published row gives 55 reported destinations and 4 nonresponses. The report row does not specify the follow-up window or concurrent employment."
+  },
+  "counts": {
+    "employed": 46,
+    "continuing_education": 7,
+    "seeking_employment": 0,
+    "seeking_education": 0,
+    "not_seeking": 1,
+    "other": 1
+  },
+  "reported_total": 55,
+  "no_response": 4,
+  "cohort_total": 59
+}
