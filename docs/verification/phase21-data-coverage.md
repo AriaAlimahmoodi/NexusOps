@@ -22,3 +22,13 @@ Phase 21 has started. This document records the initial contract review and acce
 ## JobVision overlap audit
 
 The operator reported 29,587 software/network postings and 313 hardware candidates. IDs were unique within both batches. The 119 IDs shared by the two batches agreed on activation month, job field, and canonical skill set. Counting the shared IDs once yields 29,781 distinct posting IDs for these two audited batches. This denominator applies to the audited union only. The operator ran the updated pooled audit and verified 29,781 unique posting IDs, 23,696 with recorded skills, and 6,085 without recorded skills. This accepts the live denominator reconciliation for these two batches. The validated counts are denominators, not skill-specific demand numerators.
+
+## Live curriculum and alignment acceptance
+
+The operator supplied the live curriculum/alignment audit from 8431a52. The real catalog contained 132 memberships in four BS program snapshots: Georgia Tech Computer Engineering 33, Illinois Computer Engineering 67, Purdue Computer Engineering 17, and Webster Computer Science 15. The snapshots contained 67 required memberships, all with recorded credits. In 127 catalog memberships the skills field contained no recorded skills. Separate syllabus statements can supply additional verified skills. The snapshots establish the registered scope, not complete degree inventories or coverage beyond the bachelor's level.
+
+The three Computer Engineering programs compared against two market batches yielded 234 course/batch comparisons: 3 computed and 231 insufficient-evidence results. Georgia Tech ECE 2031 matched all three documented skills in the 313-posting hardware candidate batch (assembly language 5, FPGA 120, VHDL 88). The VHDL count is for this broader 313-posting scope. Purdue ECE 20875 matched its one scored skill, Python, in 29 of 313 hardware candidates and 1,745 of 29,587 software/network postings. These are observed skill-match results, not effectiveness or employment measures.
+
+For Illinois ECE 385, the reviewed course description lists SystemVerilog, but no match was captured in the hardware candidate batch. The live report withheld a score and recommended reviewing role scope and skill capture before proposing curriculum changes. This accepts evidence-aware ranking and review decisions within published scopes.
+
+The live checks are complete for the existing catalog, scoped alignment, audited JobVision denominators, and historical Purdue outcomes. Real curriculum expansion to additional institutions and levels remains outstanding. No additional live access was needed to verify this report.
