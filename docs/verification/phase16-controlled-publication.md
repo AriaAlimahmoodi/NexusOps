@@ -29,3 +29,11 @@ Run the Phase 16 MCP server against the same Elasticsearch instance and import a
 | با شواهد منتشرشده FPGA آیا کمبود تقاضای SystemVerilog قطعی است؟ | Insufficient evidence. Zero recorded mentions in the available fields, job descriptions unavailable for all 120 postings, and no documented SystemVerilog assessment in the selected course. |
 
 Record the publication receipt and the two live execution IDs with their responses. Run with no attachment or API request from the chat user.
+
+### Live results
+
+Both active n8n chat responses supplied by the operator matched the acceptance table. The first cited VHDL in 87 of 120 postings, Johns Hopkins 525.677.81, Verilog in 52 of 120 postings and 1 of 5 course documents, and Boston University ENG EC 551. It proposed reviewing complete syllabi and graded coursework. The second explicitly reported insufficient evidence about SystemVerilog demand or the course gap, citing the absence of descriptions for all 120 postings and the lack of a documented assessment in the selected course.
+
+MCP trace `nx-869` on 2026-11-22 at 07:34:19 UTC recorded HTTP 200 for `GET /nexusops_real_fpga_evidence/_doc/fpga`. The tool completed in 40.341 ms. The operator supplied both responses and one MCP trace. The publication receipt and individual n8n execution IDs were not supplied.
+
+The two live acceptance scenarios passed and Phase 16 is closed for this pilot. The Elasticsearch client emitted a warning that TLS certificate verification was disabled in the test environment. The backend commit [5fd5736](https://github.com/AriaAlimahmoodi/NexusOps/commit/5fd5736dd6d8cb2d3172bafccf83aa66f9050fd1) passed [CI](https://github.com/AriaAlimahmoodi/NexusOps/actions/runs/44997391049).
