@@ -12,3 +12,9 @@ The operator supplied the successful read-only inventory from the main Elasticse
 | Persian chat | Move the public UI to the operational n8n and MCP path in Phase 20. Use a shared execution identifier and verify from the UI through Elasticsearch. |
 
 Phase 19 starts with canonical publication, real-data discovery, and migration verification. Phase 18 acceptance covers the Elasticsearch inventory. The operator also supplied main-environment n8n execution #871, marked Succeeded on 2026-11-22. The corresponding trace `nx-871` shows a successful `skill_evidence` MCP call and a parsed result for the Python market and curriculum comparison. The Autosave history link identifies a workflow revision. The supplied execution metadata does not establish whether the message entered through the Production URL.
+
+## Production chat acceptance
+
+On 2026-11-22 the operator verified the published chat after resolving a conflicting Chat Trigger registration and correcting corrupted Unicode in the deployed Validate Plan node. The production request returned HTTP 200 and a complete Python market and curriculum comparison matching the earlier successful baseline. This was a separate check from execution #871. The operator supplied the response and status. The production execution number was not supplied.
+
+Phase 18 acceptance is complete for the live inventory and production chat checks.
