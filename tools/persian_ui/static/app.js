@@ -175,10 +175,15 @@ submit("publish-form", async () => {
   status("در حال انتشار…");
   const result = await request("/api/publish", { review_id: reviewId, approved: true });
   invalidateReview();
-  get("dataset").value = result.dataset_id;
-  get("question").placeholder = "مثلاً پرتکرارترین مهارت این دیتاست چیست؟";
+  get("dataset").value = result.shared_search ? "" : result.dataset_id;
+  get("question").placeholder = result.shared_search
+    ? "مثلاً کدام درس‌ها VHDL آموزش می‌دهند؟"
+    : "مثلاً پرتکرارترین مهارت این دیتاست چیست؟";
   status(result.row_count + " ردیف با شناسهٔ " + result.dataset_id + " منتشر شد.");
   show("chat");
-  addMessage("دیتاست «" + result.dataset_id + "» منتشر شد و برای سؤال بعدی انتخاب شده است.", "assistant");
+  const message = result.shared_search
+    ? "شواهد تأییدشدهٔ این دیتاست در جست‌وجوی مشترک در دسترس است."
+    : "دیتاست «" + result.dataset_id + "» منتشر شد و برای سؤال بعدی انتخاب شده است.";
+  addMessage(message, "assistant");
   get("question").focus();
 }, status);
