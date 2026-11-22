@@ -44,10 +44,20 @@ def audit_index(dataset, classification, mappings, hits):
     checks = {field: Counter(passed=0, failed=0, unavailable=0) for field in formulas}
     issues = Counter()
     coverage = Counter()
+    identities = set()
+    identified = 0
+    identity_fields = profile.get("document_id_fields", [])
+    classifications = Counter()
     records = 0
     for hit in hits:
         records += 1
         row = hit["_source"]
+        label = row.get("data_classification", row.get("classification"))
+        classifications[label if label in ("real", "synthetic") else "unknown"] += 1
+        identity = tuple(row.get(field) for field in identity_fields)
+        if identity and all(isinstance(value, (str, int)) and value != "" for value in identity):
+            identities.add(identity)
+            identified += 1
         coverage.update(field for field in expected if row.get(field) is not None)
         _, errors = normalize_real_record(dataset, row, record_id=hit["_id"])
         if classification == "synthetic":
@@ -65,7 +75,10 @@ def audit_index(dataset, classification, mappings, hits):
             except (TypeError, ValueError, OverflowError):
                 passed = False
             checks[field]["passed" if passed else "failed"] += 1
-    return dict(documents=records, mapping_issues=mapping_issues, record_issues=issues,
+    return dict(documents=records, expected_classification=classification,
+                observed_classifications=classifications, identity_fields=identity_fields,
+                identified_records=identified, unique_configured_identities=len(identities) if identity_fields else None,
+                duplicate_identity_records=identified - len(identities) if identity_fields else None, mapping_issues=mapping_issues, record_issues=issues,
                 stored_formula_checks=checks,
                 populated_fields={field: coverage[field] for field in expected})
 
@@ -88,9 +101,46 @@ def audit(client):
     return result
 
 
+def inventory(client):
+    """Inventory indices visible to the audit account and inspect known publications."""
+    from elasticsearch.helpers import scan
+
+    visible = client.indices.get(index="*", allow_no_indices=True, expand_wildcards="open")
+    indices = {
+        name: {"aliases": sorted(metadata.get("aliases", {})),
+               "documents": client.count(index=name)["count"]}
+        for name, metadata in sorted(visible.items())
+    }
+    dynamic = "nexusops_real_dynamic_datasets_v1"
+    publications = {"status": "not_visible"}
+    if dynamic in indices:
+        publications = {"status": "visible", "datasets": []}
+        hits = scan(client, index=dynamic, allow_partial_search_results=False,
+                    query={"_source": ["schema", "classification", "row_count", "data.source.kind",
+                                       "data.source.sha256"], "query": {"match_all": {}}})
+        for hit in hits:
+            source = hit["_source"]
+            origin = source.get("data", {}).get("source", {})
+            publications["datasets"].append({
+                "id": hit["_id"], "schema": source.get("schema"),
+                "declared_classification": source.get("classification"),
+                "rows": source.get("row_count"), "source_kind": origin.get("kind"),
+                "source_sha256": origin.get("sha256"),
+            })
+        publications["datasets"].sort(key=lambda item: item["id"])
+    return {"visible_open_indices": indices, "registered_contracts": audit(client),
+            "dynamic_publications": publications}
+
+
 if __name__ == "__main__":
-    os.environ["ELASTICSEARCH_PASSWORD"] = getpass("Elasticsearch password: ")
+    if not os.getenv("ELASTICSEARCH_PASSWORD"):
+        os.environ["ELASTICSEARCH_PASSWORD"] = getpass("Elasticsearch password: ")
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--inventory", action="store_true", help="Include visible indices and dynamic publications")
+    args = parser.parse_args()
     from config import get_elasticsearch_client
 
     with get_elasticsearch_client() as client:
-        print(json.dumps(audit(client), indent=2))
+        print(json.dumps(inventory(client) if args.inventory else audit(client), indent=2))
