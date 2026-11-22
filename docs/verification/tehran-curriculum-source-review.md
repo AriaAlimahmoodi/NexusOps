@@ -1,6 +1,6 @@
 # University of Tehran curriculum source review
 
-The user supplied a low-resolution eight-semester chart image. Its course names are consistent with a computer engineering undergraduate curriculum. The visible image does not provide a legible institution name, edition, entrance year or course codes. The image remains an unassigned source and is not joined to a program by overlapping titles alone.
+The user supplied a low-resolution eight-semester chart image. Its course names are consistent with a computer engineering undergraduate curriculum. The visible image does not provide a legible institution name, edition, entrance year or course codes. The user subsequently confirmed the institution is University of Tehran. Record the attribution as user-confirmed, with official edition and entrance year unresolved.
 
 | Readable chart observations | Status |
 | --- | --- |
@@ -15,4 +15,4 @@ Sources:
 - https://www.konkurcomputer.ir/چارت-درسی-مهندسی-کامپیوتر-دانشگاه-تهران.html
 - https://github.com/Mohammad-Khoshroo/UT-PLAN — student planning repository with pointers to curriculum documents, recommended charts, and official semester schedules. A semester offering schedule is a different record type from a degree plan.
 
-No new live catalog records were published from the unassigned image.
+The extracted named courses and readable prerequisite arrows are stored in configs/evidence/tehran-cmpe-user-chart-review.json with local IDs. The image evidence was not merged into the 1399 catalog excerpt or published to Elasticsearch.
