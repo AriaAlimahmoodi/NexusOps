@@ -19,7 +19,13 @@ def verify(case, response):
     if not isinstance(trace, str) or not re.fullmatch(r"nx-\d+", trace):
         raise ValueError("Missing n8n execution trace")
     if evidence["successful_results"] != 1 or evidence["failed_results"] != 0:
-        raise ValueError("Expected exactly one successful tool result and zero failures")
+        error = evidence.get("error")
+        code = error.get("code") if isinstance(error, dict) else None
+        raise ValueError(
+            f"{trace}: expected successful=1 and failed=0, "
+            f"got successful={evidence['successful_results']!r}, "
+            f"failed={evidence['failed_results']!r}, tool_error={code!r}"
+        )
     if case == "catalog":
         rows = evidence["courses"]
         titles = response["answer"].splitlines()
