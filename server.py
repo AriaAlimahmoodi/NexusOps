@@ -523,7 +523,7 @@ async def analytics_query_tool(
                 for item in (sort or [])
             ],
             "limit": limit,
-            "options": options or {},
+            "options": {"data_classification": "real", **(options or {})},
         }
 
         logger.info(
