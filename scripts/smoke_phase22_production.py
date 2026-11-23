@@ -35,7 +35,10 @@ def verify(case, response):
                   and titles.count("زبان تخصصی کامپیوتر") == 1
                   and titles.count("برنامه‌سازی پیشرفته") == 1)
     elif case == "vhdl":
-        passed = sorted(row["course_id"] for row in evidence["courses"]) == ["525.677.81", "ECE 2031"]
+        courses = evidence.get("courses")
+        if not isinstance(courses, list):
+            raise ValueError(f"{trace}: missing evidence.courses; check Validate Plan and Compose Final")
+        passed = sorted(row["course_id"] for row in courses) == ["525.677.81", "ECE 2031"]
     elif case == "python":
         result = json.loads(response["answer"])["result"]
         market, education = result["market"], result["education"]
